@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="{% block meta_description %}Quantum Web: Chatbots inteligentes para WhatsApp con IA. Automatiza tu negocio, aumenta tus ventas y optimiza tu tiempo.{% endblock %}">
+    <meta name="keywords" content="chatbots, WhatsApp, inteligencia artificial, automatización, negocios, aumentar ventas">
+    <meta name="author" content="Quantum Web">
+    <title>{% block title %}Quantum Web{% endblock %}</title>
+    <!-- Agregar el favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    <!-- Inicialización del modo oscuro -->
+    <script>
+        (function() {
+            const darkMode = localStorage.getItem('darkMode');
+            if (darkMode === 'true') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="loader">
+        <div class="loader-circle"></div>
+        <p>Cargando el Futuro...</p>
+    </div>
+    <div id="particles-js"></div> <!-- Fondo de partículas global -->
+    <header>
+        <nav class="navbar" role="navigation">
+            <div class="logo">
+                <a href="{{ url_for('index') }}" aria-label="Ir a la página de inicio de Quantum Web">
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Quantum Web Logo" class="logo-image">
+                    <span class="logo-text">Quantum</span>
+                </a>
+            </div>
+            <button class="hamburger menu-toggle" aria-label="Abrir o cerrar el menú de navegación">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('index') }}" aria-label="Ir a la página de inicio">Inicio</a></li>
+                <li><a href="{{ url_for('services') }}" aria-label="Ver nuestros servicios">Servicios</a></li>
+                <li><a href="{{ url_for('chatbot') }}" aria-label="Probar nuestro chatbot">Chatbot IA</a></li>
+                <li><a href="{{ url_for('case_studies') }}" aria-label="Ver nuestros casos de éxito">Potencial IA</a></li>
+                <li><a href="{{ url_for('about') }}" aria-label="Conocer más sobre nosotros">Sobre Nosotros</a></li>
+                <li><a href="{{ url_for('blog') }}" aria-label="Leer nuestro blog">Blog</a></li>
+                <li><a href="{{ url_for('contacto') }}" aria-label="Contactarnos">Contacto</a></li>
+            </ul>            
+        </nav>
+    </header>
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="quantum-footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Quantum Web Logo" class="footer-logo">
+                <p class="footer-tagline">
+                    <span>Inteligencia Artificial</span><br>
+                    <span>Potenciando tu Mundo.</span>
+                </p>
+            </div>
+            <div class="footer-links">
+                <h3>Navegación</h3>
+                <ul>
+                    <li><a href="{{ url_for('index') }}">Inicio</a></li>
+                    <li><a href="{{ url_for('services') }}">Servicios</a></li>
+                    <li><a href="{{ url_for('chatbot') }}">Chatbot IA</a></li>
+                    <li><a href="{{ url_for('case_studies') }}">Potencial IA</a></li>
+                    <li><a href="{{ url_for('about') }}">Sobre Nosotros</a></li>
+                    <li><a href="{{ url_for('contacto') }}">Contacto</a></li>
+                    <li><a href="{{ url_for('blog') }}">Blog</a></li>
+                </ul>
+            </div>
+            <div class="footer-social">
+                <h3>Síguenos</h3>
+                <ul class="social-icons">
+                    <li><a href="https://instagram.com/quantumweb" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a></li>
+                    <li><a href="https://facebook.com/quantumweb" target="_blank" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a></li>
+                    <li><a href="https://threads.net/quantumweb" target="_blank" aria-label="Threads"><i class="fab fa-threads"></i></a></li>
+                    <li><a href="https://x.com/quantumweb" target="_blank" aria-label="X"><i class="fab fa-x-twitter"></i></a></li>
+                </ul>
+            </div>
+            <div class="footer-legal">
+                <h3>Legal</h3>
+                <ul>
+                    <li><a href="{{ url_for('terms') }}">Términos y Condiciones</a></li>
+                    <li><a href="{{ url_for('privacy') }}">Política de Privacidad</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-contact">
+            <h3>¿Tienes Preguntas?</h3>
+            <form action="{{ url_for('contacto') }}" method="POST" class="footer-form" id="footer-contact-form">
+                <!-- Campo oculto para nombre -->
+                <input type="hidden" name="nombre" value="Usuario del Footer">
+                <div class="input-wrapper">
+                    <input type="email" name="email" placeholder="Tu correo electrónico" required class="contact-input">
+                </div>
+                <div class="input-wrapper">
+                    <textarea name="message" placeholder="Escribe tu mensaje" required class="contact-input"></textarea>
+                </div>
+                <button type="submit" class="quantum-btn contact-btn">
+                    <span class="btn-text">Enviar</span>
+                    <span class="btn-loader hidden"></span>
+                    <span class="btn-particles"></span>
+                </button>
+            </form>
+            <div class="form-message hidden" id="footer-form-message">
+                <div class="message-content">
+                    <p id="footer-form-message-text"></p>
+                    <div class="message-particles-container">
+                        <span class="message-particle particle-1"></span>
+                        <span class="message-particle particle-2"></span>
+                        <span class="message-particle particle-3"></span>
+                        <span class="message-particle particle-4"></span>
+                    </div>
+                </div>
+                <div class="message-background"></div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 Quantum Web. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Botón de WhatsApp -->
+    <div class="whatsapp-btn-wrapper">
+        <a href="https://wa.me/+5492216996564" class="whatsapp-btn" target="_blank" aria-label="Contactar por WhatsApp">
+            <i class="fab fa-whatsapp"></i>
+            <span class="whatsapp-tooltip">Chatea con Nosotros</span>
+        </a>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="{{ url_for('static', filename='js/particles.min.js') }}"></script>
+    
+    {% if request.endpoint in ['index', 'services', 'about', 'case_studies', 'contacto', 'chatbot'] %}
+        <script src="{{ url_for('static', filename='js/quantum-three.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/contact.js') }}"></script>
+    {% endif %}
+    <script src="{{ url_for('static', filename='js/footer-contact.js') }}"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init();
+    </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'925a48fb2ce4b023',t:'MTc0Mjg2MjQ3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'925a64e76b908832',t:'MTc0Mjg2MzYxNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'925c6da079b7bf7a',t:'MTc0Mjg4NDk0Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'926d0ec0a995bf8e',t:'MTc0MzA1OTMxNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'926d531afd87adc3',t:'MTc0MzA2MjExNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

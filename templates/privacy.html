@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Quantum | Política de privacidad{% endblock %}
+{% block meta_description %}Conoce la política de privacidad de Quantum Web. Protegemos tus datos mientras usas nuestros servicios de chatbots e inteligencia artificial.{% endblock %}
+
+{% block content %}
+    <section class="about-hero">
+        <div class="about-hero-content">
+            <h1 class="about-title" data-text="Política de Privacidad">Política de Privacidad</h1>
+            <p class="about-subtitle">Cómo protegemos tus datos</p>
+        </div>
+    </section>
+
+    <section class="privacy-section">
+        <div class="privacy-container">
+            <div class="privacy-header">
+                <h2>Última Actualización: 26 de marzo de 2025</h2>
+                <p>Tu privacidad es nuestra prioridad. Lee esta política para entender cómo manejamos tu información.</p>
+            </div>
+
+            <div class="privacy-content">
+                <h3>1. Introducción</h3>
+                <p>En Quantum Web, estamos comprometidos con proteger tu privacidad. Esta Política de Privacidad describe cómo recopilamos, usamos, almacenamos, y protegemos tu información personal mientras utilizas nuestros servicios de chatbots e inteligencia artificial.</p>
+
+                <h3>2. Recopilación de Datos</h3>
+                <p>Recopilamos los siguientes tipos de información:</p>
+                <ul>
+                    <li><strong>Datos que nos proporcionas:</strong> Incluye tu nombre, correo electrónico, número de teléfono, y mensajes que envías a través de nuestros chatbots o formularios.</li>
+                    <li><strong>Datos recopilados automáticamente:</strong> Información técnica como tu dirección IP, tipo de dispositivo, navegador, y patrones de uso, recopilada mediante cookies y tecnologías similares.</li>
+                    <li><strong>Datos de terceros:</strong> Podemos recibir información de socios o plataformas de terceros (como WhatsApp) si integras nuestros servicios con ellos.</li>
+                </ul>
+
+                <h3>3. Uso de Datos</h3>
+                <p>Utilizamos tu información para:</p>
+                <ul>
+                    <li>Proporcionar y personalizar nuestros servicios de chatbots e IA.</li>
+                    <li>Mejorar la funcionalidad y rendimiento de nuestros servicios.</li>
+                    <li>Comunicarnos contigo, incluyendo el envío de notificaciones, actualizaciones, y promociones (si has dado tu consentimiento).</li>
+                    <li>Cumplir con obligaciones legales y proteger nuestros derechos.</li>
+                </ul>
+
+                <h3>4. Compartición de Datos</h3>
+                <p>No vendemos ni alquilamos tu información personal. Podemos compartir tus datos con:</p>
+                <ul>
+                    <li><strong>Proveedores de servicios:</strong> Terceros que nos ayudan a operar nuestros servicios, como proveedores de hosting o análisis de datos, bajo estrictos acuerdos de confidencialidad.</li>
+                    <li><strong>Autoridades legales:</strong> Cuando sea requerido por la ley o para proteger nuestros derechos y seguridad.</li>
+                </ul>
+
+                <h3>5. Seguridad de los Datos</h3>
+                <p>Implementamos medidas de seguridad avanzadas para proteger tu información, incluyendo:</p>
+                <ul>
+                    <li>Cifrado de extremo a extremo para comunicaciones sensibles.</li>
+                    <li>Almacenamiento seguro en servidores que cumplen con normativas internacionales.</li>
+                    <li>Cumplimiento con el Reglamento General de Protección de Datos (GDPR) y otras leyes aplicables.</li>
+                </ul>
+                <p>A pesar de nuestros esfuerzos, ningún sistema es completamente seguro. Te recomendamos tomar medidas adicionales, como usar contraseñas seguras y no compartir información sensible innecesariamente.</p>
+
+                <h3>6. Tus Derechos</h3>
+                <p>Tienes los siguientes derechos sobre tus datos personales:</p>
+                <ul>
+                    <li><strong>Acceso:</strong> Solicitar una copia de los datos que tenemos sobre ti.</li>
+                    <li><strong>Corrección:</strong> Pedir que corrijamos datos inexactos.</li>
+                    <li><strong>Eliminación:</strong> Solicitar la eliminación de tus datos, salvo que estemos obligados a retenerlos por motivos legales.</li>
+                    <li><strong>Oposición:</strong> Oponerte al uso de tus datos para ciertos fines, como marketing directo.</li>
+                    <li><strong>Portabilidad:</strong> Solicitar que transfiramos tus datos a otro proveedor.</li>
+                </ul>
+                <p>Para ejercer estos derechos, contáctanos a través de nuestro <a href="{{ url_for('contacto') }}" class="quantum-link">formulario de contacto</a>.</p>
+
+                <h3>7. Cookies y Tecnologías Similares</h3>
+                <p>Usamos cookies para mejorar tu experiencia en nuestro sitio web. Puedes gestionar tus preferencias de cookies a través de la configuración de tu navegador. Consulta nuestra <a href="#cookies" class="quantum-link">Política de Cookies</a> para más detalles.</p>
+
+                <h3>8. Retención de Datos</h3>
+                <p>Conservamos tus datos solo durante el tiempo necesario para cumplir con los fines descritos en esta política o según lo exija la ley. Por ejemplo, los datos de contacto se eliminan tras la cancelación de tu cuenta, salvo que debamos retenerlos por motivos legales.</p>
+
+                <h3>9. Transferencias Internacionales</h3>
+                <p>Si operamos en múltiples regiones, tus datos pueden ser transferidos a servidores fuera de tu país de residencia. Nos aseguramos de que dichas transferencias cumplan con las normativas de protección de datos aplicables.</p>
+
+                <h3>10. Cambios en la Política de Privacidad</h3>
+                <p>Podemos actualizar esta política periódicamente. Publicaremos los cambios en esta página y te notificaremos de modificaciones significativas por correo electrónico o a través de nuestro sitio web.</p>
+
+                <h3>11. Contacto</h3>
+                <p>Si tienes preguntas sobre nuestra Política de Privacidad, contáctanos a través de nuestro <a href="{{ url_for('contacto') }}" class="quantum-link">formulario de contacto</a> o en <a href="mailto:privacy@quantumweb.com" class="quantum-link">privacy@quantumweb.com</a>.</p>
+            </div>
+        </div>
+    </section>
+{% endblock %}

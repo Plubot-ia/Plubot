@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Quantum | Blog{% endblock %}
+{% block meta_description %}Conoce Quantum Web: Transformamos negocios con chatbots de WhatsApp e inteligencia artificial. Optimiza tu tiempo y aumenta tus ventas.{% endblock %}
+
+{% block content %}
+<section class="blog-posts">
+    <div class="blog-container">
+        <h1 class="blog-title" data-text="Blog de Quantum Web">Blog de Quantum Web</h1>
+        <p>Explora nuestros artículos sobre tecnología, automatización y cómo hacer crecer tu negocio con IA.</p>
+        <div class="blog-post">
+            <h2>5 Formas de Usar WhatsApp para Aumentar tus Ventas</h2>
+            <p>Descubre cómo un chatbot puede convertir tus conversaciones en oportunidades de negocio.</p>
+            <a href="{{ url_for('blog_whatsapp_ventas') }}" class="read-more">Leer Más</a>
+        </div>
+        <div class="blog-post">
+            <h2>Automatización para Emprendedores: Cómo Ahorrar Tiempo</h2>
+            <p>Consejos prácticos para autoempleados que quieren optimizar su día a día con IA.</p>
+            <a href="{{ url_for('blog_automatizacion_emprendedores') }}" class="read-more">Leer Más</a>
+        </div>
+        <div class="blog-post">
+            <h2>El Futuro de la Atención al Cliente: IA y Chatbots</h2>
+            <p>Explora cómo la inteligencia artificial está revolucionando la atención al cliente.</p>
+            <a href="{{ url_for('blog_futuro_atencion_cliente') }}" class="read-more">Leer Más</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+
+

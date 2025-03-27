@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Quantum | Servicios{% endblock %}
+
+{% block meta_description %}Conoce Quantum Web: Transformamos negocios con chatbots de WhatsApp e inteligencia artificial. Optimiza tu tiempo y aumenta tus ventas.{% endblock %}
+
+{% block content %}
+    <section class="services-hero">
+        <div class="services-hero-content">
+            <h1 class="services-title" data-text="Nuestros Servicios">Nuestros Servicios</h1>
+            <p class="services-subtitle">Soluciones de IA para transformar tu negocio</p>
+        </div>
+    </section>
+
+    <section class="services-details">
+        <div class="services-container">
+            <div class="services-grid">
+                <div class="service-card">
+                    <h2>Chatbots para WhatsApp</h2>
+                    <p>Nuestros bots inteligentes gestionan tus conversaciones en WhatsApp como si fueran un miembro de tu equipo: responden preguntas, cierran ventas y fidelizan clientes, todo con empatía y profesionalismo.</p>
+                    <ul>
+                        <li>Respuestas automáticas 24/7</li>
+                        <li>Integración con tu catálogo de productos</li>
+                        <li>Seguimiento de clientes y recordatorios</li>
+                    </ul>
+                </div>
+                <div class="service-card">
+                    <h2>Automatización para Pequeños Negocios</h2>
+                    <p>Si eres un autoempleado que pasa horas al día respondiendo mensajes, te liberamos de esa carga. Nuestros chatbots manejan las consultas de tus clientes, permitiéndote enfocarte en hacer crecer tu negocio.</p>
+                    <ul>
+                        <li>Respuestas personalizadas</li>
+                        <li>Gestión de citas y reservas</li>
+                        <li>Notificaciones automáticas</li>
+                    </ul>
+                </div>
+                <div class="service-card">
+                    <h2>Optimización para Grandes Empresas</h2>
+                    <p>Para hoteles, instituciones y corporaciones, ofrecemos soluciones de IA que optimizan flujos de trabajo, desde la atención al cliente hasta la gestión interna, reduciendo costos y mejorando la eficiencia.</p>
+                    <ul>
+                        <li>Automatización de procesos internos</li>
+                        <li>Integración con sistemas CRM</li>
+                        <li>Análisis de datos y reportes</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="services-cta">
+        <div class="services-container">
+            <h2>¿Listo para Automatizar tu Negocio?</h2>
+            <p>Contáctanos y descubre cómo nuestros chatbots pueden transformar tu operación.</p>
+            <a href="{{ url_for('contacto') }}" class="quantum-btn">Contáctanos</a>
+        </div>
+    </section>
+{% endblock %}

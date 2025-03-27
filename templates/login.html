@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block meta_description %}Conoce Quantum Web: Transformamos negocios con chatbots de WhatsApp e inteligencia artificial. Optimiza tu tiempo y aumenta tus ventas.{% endblock %}
+{% block title %}Iniciar Sesión{% endblock %}
+{% block content %}
+    <section class="form-container">
+        <h2>Iniciar Sesión</h2>
+        <form method="POST">
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="password" name="password" placeholder="Contraseña" required>
+            <button type="submit" class="btn">Iniciar Sesión</button>
+        </form>
+        <p>¿No tienes cuenta? <a href="{{ url_for('register') }}">Regístrate</a></p>
+    </section>
+{% endblock %}

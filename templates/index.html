@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}Quantum | Chatbot IA{% endblock %}
+
+{% block meta_description %}Conoce Quantum Web: Transformamos negocios con chatbots de WhatsApp e inteligencia artificial. Optimiza tu tiempo y aumenta tus ventas.{% endblock %}
+
+{% block content %}
+<!-- Fondo de Partículas -->
+<div id="particles-js" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;"></div>
+
+<section class="quantum-hero">
+    <div class="hero-content">
+        <h1 class="quantum-title" data-text="Quantum Web">Quantum Web</h1>
+        <p class="quantum-subtitle">Explora el futuro de los chatbots con IA</p>
+        <a href="{{ url_for('chatbot') }}" class="quantum-btn">Ejemplo de Chatbot IA</a>
+    </div>
+</section>
+
+<!-- Nuevo Carrusel Futurista con Fondo de Partículas -->
+<section class="cosmic-carousel">
+    <div class="cosmic-carousel-header">
+        <h2 class="cosmic-carousel-title">Aumenta tu potencial</h2>
+    </div>
+    <div class="cosmic-carousel-container">
+        <div class="cosmic-carousel-track">
+            <!-- Caso 1 -->
+            <div class="cosmic-carousel-item">
+                <div class="cosmic-card">
+                    <div class="cosmic-card-inner">
+                        <div class="cosmic-card-front">
+                            <div class="cosmic-card-icon">
+                                <i class="fas fa-store"></i>
+                            </div>
+                            <div class="cosmic-card-content">
+                                <h3>¡Aumenta Pedidos en tu Restaurante!</h3>
+                                <p>Implementa un bot que gestione pedidos y reservas. Potencial: <strong>25% más pedidos</strong> y <strong>60% menos errores</strong>.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Caso 2 -->
+            <div class="cosmic-carousel-item">
+                <div class="cosmic-card">
+                    <div class="cosmic-card-inner">
+                        <div class="cosmic-card-front">
+                            <div class="cosmic-card-icon">
+                                <i class="fas fa-paint-brush"></i>
+                            </div>
+                            <div class="cosmic-card-content">
+                                <h3>¡Más Clientes para tu Estudio Creativo!</h3>
+                                <p>Automatiza consultas con un chatbot. Potencial: <strong>45% más clientes</strong> y <strong>70% menos tiempo</strong> respondiendo.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Caso 3 -->
+            <div class="cosmic-carousel-item">
+                <div class="cosmic-card">
+                    <div class="cosmic-card-inner">
+                        <div class="cosmic-card-front">
+                            <div class="cosmic-card-icon">
+                                <i class="fas fa-tachometer-alt"></i>
+                            </div>
+                            <div class="cosmic-card-content">
+                                <h3>¡Impulsa tu Gimnasio con IA!</h3>
+                                <p>Gestiona membresías y recordatorios. Potencial: <strong>35% más renovaciones</strong> y <strong>80% menos olvidos</strong>.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Caso 4 -->
+            <div class="cosmic-carousel-item">
+                <div class="cosmic-card">
+                    <div class="cosmic-card-inner">
+                        <div class="cosmic-card-front">
+                            <div class="cosmic-card-icon">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                            <div class="cosmic-card-content">
+                                <h3>¡Más Leads para tu Consultora!</h3>
+                                <p>Filtra leads y agenda citas con IA. Potencial: <strong>50% más citas</strong> y <strong>90% leads cualificados</strong>.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Caso 5 -->
+            <div class="cosmic-carousel-item">
+                <div class="cosmic-card">
+                    <div class="cosmic-card-inner">
+                        <div class="cosmic-card-front">
+                            <div class="cosmic-card-icon">
+                                <i class="fas fa-plane"></i>
+                            </div>
+                            <div class="cosmic-card-content">
+                                <h3>¡Simplifica Reservas de Viajes!</h3>
+                                <p>Automatiza tu agencia con un bot. Potencial: <strong>55% más reservas</strong> y <strong>75% menos tiempo</strong> en atención.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Caso 6 -->
+            <div class="cosmic-carousel-item">
+                <div class="cosmic-card">
+                    <div class="cosmic-card-inner">
+                        <div class="cosmic-card-front">
+                            <div class="cosmic-card-icon">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div class="cosmic-card-content">
+                                <h3>¡Explota las Ventas de tu Tienda Online!</h3>
+                                <p>Gestiona pedidos con un chatbot. Potencial: <strong>30% más ventas</strong> y <strong>50% menos tiempo</strong> en soporte.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Caso 7 -->
+            <div class="cosmic-carousel-item">
+                <div class="cosmic-card">
+                    <div class="cosmic-card-inner">
+                        <div class="cosmic-card-front">
+                            <div class="cosmic-card-icon">
+                                <i class="fas fa-hotel"></i>
+                            </div>
+                            <div class="cosmic-card-content">
+                                <h3>¡Automatiza Reservas en tu Hotel!</h3>
+                                <p>Reduce trabajo con un bot de IA. Potencial: <strong>40% menos carga</strong> y huéspedes más felices.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Caso 8 -->
+            <div class="cosmic-carousel-item">
+                <div class="cosmic-card">
+                    <div class="cosmic-card-inner">
+                        <div class="cosmic-card-front">
+                            <div class="cosmic-card-icon">
+                                <i class="fas fa-headset"></i>
+                            </div>
+                            <div class="cosmic-card-content">
+                                <h3>¡Soporte 24/7 para tu Empresa Tech!</h3>
+                                <p>Ofrece atención continua con IA. Potencial: <strong>100% cobertura</strong> sin aumentar tu equipo.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Caso 9 -->
+            <div class="cosmic-carousel-item">
+                <div class="cosmic-card">
+                    <div class="cosmic-card-inner">
+                        <div class="cosmic-card-front">
+                            <div class="cosmic-card-icon">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <div class="cosmic-card-content">
+                                <h3>¡Más Inscripciones en tu Academia!</h3>
+                                <p>Simplifica inscripciones con un bot. Potencial: <strong>60% más inscripciones</strong> y <strong>80% menos consultas</strong>.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Caso 10 -->
+            <div class="cosmic-carousel-item">
+                <div class="cosmic-card">
+                    <div class="cosmic-card-inner">
+                        <div class="cosmic-card-front">
+                            <div class="cosmic-card-icon">
+                                <i class="fas fa-truck"></i>
+                            </div>
+                            <div class="cosmic-card-content">
+                                <h3>¡Optimiza tu Logística con IA!</h3>
+                                <p>Automatiza el seguimiento de envíos. Potencial: <strong>70% menos consultas</strong> y clientes más satisfechos.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <a href="{{ url_for('case_studies') }}" class="cosmic-see-all">Ver Todos los Casos</a>
+</section>
+
+<section class="tech-section">
+    <div class="tech-container">
+        <h2 class="tech-title">Nuestra Tecnología</h2>
+        <p class="tech-intro">En Quantum Web, utilizamos inteligencia artificial de última generación para crear chatbots que transforman tu negocio. Nuestras soluciones están basadas en:</p>
+        <div class="tech-grid">
+            <div class="tech-card">
+                <div class="tech-icon"><i class="fas fa-robot"></i></div>
+                <h3>IA Natural</h3>
+                <p>Usamos modelos avanzados de procesamiento de lenguaje natural (NLP) para que nuestros chatbots interactúen como humanos.</p>
+            </div>
+            <div class="tech-card">
+                <div class="tech-icon"><i class="fab fa-whatsapp"></i></div>
+                <h3>Integración con WhatsApp API</h3>
+                <p>Conectamos tus sistemas directamente con WhatsApp para una experiencia fluida y profesional.</p>
+            </div>
+            <div class="tech-card">
+                <div class="tech-icon"><i class="fas fa-shield-alt"></i></div>
+                <h3>Seguridad de Datos</h3>
+                <p>Implementamos cifrado de extremo a extremo y cumplimos con normativas como GDPR para proteger la información de tus clientes.</p>
+            </div>
+            <div class="tech-card">
+                <div class="tech-icon"><i class="fas fa-expand-arrows-alt"></i></div>
+                <h3>Escalabilidad</h3>
+                <p>Nuestras soluciones están diseñadas para crecer contigo, soportando desde pequeños negocios hasta grandes corporaciones.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="stats-section">
+    <div class="stats-container">
+        <h2>Nuestro Impacto</h2>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h3>500+</h3>
+                <p>Negocios Transformados</p>
+            </div>
+            <div class="stat-item">
+                <h3>40%</h3>
+                <p>Aumento Promedio de Ventas</p>
+            </div>
+            <div class="stat-item">
+                <h3>10,000+</h3>
+                <p>Horas de Soporte Automatizado</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="matrix-section">
+    <canvas id="matrix-canvas"></canvas>
+    <div class="matrix-content">
+        <h2>Sumérgete en la Tecnología</h2>
+        <p>En Quantum Web, vivimos y respiramos innovación. Nuestras soluciones están diseñadas para llevar tu negocio al futuro.</p>
+    </div>
+</section>
+
+<!-- Scripts necesarios -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script>
+   // === Animaciones del Carrusel Cósmico ===   
+if (typeof gsap !== 'undefined') {
+    const track = document.querySelector(".cosmic-carousel-track");
+    const items = document.querySelectorAll(".cosmic-carousel-item");
+
+    if (track && items.length > 0) {
+        let carouselAnim;
+
+        const updateCarousel = () => {
+            const itemWidth = items[0].getBoundingClientRect().width + 20; // Ancho del item + margen
+            const totalItems = items.length; // Total de items originales (10 en tu caso)
+            const totalWidth = itemWidth * totalItems; // Ancho total de los items originales
+
+            // Duplica los elementos para el loop infinito si no está duplicado
+            if (track.children.length === totalItems) {
+                track.innerHTML += track.innerHTML; // Duplica el contenido
+            }
+
+            // Ajustar la duración según el dispositivo
+            const isMobile = window.innerWidth <= 1024; // Consideramos móviles y tabletas hasta 1024px
+            const duration = isMobile ? totalItems * 2 : totalItems * 4; // 2 segundos por ítem en móviles, 4 en escritorio
+
+            // Configura la animación
+            carouselAnim = gsap.to(track, {
+                x: -totalWidth, // Mueve solo el ancho de los items originales
+                duration: duration, // Duración ajustada
+                ease: "none",
+                repeat: -1,
+                modifiers: {
+                    x: gsap.utils.unitize(x => parseFloat(x) % totalWidth) // Loop infinito
+                },
+                onStart: () => {
+                    // Optimizar para GPU en todos los dispositivos
+                    track.style.willChange = 'transform';
+                }
+            });
+
+            return carouselAnim;
+        };
+
+        // Inicializa el carrusel
+        carouselAnim = updateCarousel();
+
+        // Ajustar en caso de redimensionamiento
+        window.addEventListener('resize', () => {
+            carouselAnim.kill(); // Mata la animación anterior
+            track.innerHTML = track.innerHTML.slice(0, track.innerHTML.length / 2); // Restaura el contenido original
+            carouselAnim = updateCarousel(); // Reinicia el carrusel
+        });
+
+        // Animaciones de las tarjetas (sin interferencia en el movimiento)
+        const carouselCards = document.querySelectorAll('.cosmic-card');
+        carouselCards.forEach((card, index) => {
+            // Animación de entrada al hacer scroll
+            gsap.fromTo(
+                card,
+                { opacity: 0, y: 50, rotateY: 15 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    rotateY: 0,
+                    duration: 1.5,
+                    ease: 'power3.out',
+                    scrollTrigger: {
+                        trigger: card,
+                        start: 'top 90%',
+                        toggleActions: 'play none none reverse'
+                    }
+                }
+            );
+
+            // Animación flotante opcional
+            gsap.to(card, {
+                y: -20,
+                duration: 2,
+                repeat: -1,
+                yoyo: true,
+                ease: 'sine.inOut',
+                delay: index * 0.3
+            });
+        });
+    }
+}
+</script>
+{% endblock %}

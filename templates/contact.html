@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+{% block meta_description %}Conoce Quantum Web: Transformamos negocios con chatbots de WhatsApp e inteligencia artificial. Optimiza tu tiempo y aumenta tus ventas.{% endblock %}
+{% block title %}Quantum | Contacto{% endblock %}
+{% block content %}
+    <section class="contact-hero">
+        <div class="contact-content">
+            <h2 class="contact-title" data-text="Conéctate con el Futuro">Conéctate con el Futuro</h2>
+            <p class="contact-subtitle">Envíanos un mensaje y descubre cómo Quantum Web puede transformar tu negocio con tecnología de vanguardia.</p>
+            <div class="form-container">
+                <form method="POST" id="contact-form" class="contact-form" action="{{ url_for('contacto') }}">
+                    <div class="input-wrapper">
+                        <input type="text" name="nombre" placeholder="Nombre" required class="contact-input">
+                    </div>
+                    <div class="input-wrapper">
+                        <input type="email" name="email" placeholder="Email" required class="contact-input">
+                    </div>
+                    <div class="input-wrapper">
+                        <textarea name="message" placeholder="Mensaje" required class="contact-input"></textarea> <!-- Cambiado de 'mensaje' a 'message' -->
+                    </div>
+                    <button type="submit" class="quantum-btn contact-btn">
+                        <span class="btn-text">Enviar</span>
+                        <span class="btn-loader hidden"></span>
+                        <span class="btn-particles"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <!-- Mensaje flash mejorado -->
+        <div class="form-message hidden" id="form-message">
+            <div class="message-content">
+                <p id="form-message-text"></p>
+                <div class="message-particles-container">
+                    <span class="message-particle particle-1"></span>
+                    <span class="message-particle particle-2"></span>
+                    <span class="message-particle particle-3"></span>
+                    <span class="message-particle particle-4"></span>
+                </div>
+            </div>
+            <div class="message-background"></div>
+        </div>
+    </section>
+
+    <style>
+        /* Contenedor del formulario */
+        .form-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: linear-gradient(45deg, rgba(0, 224, 255, 0.1), rgba(255, 0, 255, 0.1));
+            border-radius: 16px;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 224, 255, 0.3);
+            border: 1px solid transparent;
+            background-clip: padding-box;
+            will-change: transform, opacity;
+            transform: translateZ(0);
+            opacity: 0; /* Para animación de entrada */
+            margin-bottom: 3rem;
+        }
+
+        /* Fondo animado con pulso digital */
+        .form-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            background: linear-gradient(45deg, rgba(0, 224, 255, 0.2), rgba(255, 0, 255, 0.2));
+            opacity: 0.5;
+            z-index: -1;
+            animation: digital-pulse 6s infinite ease-in-out;
+        }
+
+        /* Borde neón estático */
+        .form-container::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 16px;
+            background: linear-gradient(90deg, #00e0ff, #ff00ff, #00e0ff);
+            z-index: -2;
+            filter: blur(4px);
+        }
+
+        /* Formulario */
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Contenedor del input */
+        .input-wrapper {
+            position: relative;
+            background: rgba(18, 18, 18, 0.9); /* Fondo oscuro para cubrir el área alrededor del input */
+            border-radius: 4px; /* Coincide con el border-radius del input */
+            padding: 2px; /* Pequeño padding para que el borde neón no se corte */
+        }
+
+        /* Inputs */
+        .contact-input {
+            width: 100%;
+            padding: 0.75rem;
+            background: transparent; /* Fondo transparente para que el wrapper lo cubra */
+            border: none; /* Sin borde, el wrapper lo manejará */
+            color: #00e0ff; /* Texto cian para un look tecnológico */
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            box-sizing: border-box; /* Asegura que el padding no afecte el tamaño */
+        }
+
+        /* Borde neón del wrapper */
+        .input-wrapper::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 224, 255, 0.5); /* Borde cian */
+            pointer-events: none; /* Evita que el pseudo-elemento interfiera con la interacción */
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Efecto al enfocar */
+        .input-wrapper:focus-within::after {
+            border-color: #ff00ff; /* Borde magenta al enfocar */
+            box-shadow: 0 0 8px rgba(255, 0, 255, 0.5);
+        }
+
+        /* Efecto de escaneo al enfocar */
+        .input-wrapper:focus-within::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00e0ff, transparent);
+            animation: scan-effect 1s linear;
+        }
+
+        /* Placeholder */
+        .contact-input::placeholder {
+            color: #66ccff; /* Placeholder cian claro */
+            font-style: normal;
+        }
+
+        /* Textarea */
+        .contact-input[type="textarea"] {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        /* Botón */
+        .quantum-btn.contact-btn {
+            padding: 0.75rem 2rem;
+            background: transparent;
+            color: #ffffff;
+            border-radius: 50px;
+            border: 2px solid #00e0ff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            position: relative;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            will-change: transform, box-shadow;
+            overflow: hidden;
+        }
+
+        .quantum-btn.contact-btn:hover {
+            border-color: #ff00ff;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.7);
+        }
+
+        /* Fondo del botón con efecto de carga energética */
+        .quantum-btn.contact-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 224, 255, 0.4), transparent);
+            transition: left 0.5s ease;
+            z-index: -1;
+        }
+
+        .quantum-btn.contact-btn:hover::before {
+            left: 100%;
+        }
+
+        /* Partículas animadas en el botón */
+        .quantum-btn.contact-btn .btn-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .quantum-btn.contact-btn .btn-particles::before,
+        .quantum-btn.contact-btn .btn-particles::after {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #00e0ff;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .quantum-btn.contact-btn:hover .btn-particles::before,
+        .quantum-btn.contact-btn:hover .btn-particles::after {
+            opacity: 0.8;
+            animation: particle-move 2s infinite ease-in-out;
+        }
+
+        .quantum-btn.contact-btn .btn-particles::before {
+            top: 20%;
+            left: 25%;
+        }
+
+        .quantum-btn.contact-btn .btn-particles::after {
+            top: 60%;
+            left: 75%;
+            animation-delay: 0.5s;
+        }
+
+        /* Loader del botón */
+        .btn-loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 0.5rem;
+        }
+
+        .btn-loader.hidden {
+            display: none;
+        }
+
+        /* Mensaje de respuesta con estilo tecnológico mejorado */
+        .form-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 600px;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            color: #ffffff;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            opacity: 0;
+            display: none;
+            z-index: 1001; /* Por encima de #particles-js (z-index: -1) */
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 40px rgba(0, 224, 255, 0.6);
+            overflow: hidden;
+        }
+
+        .form-message:not(.hidden) {
+            opacity: 1;
+            display: block;
+            animation: quantum-entry 0.8s ease-out forwards;
+        }
+
+        /* Contenedor del contenido */
+        .message-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Fondo dinámico con efecto de partículas y escaneo */
+        .message-background {
+            position: absolute;
+            inset: 0;
+            background: rgba(18, 18, 18, 0.9);
+            border-radius: 12px;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .message-background::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 224, 255, 0.4) 10%, transparent 60%);
+            animation: energy-wave 4s infinite ease-in-out;
+            opacity: 0.5;
+        }
+
+        .message-background::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 0, 255, 0.3), transparent);
+            animation: digital-scan 2s infinite linear;
+        }
+
+        /* Borde holográfico */
+        .form-message::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 15px;
+            background: linear-gradient(45deg, #00e0ff, #ff00ff, #00e0ff);
+            filter: blur(8px);
+            opacity: 0.9;
+            z-index: -1;
+            animation: holographic-flow 3s infinite ease-in-out;
+        }
+
+        /* Partículas animadas */
+        .message-particles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .message-particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #00e0ff;
+            border-radius: 50%;
+            opacity: 0;
+            box-shadow: 0 0 10px rgba(0, 224, 255, 0.8);
+            transition: opacity 0.3s ease;
+        }
+
+        .form-message:not(.hidden) .message-particle {
+            opacity: 0.9;
+        }
+
+        .particle-1 {
+            top: 15%;
+            left: 20%;
+            animation: particle-orbit 2.5s infinite ease-in-out;
+        }
+
+        .particle-2 {
+            top: 75%;
+            left: 30%;
+            animation: particle-orbit 3s infinite ease-in-out 0.5s;
+        }
+
+        .particle-3 {
+            top: 25%;
+            left: 80%;
+            animation: particle-orbit 2.8s infinite ease-in-out 1s;
+        }
+
+        .particle-4 {
+            top: 65%;
+            left: 70%;
+            animation: particle-orbit 3.2s infinite ease-in-out 0.8s;
+        }
+
+        /* Estilo para éxito y error */
+        .form-message.success p {
+            color: #00e0ff;
+            text-shadow: 0 0 10px rgba(0, 224, 255, 0.9), 0 0 20px rgba(0, 224, 255, 0.6);
+        }
+
+        .form-message.error p {
+            color: #ff00ff;
+            text-shadow: 0 0 10px rgba(255, 0, 255, 0.9), 0 0 20px rgba(255, 0, 255, 0.6);
+        }
+
+        /* Animaciones */
+        @keyframes digital-pulse {
+            0% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.02); }
+            100% { opacity: 0.5; transform: scale(1); }
+        }
+
+        @keyframes scan-effect {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes particle-move {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(5px, -5px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes quantum-entry {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.7) rotateX(30deg);
+                filter: blur(8px);
+            }
+            50% {
+                opacity: 0.8;
+                transform: translate(-50%, -50%) scale(1.1) rotateX(-10deg);
+                filter: blur(0);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1) rotateX(0deg);
+                filter: blur(0);
+            }
+        }
+
+        @keyframes energy-wave {
+            0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+            50% { transform: translate(-50%, -50%) rotate(180deg) scale(1.15); }
+            100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
+        }
+
+        @keyframes holographic-flow {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+        }
+
+        @keyframes particle-orbit {
+            0% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+            25% { transform: translate(12px, -12px) scale(1.3); opacity: 1; }
+            50% { transform: translate(18px, 0) scale(0.8); opacity: 0.7; }
+            75% { transform: translate(6px, 12px) scale(1.2); opacity: 0.9; }
+            100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+        }
+
+        @keyframes digital-scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Responsividad */
+        @media (max-width: 768px) {
+            .form-container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+            .contact-input {
+                padding: 0.5rem;
+            }
+            .quantum-btn.contact-btn {
+                padding: 0.5rem 1.5rem;
+            }
+            .form-message {
+                width: 80%;
+                padding: 1rem 1.5rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+
+    <script>
+        // Animación de entrada del formulario
+        document.addEventListener('DOMContentLoaded', () => {
+            const formContainer = document.querySelector('.form-container');
+            if (formContainer) {
+                formContainer.style.opacity = '1';
+                formContainer.style.animation = 'materialize 1s ease-out forwards';
+            }
+        });
+    </script>
+{% endblock %}

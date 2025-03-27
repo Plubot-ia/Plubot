@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Quantum | Términos y condiciones{% endblock %}
+
+{% block meta_description %}Lee los términos y condiciones de Quantum Web. Conoce nuestras políticas y condiciones de uso para nuestros servicios de chatbots e inteligencia artificial.{% endblock %}
+
+{% block content %}
+    <section class="about-hero">
+        <div class="about-hero-content">
+            <h1 class="about-title" data-text="Términos y Condiciones">Términos y Condiciones</h1>
+            <p class="about-subtitle">Políticas de uso de nuestros servicios</p>
+        </div>
+    </section>
+
+    <section class="terms-section">
+        <div class="terms-container">
+            <div class="terms-header">
+                <h2>Última Actualización: 26 de marzo de 2025</h2>
+                <p>Por favor, lee cuidadosamente estos términos antes de utilizar nuestros servicios.</p>
+            </div>
+
+            <div class="terms-content">
+                <h3>1. Aceptación de los Términos</h3>
+                <p>Al acceder o utilizar los servicios de Quantum Web, incluyendo nuestros chatbots e inteligencia artificial, aceptas estar sujeto a estos Términos y Condiciones. Si no estás de acuerdo con alguna parte de estos términos, no debes utilizar nuestros servicios.</p>
+
+                <h3>2. Uso de los Servicios</h3>
+                <p>Nuestros servicios están diseñados para ayudar a negocios a automatizar procesos mediante chatbots e inteligencia artificial. Estás autorizado a usar nuestros servicios únicamente para fines legítimos y de acuerdo con todas las leyes aplicables. Queda estrictamente prohibido:</p>
+                <ul>
+                    <li>Utilizar nuestros servicios para actividades ilegales o no autorizadas.</li>
+                    <li>Intentar acceder a áreas no autorizadas de nuestros sistemas.</li>
+                    <li>Interferir con el funcionamiento de nuestros servicios, incluyendo la introducción de virus o código malicioso.</li>
+                </ul>
+
+                <h3>3. Registro y Cuentas</h3>
+                <p>Para acceder a ciertos servicios, es posible que debas registrarte y crear una cuenta. Eres responsable de mantener la confidencialidad de tus credenciales de acceso y de todas las actividades que ocurran bajo tu cuenta. Quantum Web no será responsable por accesos no autorizados debido a tu negligencia.</p>
+
+                <h3>4. Propiedad Intelectual</h3>
+                <p>Todo el contenido, tecnología, software, y materiales proporcionados por Quantum Web, incluyendo pero no limitado a texto, gráficos, logotipos, y código, son propiedad exclusiva de Quantum Web y están protegidos por leyes de propiedad intelectual. No puedes copiar, modificar, distribuir, o crear trabajos derivados sin nuestro consentimiento expreso.</p>
+
+                <h3>5. Pagos y Suscripciones</h3>
+                <p>Algunos de nuestros servicios pueden requerir el pago de tarifas. Al suscribirte, aceptas pagar todas las tarifas aplicables según los términos de facturación acordados. Nos reservamos el derecho de modificar nuestras tarifas con notificación previa. Los pagos no son reembolsables, salvo que se indique lo contrario en nuestra política de reembolsos.</p>
+
+                <h3>6. Cancelaciones y Terminación</h3>
+                <p>Puedes cancelar tu suscripción en cualquier momento a través de tu cuenta. Quantum Web se reserva el derecho de suspender o terminar tu acceso a los servicios si violas estos términos o por cualquier otra razón justificada, con o sin notificación previa.</p>
+
+                <h3>7. Limitación de Responsabilidad</h3>
+                <p>Quantum Web no será responsable por daños indirectos, incidentales, especiales, o consecuentes derivados del uso o la imposibilidad de usar nuestros servicios, incluyendo pérdida de datos, ingresos, o beneficios. Nuestra responsabilidad total no excederá el monto que hayas pagado por los servicios en los últimos 12 meses.</p>
+
+                <h3>8. Modificaciones de los Términos</h3>
+                <p>Nos reservamos el derecho de modificar estos términos en cualquier momento. Publicaremos los cambios en esta página y, en caso de modificaciones significativas, te notificaremos por correo electrónico o a través de nuestro sitio web. El uso continuado de nuestros servicios tras dichas modificaciones constituye tu aceptación de los nuevos términos.</p>
+
+                <h3>9. Ley Aplicable y Jurisdicción</h3>
+                <p>Estos términos se rigen por las leyes del país donde Quantum Web tiene su sede principal (por ejemplo, España, si aplica). Cualquier disputa relacionada con estos términos será resuelta en los tribunales competentes de dicha jurisdicción.</p>
+
+                <h3>10. Contacto</h3>
+                <p>Si tienes preguntas sobre estos Términos y Condiciones, contáctanos a través de nuestro <a href="{{ url_for('contacto') }}" class="quantum-link">formulario de contacto</a> o en <a href="mailto:legal@quantumweb.com" class="quantum-link">legal@quantumweb.com</a>.</p>
+            </div>
+        </div>
+    </section>
+{% endblock %}

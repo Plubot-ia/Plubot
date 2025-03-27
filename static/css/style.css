@@ -1,0 +1,4260 @@
+/* ==========================================================================
+   Fuentes e Importaciones
+   ========================================================================== */
+   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Roboto+Mono:wght@400;500&family=Orbitron:wght@400;700&display=swap');
+
+   /* ==========================================================================
+      Estilos Globales
+      ========================================================================== */
+   body {
+       font-family: 'Inter', sans-serif;
+       font-size: 16px;
+       line-height: 1.6;
+       background: #121212;
+       color: #e0e0e0;
+       margin: 0;
+       padding: 0;
+       overflow-x: hidden;
+   }
+   
+   a {
+       text-decoration: none;
+       transition: color 0.3s ease;
+   }
+   
+   #particles-js,
+   #three-canvas {
+       position: fixed;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       z-index: 0;
+   }
+   
+   #particles-js {
+       z-index: -1;
+       pointer-events: auto;
+   }
+   
+   #three-canvas {
+       z-index: 2;
+   }
+   
+   /* ==========================================================================
+      Botones y Formularios
+      ========================================================================== */
+   .btn,
+   .quantum-btn,
+   .footer-form button,
+   .chatbot-input button,
+   .see-all-cases,
+   .case-studies-cta-content .quantum-btn,
+   .contact-btn {
+       display: inline-block;
+       background: #00e0ff;
+       color: #121212;
+       padding: 0.75rem 2rem;
+       border: none;
+       border-radius: 4px;
+       font-weight: 500;
+       font-size: 0.9rem;
+       text-transform: uppercase;
+       letter-spacing: 0.05em;
+       cursor: pointer;
+       transition: background 0.3s ease, transform 0.3s ease;
+   }
+   
+   .btn:hover,
+   .quantum-btn:hover,
+   .footer-form button:hover,
+   .chatbot-input button:hover,
+   .see-all-cases:hover,
+   .case-studies-cta-content .quantum-btn:hover,
+   .contact-btn:hover {
+       background: #00c4e0;
+       transform: translateY(-2px);
+   }
+   
+   .quantum-btn,
+   .case-studies-cta-content .quantum-btn,
+   .contact-btn {
+       position: relative;
+       border-radius: 50px;
+       overflow: hidden;
+       z-index: 1;
+   }
+   
+   .quantum-btn::before,
+   .footer-form button::before,
+   .contact-btn::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: -100%;
+       width: 100%;
+       height: 100%;
+       background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+       transition: left 0.5s ease;
+   }
+   
+   .quantum-btn:hover::before,
+   .footer-form button:hover::before,
+   .contact-btn:hover::before {
+       left: 100%;
+   }
+   
+   .quantum-hero .quantum-btn,
+   .contact-btn {
+       background: linear-gradient(45deg, rgba(0, 224, 255, 0.1), rgba(255, 0, 255, 0.1));
+       color: #00e0ff;
+       padding: 0.75rem 2rem;
+       border: none;
+       border-radius: 50px;
+       font-weight: 500;
+       font-size: 0.9rem;
+       text-transform: uppercase;
+       letter-spacing: 0.05em;
+       cursor: pointer;
+       overflow: hidden;
+       box-shadow: 0 0 10px rgba(0, 224, 255, 0.5), 0 0 20px rgba(0, 224, 255, 0.3);
+       transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+       z-index: 1;
+   }
+   
+   .quantum-hero .quantum-btn::before,
+   .contact-btn::before {
+       content: '';
+       position: absolute;
+       top: 50%;
+       left: 50%;
+       width: 120%;
+       height: 120%;
+       background: radial-gradient(circle, rgba(0, 224, 255, 0.3) 10%, transparent 50%);
+       transform: translate(-50%, -50%);
+       animation: energy-pulse 3s infinite ease-in-out;
+       opacity: 0.4;
+       z-index: -1;
+   }
+   
+   .quantum-hero .quantum-btn::after,
+   .contact-btn::after {
+       content: '';
+       position: absolute;
+       inset: -2px;
+       border-radius: 50px;
+       background: linear-gradient(90deg, rgba(0, 224, 255, 0) 0%, rgba(0, 224, 255, 0.8) 40%, rgba(255, 0, 255, 0.8) 60%, rgba(0, 224, 255, 0) 100%);
+       animation: holographic-oscillate 2s infinite ease-in-out;
+       filter: blur(2px);
+       z-index: -2;
+   }
+   
+   .quantum-hero .quantum-btn span.particles,
+   .contact-btn .btn-text {
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       pointer-events: none;
+       overflow: hidden;
+       z-index: 0;
+   }
+   
+   .quantum-hero .quantum-btn span.particles::before,
+   .quantum-hero .quantum-btn span.particles::after,
+   .contact-btn .btn-text::before,
+   .contact-btn .btn-text::after {
+       content: '';
+       position: absolute;
+       width: 4px;
+       height: 4px;
+       background: rgba(0, 224, 255, 0.8);
+       border-radius: 50%;
+       animation: particle-float 4s infinite ease-in-out;
+   }
+   
+   .quantum-hero .quantum-btn span.particles::before,
+   .contact-btn .btn-text::before {
+       top: 20%;
+       left: 25%;
+   }
+   
+   .quantum-hero .quantum-btn span.particles::after,
+   .contact-btn .btn-text::after {
+       top: 60%;
+       left: 75%;
+       animation-delay: 1s;
+   }
+   
+   .quantum-hero .quantum-btn:hover,
+   .contact-btn:hover {
+       background: linear-gradient(45deg, rgba(0, 224, 255, 0.3), rgba(255, 0, 255, 0.3));
+       color: #ffffff;
+       box-shadow: 0 0 25px rgba(0, 224, 255, 1), 0 0 40px rgba(0, 224, 255, 0.8);
+       transform: translateY(-2px);
+   }
+   
+   .see-all-cases {
+       margin-top: 2rem;
+       background: #ff6f61;
+   }
+   
+   .see-all-cases:hover {
+       background: #e65a50;
+   }
+   
+   .contact-btn.loading .btn-text { opacity: 0; }
+   
+   .contact-btn.loading .btn-loader {
+       display: inline-block;
+       width: 20px;
+       height: 20px;
+       border: 2px solid #121212;
+       border-top: 2px solid transparent;
+       border-radius: 50%;
+       animation: spin 0.8s linear infinite;
+   }
+   
+   .btn-loader { display: none; }
+   
+   input,
+   textarea,
+   .chatbot-input input,
+   .contact-input {
+       width: 100%;
+       padding: 0.75rem;
+       background: #1e1e1e;
+       border: 1px solid rgba(255, 255, 255, 0.1);
+       border-radius: 4px;
+       color: #e0e0e0;
+       font-family: 'Roboto Mono', monospace;
+       font-size: 0.9rem;
+       transition: border-color 0.3s ease, box-shadow 0.3s ease;
+   }
+   
+   .contact-input {
+       background: rgba(255, 255, 255, 0.05);
+       border: 1px solid rgba(255, 255, 255, 0.2);
+       color: #0a0a0a;
+   }
+   
+   input::placeholder,
+   textarea::placeholder,
+   .chatbot-input input::placeholder,
+   .contact-input::placeholder {
+       color: #b0b0b0;
+       font-style: italic;
+       opacity: 1;
+       transition: transform 0.3s ease, opacity 0.3s ease;
+   }
+   
+   input:focus,
+   textarea:focus,
+   .chatbot-input input:focus,
+   .contact-input:focus {
+       outline: none;
+       border-color: #00e0ff;
+       box-shadow: 0 0 5px rgba(0, 224, 255, 0.3);
+   }
+   
+   .contact-input:focus {
+       box-shadow: 0 0 10px rgba(0, 224, 255, 0.5), 0 0 20px rgba(0, 224, 255, 0.3);
+       transform: translateY(-2px);
+   }
+   
+   .contact-input:focus::placeholder {
+       transform: translateY(-20px);
+       opacity: 0;
+   }
+   
+   textarea {
+       min-height: 100px;
+       resize: vertical;
+   }
+   
+   .form-container {
+       max-width: 600px;
+       margin: 3rem auto 5rem;
+       padding: 2rem;
+       background: rgba(255, 255, 255, 0.05);
+       border: 1px solid rgba(255, 255, 255, 0.1);
+       border-radius: 12px;
+       backdrop-filter: blur(10px);
+       box-shadow: 0 0 20px rgba(0, 224, 255, 0.2);
+       transition: box-shadow 0.3s ease;
+       overflow: hidden;
+       position: relative;
+   }
+   
+   .form-container::before {
+       content: '';
+       position: absolute;
+       inset: -2px;
+       border-radius: 12px;
+       background: linear-gradient(90deg, rgba(0, 224, 255, 0) 0%, rgba(0, 224, 255, 0.8) 20%, rgba(255, 0, 255, 0.8) 50%, rgba(0, 224, 255, 0.8) 80%, rgba(0, 224, 255, 0) 100%);
+       animation: holographic-border 2.5s infinite linear;
+       z-index: -1;
+       filter: blur(2px);
+   }
+   
+   .form-container:hover {
+       box-shadow: 0 0 30px rgba(0, 224, 255, 0.4), 0 0 50px rgba(255, 0, 255, 0.2);
+   }
+   
+   .contact-form {
+       display: flex;
+       flex-direction: column;
+       gap: 1.5rem;
+   }
+   
+   .form-message {
+       margin-top: 1rem;
+       padding: 1rem;
+       border-radius: 4px;
+       font-size: 0.9rem;
+       text-align: center;
+       opacity: 0;
+       transition: opacity 0.3s ease;
+   }
+   
+   .form-message.success,
+   .flash.success {
+       background: rgba(0, 255, 0, 0.1);
+       color: #00ff00;
+       border: 1px solid rgba(0, 255, 0, 0.3);
+   }
+   
+   .form-message.error,
+   .flash.error {
+       background: rgba(255, 0, 0, 0.1);
+       color: #ff0000;
+       border: 1px solid rgba(255, 0, 0, 0.3);
+   }
+   
+   .form-message.visible {
+       opacity: 1;
+   }
+   
+   .flash {
+       padding: 1rem;
+       margin: 1rem auto;
+       max-width: 600px;
+       border-radius: 4px;
+       font-size: 0.9rem;
+       text-align: center;
+   }
+   
+   /* ==========================================================================
+      Header y Navegación
+      ========================================================================== */
+   header {
+       background: rgba(18, 18, 18, 0.95);
+       padding: 1.5rem 2rem;
+       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+   }
+   
+   nav {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       max-width: 1280px;
+       margin: 0 auto;
+       position: relative;
+       z-index: 10000;
+   }
+   
+   .logo {
+       display: flex;
+       align-items: center;
+       gap: 14px;
+   }
+   
+   .logo-image {
+       width: 32px;
+       height: 32px;
+       object-fit: contain;
+       transition: transform 0.3s ease, filter 0.3s ease;
+       transform: translateY(6px);
+   }
+   
+   .logo-text {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 1.5rem;
+       font-weight: 700;
+       color: #00e0ff;
+       text-transform: uppercase;
+       letter-spacing: 2px;
+       text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+       transition: color 0.3s ease, text-shadow 0.3s ease;
+       transform: translateY(-2px);
+   }
+   
+   .logo-text::after {
+       content: '';
+       position: absolute;
+       top: 50%;
+       left: -10%;
+       width: 120%;
+       height: 2px;
+       background: linear-gradient(90deg, transparent, rgba(0, 224, 255, 0.8), transparent);
+       animation: scan-glow 3s infinite linear;
+   }
+   
+   .logo:hover .logo-image {
+       transform: scale(1.1);
+       filter: drop-shadow(0 0 10px rgba(0, 224, 255, 0.5));
+   }
+   
+   .logo:hover .logo-text {
+       color: #ffca28;
+       text-shadow: 0 0 10px rgba(255, 202, 40, 0.8);
+   }
+   
+   nav ul {
+       display: flex;
+       list-style: none;
+       gap: 2.5rem;
+       margin: 0;
+       padding: 0;
+   }
+   
+   nav a {
+       position: relative;
+       color: #00e0ff;
+       font-weight: 500;
+       font-size: 0.95rem;
+       text-transform: uppercase;
+       letter-spacing: 0.05em;
+       transition: color 0.3s ease;
+   }
+   
+   nav a::after {
+       content: '';
+       position: absolute;
+       width: 0;
+       height: 2px;
+       bottom: -4px;
+       left: 0;
+       background: #00e0ff;
+       box-shadow: 0 0 10px #00e0ff, 0 0 20px #00e0ff;
+       transition: width 0.3s ease;
+   }
+   
+   nav a:hover {
+       color: #ffffff;
+       text-shadow: 0 0 5px #00e0ff, 0 0 10px #00e0ff;
+   }
+   
+   nav a:hover::after {
+       width: 100%;
+   }
+   
+   .menu-toggle {
+       display: none;
+       background: none;
+       border: none;
+       color: #00e0ff;
+       font-size: 1.5rem;
+       cursor: pointer;
+       padding: 0;
+       transition: color 0.3s ease;
+   }
+   
+   .menu-toggle:hover {
+       color: #ffffff;
+   }
+   
+   /* ==========================================================================
+      Hero Sections
+      ========================================================================== */
+   .quantum-hero,
+   .services-hero,
+   .about-hero,
+   .case-studies-hero,
+   .blog-hero {
+       position: relative;
+       display: flex;
+       justify-content: center;
+       align-items: flex-start;
+       background: transparent;
+       text-align: center;
+       padding: 4rem 2rem 1.5rem;
+       overflow: hidden;
+       height: 60vh;
+       min-height: 500px;
+   }
+   
+   .services-hero {
+       padding-bottom: 2rem;
+       height: auto;
+       min-height: 0;
+   }
+   
+   .contact-hero {
+       padding: 7rem 2rem 4rem;
+       min-height: 100vh;
+       height: auto;
+   }
+   
+   .hero-content,
+   .services-hero-content,
+   .about-hero-content,
+   .case-studies-hero-content,
+   .blog-hero-content,
+   .contact-content {
+       position: relative;
+       z-index: 10;
+       padding: 0 2rem;
+   }
+   
+   .contact-content {
+       max-width: 600px;
+       margin: 0 auto;
+       padding-top: 0;
+   }
+   
+   .contact-hero .form-container {
+       margin: 2rem auto 5rem;
+   }
+   
+   .hero h1,
+   .quantum-title,
+   .services-title,
+   .about-title,
+   .case-studies-title,
+   .blog-title,
+   .chatbot-title,
+   .contact-title {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 3.5rem;
+       font-weight: 700;
+       color: #ffffff;
+       letter-spacing: 2px;
+       margin-bottom: 2.5rem;
+       text-transform: uppercase;
+       position: relative;
+       overflow: hidden;
+   }
+   
+   .contact-title {
+       margin-top: 0;
+   }
+   
+   .quantum-title::before,
+   .services-title::before,
+   .about-title::before,
+   .case-studies-title::before,
+   .blog-title::before,
+   .chatbot-title::before,
+   .contact-title::before {
+       content: attr(data-text);
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       color: #00e0ff;
+       animation: glitch-top 3s linear infinite;
+       clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+   }
+   
+   .quantum-title::after,
+   .services-title::after,
+   .about-title::after,
+   .case-studies-title::after,
+   .blog-title::after,
+   .chatbot-title::after,
+   .contact-title::after {
+       content: attr(data-text);
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       color: #ff00ff;
+       animation: glitch-bottom 3.5s linear infinite;
+       clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%);
+   }
+   
+   .hero p,
+   .quantum-subtitle,
+   .services-subtitle,
+   .about-subtitle,
+   .case-studies-subtitle,
+   .blog-subtitle,
+   .contact-subtitle {
+       font-size: 1.25rem;
+       font-weight: 300;
+       color: #b0b0b0;
+       margin-bottom: 3.5rem;
+       opacity: 0.8;
+   }
+   
+   .services-subtitle,
+   .about-subtitle,
+   .case-studies-subtitle,
+   .blog-subtitle,
+   .contact-subtitle {
+       font-family: 'Roboto Mono', monospace;
+   }
+   
+   .quantum-hero .quantum-title { margin-bottom: 2.5rem; }
+   .quantum-hero .quantum-subtitle { margin-bottom: 3.5rem; }
+   .quantum-hero .quantum-btn { margin-bottom: 1rem; }
+   
+   /* ==========================================================================
+      Secciones de Contenido
+      ========================================================================== */
+   .about-mission,
+   .about-vision,
+   .about-services,
+   .about-benefits,
+   .team-section {
+       padding: 3rem 2rem;
+       background: transparent;
+       text-align: center;
+       margin-bottom: -1rem;
+   }
+   
+   .about-mission {
+       padding: 2rem 2rem;
+       margin-top: -1rem;
+   }
+   
+   .about-benefits {
+       margin-bottom: 4rem;
+   }
+   
+   .about-cta {
+       padding: 7rem 2rem;
+       background: linear-gradient(135deg, rgba(0, 224, 255, 0.1), rgba(255, 0, 255, 0.1));
+       text-align: center;
+       position: relative;
+       margin-bottom: 4rem;
+   }
+   
+   .services-details {
+       padding: 0rem 2rem;
+       background: rgba(18, 18, 18, 0.9);
+       text-align: center;
+       opacity: 0;
+       transform: translateY(0);
+       transition: opacity 0.5s ease, transform 0.5s ease;
+       margin-bottom: 8rem;
+   }
+   
+   .services-details.visible {
+       opacity: 1;
+       transform: translateY(0);
+   }
+   
+   .services-cta {
+       padding: 5rem 2rem;
+       background: linear-gradient(135deg, rgba(0, 224, 255, 0.1), rgba(255, 0, 255, 0.1));
+       text-align: center;
+       position: relative;
+       margin-top: 4rem;
+       margin-bottom: 7rem;
+   }
+   
+   .testimonials,
+   .stats-section,
+   .case-studies-carousel {
+       padding: 6rem 2rem;
+       background: rgba(18, 18, 18, 0.7);
+       text-align: center;
+   }
+   
+   .stats-section {
+       margin-bottom: 5rem;
+   }
+   
+   .blog-posts {
+       padding: 4rem 2rem;
+       background: rgba(18, 18, 18, 0.9);
+       text-align: center;
+       position: relative;
+       z-index: 10;
+   }
+   
+   .about-container,
+   .services-container,
+   .testimonials-container,
+   .blog-container,
+   .team-container,
+   .stats-container {
+       max-width: 900px;
+       margin: 0 auto;
+   }
+   
+   .services-container,
+   .tech-container {
+       max-width: 1200px;
+   }
+   
+   .blog-container {
+       max-width: 1000px;
+       padding: 0 1rem;
+   }
+   
+   .about-container,
+   .team-container {
+       background: rgba(18, 18, 18, 0.6);
+       border-radius: 12px;
+       padding: 2rem;
+       box-shadow: 0 4px 12px rgba(0, 224, 255, 0.1);
+   }
+   
+   .about-container.align-left {
+       display: flex;
+       flex-direction: column;
+       align-items: flex-start;
+       text-align: left;
+       max-width: 800px;
+       margin-left: 0;
+   }
+   
+   .about-container.align-right {
+       display: flex;
+       flex-direction: column;
+       align-items: flex-end;
+       text-align: right;
+       max-width: 800px;
+       margin-right: 0;
+   }
+   
+   .about-container h2,
+   .services-container h2,
+   .testimonials-container h2,
+   .blog-container h2,
+   .team-container h2,
+   .stats-container h2,
+   .about-cta h2,
+   .services-cta h2,
+   .case-studies-cta-content h2,
+   .matrix-content h2,
+   .carousel-title {
+       font-size: 2.5rem;
+       font-weight: 600;
+       color: #ffffff;
+       margin-bottom: 1.5rem;
+       text-transform: uppercase;
+       letter-spacing: 0.05em;
+   }
+   
+   .blog-container h2 {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 2.5rem;
+       font-weight: 700;
+       color: #ffffff;
+       text-transform: uppercase;
+       letter-spacing: 1.5px;
+       margin-bottom: 3rem;
+       text-shadow: 0 0 5px rgba(0, 224, 255, 0.3);
+   }
+   
+   .blog-container h1 {
+       font-weight: 700;
+   }
+   
+   .about-container p,
+   .services-container p,
+   .testimonials-container p,
+   .blog-container p,
+   .team-container p,
+   .stats-container p,
+   .about-cta p,
+   .services-cta p,
+   .case-studies-cta-content p,
+   .matrix-content p {
+       font-size: 1.2rem;
+       color: #b0b0b0;
+       font-weight: 300;
+       line-height: 1.8;
+       margin-bottom: 1rem;
+   }
+   
+   .services-grid,
+   .testimonials-grid,
+   .team-grid,
+   .stats-grid,
+   .tech-grid {
+       display: grid;
+       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+       gap: 2rem;
+   }
+   
+   .tech-grid {
+       margin-top: 2rem;
+   }
+   
+   .services-grid {
+       grid-template-columns: repeat(3, 1fr);
+       gap: 3rem;
+       max-width: 98vw;
+       padding: 0 0.25rem;
+       box-sizing: border-box;
+   }
+   
+   .service-card,
+   .testimonial-card,
+   .team-member,
+   .tech-card,
+   .case-study {
+       background: rgba(18, 18, 18, 0.6);
+       border: none;
+       border-radius: 12px;
+       padding: 1.5rem;
+       text-align: left;
+       transition: transform 0.3s ease, box-shadow 0.3s ease;
+       position: relative;
+       overflow: hidden;
+       box-shadow: 0 4px 12px rgba(0, 224, 255, 0.1);
+   }
+   
+   .service-card,
+   .case-study {
+       padding: 2rem;
+       width: 100%;
+       min-width: 0;
+       max-width: 100%;
+       box-sizing: border-box;
+   }
+   
+   .case-study {
+       transform-style: preserve-3d;
+   }
+   
+   .service-card:hover,
+   .testimonial-card:hover,
+   .team-member:hover,
+   .tech-card:hover,
+   .case-study:hover {
+       transform: translateY(-5px);
+       box-shadow: 0 6px 16px rgba(0, 224, 255, 0.3);
+   }
+   
+   .service-card::before,
+   .tech-card::before,
+   .case-study::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: -100%;
+       width: 100%;
+       height: 100%;
+       background: linear-gradient(90deg, transparent, rgba(0, 224, 255, 0.2), transparent);
+       transition: left 0.5s ease;
+   }
+   
+   .team-member::before,
+   .service-card::before {
+       inset: 0;
+       border-radius: 12px;
+       padding: 2px;
+       background: linear-gradient(90deg, rgba(0, 224, 255, 0) 0%, rgba(0, 224, 255, 0.8) 20%, rgba(255, 0, 255, 0.8) 50%, rgba(0, 224, 255, 0.8) 80%, rgba(0, 224, 255, 0) 100%);
+       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+       -webkit-mask-composite: xor;
+       mask-composite: exclude;
+       animation: holographic-border 2.5s infinite linear;
+       opacity: 0;
+   }
+   
+   .team-member::after,
+   .service-card::after {
+       content: '';
+       position: absolute;
+       inset: 2px;
+       background: rgba(18, 18, 18, 0.6);
+       border-radius: 10px;
+       z-index: -1;
+   }
+   
+   .service-card::after {
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 2px;
+       background: rgba(0, 224, 255, 0.5);
+       transform: translateY(-100%);
+       transition: transform 0.5s ease;
+   }
+   
+   .service-card:hover::before,
+   .tech-card:hover::before,
+   .case-study:hover::before {
+       left: 100%;
+   }
+   
+   .team-member:hover::before,
+   .service-card:hover::before {
+       opacity: 1;
+   }
+   
+   .service-card:hover::after {
+       transform: translateY(100vh);
+   }
+   
+   .service-card h3,
+   .testimonial-card h3,
+   .team-member h3,
+   .tech-card h3,
+   .case-study h2 {
+       font-size: 1.25rem;
+       font-weight: 500;
+       color: #00e0ff;
+       margin-bottom: 0.75rem;
+   }
+   
+   .team-member h3,
+   .service-card h3 {
+       color: #ffffff;
+   }
+   
+   .service-card h2,
+   .tech-card h3,
+   .case-study h2 {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 1.5rem;
+       font-weight: 600;
+       color: #ffffff;
+       text-transform: uppercase;
+       letter-spacing: 1px;
+   }
+   
+   .service-card h2 {
+       text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+       word-wrap: break-word;
+   }
+   
+   .tech-card h3 {
+       text-shadow: 0 0 5px rgba(0, 224, 255, 0.3);
+   }
+   
+   .service-card p,
+   .testimonial-card p,
+   .team-member p,
+   .tech-card p,
+   .case-study p {
+       font-size: 0.9rem;
+       color: #b0b0b0;
+   }
+   
+   .team-member p,
+   .service-card p {
+       color: #cccccc;
+   }
+   
+   .service-card p,
+   .tech-card p,
+   .case-study p {
+       font-family: 'Inter', sans-serif;
+       font-size: 1rem;
+       line-height: 1.6;
+   }
+   
+   .tech-intro,
+   .tech-card p {
+       color: #cccccc;
+   }
+   
+   .service-card p {
+       margin-bottom: 1.5rem;
+   }
+   
+   .testimonial-card p {
+       font-style: italic;
+       margin-bottom: 1rem;
+   }
+   
+   .team-member img {
+       width: 100px;
+       height: 100px;
+       border-radius: 50%;
+       margin-bottom: 1rem;
+       border: 2px solid #00e0ff;
+   }
+   
+   .team-member span,
+   .testimonial-card span {
+       font-size: 0.85rem;
+       color: #00e0ff;
+       font-weight: 300;
+   }
+   
+   .team-member span {
+       display: block;
+       margin-bottom: 0.5rem;
+       color: #cccccc;
+   }
+   
+   .service-card ul,
+   .benefits-list,
+   .tech-list {
+       list-style: none;
+       padding: 0;
+       margin: 0;
+   }
+   
+   .benefits-list {
+       margin: 2rem auto;
+       text-align: left;
+       max-width: 600px;
+   }
+   
+   .benefits-list li {
+       font-size: 1rem;
+       color: #cccccc;
+       margin-bottom: 1.5rem;
+       position: relative;
+       padding-left: 3rem;
+       display: flex;
+       align-items: center;
+   }
+   
+   .benefits-list li i {
+       position: absolute;
+       left: 0;
+       font-size: 1.5rem;
+       color: #00e0ff;
+       margin-right: 1rem;
+   }
+   
+   .service-card li {
+       font-family: 'Roboto Mono', monospace;
+       font-size: 0.9rem;
+       color: #b0b0b0;
+       margin-bottom: 0.75rem;
+       position: relative;
+       padding-left: 1.5rem;
+   }
+   
+   .service-card li:before,
+   .benefits-list li:before {
+       content: "•";
+       color: #00e0ff;
+       position: absolute;
+       left: 0;
+   }
+   
+   .service-card li:before {
+       font-size: 1.2rem;
+   }
+   
+   .benefits-list strong {
+       color: #ffffff;
+       font-weight: 500;
+   }
+   
+   .case-study p strong {
+       color: #ffca28;
+   }
+   
+   .service-item {
+       margin-bottom: 2rem;
+   }
+   
+   .service-item h2 {
+       font-size: 1.75rem;
+       font-weight: 600;
+       color: #ffffff;
+       margin-bottom: 1rem;
+       text-transform: uppercase;
+       letter-spacing: 0.05em;
+   }
+   
+   .service-item ul {
+       list-style: none;
+       padding: 0;
+       margin: 0;
+   }
+   
+   .service-item li {
+       font-size: 0.9rem;
+       color: #b0b0b0;
+       margin-bottom: 0.5rem;
+       position: relative;
+       padding-left: 1.5rem;
+   }
+   
+   .service-item li:before {
+       content: "•";
+       color: #00e0ff;
+       position: absolute;
+       left: 0;
+   }
+   
+   .case-studies-container {
+       display: grid;
+       grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+       gap: 3rem;
+       max-width: 1200px;
+       margin: 0 auto;
+       padding: 2rem 2rem 3rem;
+   }
+   
+   .case-study-icon,
+   .tech-icon {
+       font-size: 2.5rem;
+       color: #00e0ff;
+       margin-bottom: 1rem;
+       transition: transform 0.3s ease;
+   }
+   
+   .case-study:hover .case-study-icon,
+   .tech-card:hover .tech-icon {
+       transform: scale(1.1);
+   }
+   
+   .blog-post {
+       background: rgba(30, 30, 30, 0.95);
+       border-radius: 8px;
+       padding: 1.5rem;
+       margin-bottom: 2rem;
+       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+       transition: transform 0.3s ease, box-shadow 0.3s ease;
+       text-align: left;
+       border: 1px solid rgba(255, 255, 255, 0.05);
+   }
+   
+   .blog-post:hover {
+       transform: translateY(-5px);
+       box-shadow: 0 6px 16px rgba(0, 224, 255, 0.2);
+       border-color: rgba(0, 224, 255, 0.3);
+   }
+   
+   .blog-post h2 {
+       font-family: 'Inter', sans-serif;
+       font-size: 1.5rem;
+       font-weight: 600;
+       color: #ffffff;
+       margin-bottom: 0.75rem;
+       line-height: 1.3;
+   }
+   
+   .blog-post h2 a {
+       color: inherit;
+       transition: color 0.3s ease;
+   }
+   
+   .blog-post h2 a:hover {
+       color: #00e0ff;
+   }
+   
+   .blog-post p {
+       font-family: 'Roboto Mono', monospace;
+       font-size: 1rem;
+       font-weight: 300;
+       color: #cccccc;
+       line-height: 1.6;
+       margin-bottom: 1rem;
+   }
+   
+   .read-more {
+       display: inline-block;
+       font-family: 'Inter', sans-serif;
+       font-size: 0.9rem;
+       font-weight: 500;
+       color: #00e0ff;
+       text-transform: uppercase;
+       letter-spacing: 0.5px;
+       padding: 0.5rem 1rem;
+       border: 1px solid rgba(0, 224, 255, 0.3);
+       border-radius: 4px;
+       transition: all 0.3s ease;
+       cursor: pointer;
+       position: relative;
+       z-index: 15;
+   }
+   
+   .read-more:hover {
+       color: #ffffff;
+       background: rgba(0, 224, 255, 0.1);
+       border-color: #00e0ff;
+       transform: translateY(-2px);
+   }
+   
+   .blog-container a:hover {
+       text-decoration: underline;
+   }
+   
+   .blog-container hr {
+       border: 0;
+       border-top: 1px solid rgba(255, 255, 255, 0.1);
+       margin: 2rem 0;
+   }
+   
+   .matrix-section {
+       position: relative;
+       padding: 5rem 0;
+       background: rgba(18, 18, 18, 0.8);
+       text-align: center;
+       overflow: hidden;
+       width: 100%;
+       margin: 0;
+       margin-bottom: 7rem;
+   }
+   
+   #matrix-canvas {
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       z-index: 1;
+       opacity: 0.3;
+   }
+   
+   .matrix-content {
+       padding: 0 2rem;
+       position: relative;
+       z-index: 2;
+       max-width: 1200px;
+       margin: 0 auto;
+   }
+   
+   .stats-grid {
+       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+   }
+   
+   .stat-item h3 {
+       font-size: 2.5rem;
+       font-weight: 700;
+       color: #00e0ff;
+       margin-bottom: 0.5rem;
+   }
+   
+   .carousel-title {
+       margin-bottom: 2rem;
+       letter-spacing: 1px;
+   }
+   
+   .carousel-container {
+       position: relative;
+       max-width: 1200px;
+       margin: 0 auto;
+       overflow: hidden;
+   }
+   
+   .carousel-track {
+       display: flex;
+       gap: 2rem;
+       width: max-content;
+   }
+   
+   .carousel-item {
+       flex: 0 0 300px;
+   }
+   
+   .carousel-item .case-study {
+       background: #2c2c2c;
+       padding: 1.5rem;
+       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+   }
+   
+   .carousel-item .case-study:hover {
+       transform: translateY(-5px);
+       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+   }
+   
+   .carousel-item .case-study-icon {
+       font-size: 2rem;
+       color: #ff6f61;
+       margin-bottom誌: 1rem;
+   }
+   
+   .carousel-item h3 {
+       font-size: 1.25rem;
+       font-weight: 600;
+       color: #ffffff;
+       margin-bottom: 0.5rem;
+   }
+   
+   .carousel-item p {
+       font-size: 0.95rem;
+       color: #cccccc;
+       line-height: 1.5;
+   }
+   
+   /* ==========================================================================
+      Tech Section
+      ========================================================================== */
+   .tech-section {
+       position: relative;
+       padding: 8rem 2rem;
+       background: rgba(18, 18, 18, 0.7);
+       text-align: center;
+       overflow: hidden;
+   }
+   
+   .tech-container {
+       position: relative;
+       z-index: 2;
+       max-width: 1200px;
+       margin: 0 auto;
+   }
+   
+   .tech-title {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 2.5rem;
+       font-weight: 500;
+       color: #ffffff;
+       margin-bottom: 4rem;
+       text-transform: uppercase;
+       letter-spacing: 2px;
+       text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+       opacity: 0;
+   }
+   
+   .tech-intro {
+       font-family: 'Roboto Mono', monospace;
+       font-size: 1.2rem;
+       font-weight: 300;
+       color: #cccccc;
+       line-height: 1.8;
+       margin-bottom: 5rem;
+       opacity: 0;
+   }
+   
+   .tech-card {
+       opacity: 0;
+       box-shadow: 0 4px 12px rgba(0, 224, 255, 0.1);
+   }
+   
+   .tech-card:hover .tech-icon {
+       transform: scale(1.1);
+   }
+   
+   .tech-card::before {
+       opacity: 0;
+   }
+   
+   .tech-card:hover::before {
+       opacity: 1;
+   }
+   
+   /* ==========================================================================
+      Chatbot Section
+      ========================================================================== */
+   .chatbot-section {
+       position: relative;
+       padding: 6rem 2rem 4rem;
+       background: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+       min-height: 100vh;
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       justify-content: center;
+       overflow: hidden;
+   }
+   
+   .chatbot-container {
+       position: relative;
+       z-index: 2;
+       text-align: center;
+       max-width: 1200px;
+       margin: 0 auto;
+       width: 100%;
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+   }
+   
+   .particles-bg {
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       z-index: 1;
+       opacity: 0.5;
+   }
+   
+   .chatbot-title {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 3rem;
+       color: #00e0ff;
+       margin-bottom: 1rem;
+       text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+       margin-top: 1rem;
+   }
+   
+   .chatbot-subtitle {
+       font-size: 1.2rem;
+       color: #e0e0e0;
+       margin-bottom: 3rem;
+       max-width: 600px;
+       margin-left: auto;
+       margin-right: auto;
+   }
+   
+   /* ==========================================================================
+      Media Queries Optimizadas para Tabletas y Móviles
+      ========================================================================== */
+   @media (max-width: 1024px) {
+       .quantum-hero,
+       .services-hero,
+       .about-hero,
+       .case-studies-hero,
+       .blog-hero {
+           height: auto;
+           min-height: 400px;
+           padding: 3rem 1.5rem;
+       }
+       .hero h1,
+       .quantum-title,
+       .services-title,
+       .about-title,
+       .case-studies-title,
+       .blog-title,
+       .chatbot-title,
+       .contact-title {
+           font-size: 2.5rem;
+           margin-bottom: 1.5rem;
+       }
+       .hero p,
+       .quantum-subtitle,
+       .services-subtitle,
+       .about-subtitle,
+       .case-studies-subtitle,
+       .blog-subtitle,
+       .contact-subtitle {
+           font-size: 1.1rem;
+           margin-bottom: 2rem;
+       }
+       .services-grid {
+           grid-template-columns: repeat(2, 1fr);
+           gap: 2rem;
+       }
+       .form-container {
+           margin: 2rem auto;
+           padding: 1.5rem;
+           margin-bottom: 0.5rem;
+       }
+   }
+   
+   @media (max-width: 768px) {
+       body {
+           font-size: 14px;
+       }
+       .quantum-hero,
+       .services-hero,
+       .about-hero,
+       .case-studies-hero,
+       .blog-hero {
+           padding: 2.5rem 1rem;
+           min-height: 350px;
+       }
+       .hero h1,
+       .quantum-title,
+       .services-title,
+       .about-title,
+       .case-studies-title,
+       .blog-title,
+       .chatbot-title,
+       .contact-title {
+           font-size: 2rem;
+           margin-bottom: 1rem;
+       }
+       .hero p,
+       .quantum-subtitle,
+       .services-subtitle,
+       .about-subtitle,
+       .case-studies-subtitle,
+       .blog-subtitle,
+       .contact-subtitle {
+           font-size: 1rem;
+           margin-bottom: 1.5rem;
+       }
+       nav {
+           padding: 0 1rem;
+       }
+       header {
+           padding: 1rem;
+       }
+       nav ul {
+           display: none;
+           flex-direction: column;
+           width: 100%;
+           gap: 1rem;
+           position: absolute;
+           top: 100%;
+           left: 0;
+           background: rgba(18, 18, 18, 0.95);
+           padding: 1rem;
+           border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+       }
+       nav ul.active {
+           display: flex;
+       }
+       nav a {
+           font-size: 0.9rem;
+           padding: 0.5rem;
+       }
+       .menu-toggle {
+           display: block;
+       }
+       .services-grid,
+       .case-studies-container {
+           grid-template-columns: 1fr;
+           gap: 1.5rem;
+       }
+       .form-container {
+           padding: 1rem;
+           margin: 1.5rem auto;
+           margin-bottom: 0.5rem;
+       }
+       .btn,
+       .quantum-btn,
+       .footer-form button,
+       .chatbot-input button,
+       .see-all-cases,
+       .case-studies-cta-content .quantum-btn,
+       .contact-btn {
+           padding: 0.6rem 1.5rem;
+           font-size: 0.85rem;
+       }
+       .about-container,
+       .services-container,
+       .testimonials-container,
+       .blog-container,
+       .team-container,
+       .stats-container {
+           padding: 1.5rem;
+       }
+       .about-container h2,
+       .services-container h2,
+       .testimonials-container h2,
+       .blog-container h2,
+       .team-container h2,
+       .stats-container h2 {
+           font-size: 2rem;
+       }
+   }
+   
+   @media (max-width: 480px) {
+       body {
+           font-size: 13px;
+       }
+       .quantum-hero,
+       .services-hero,
+       .about-hero,
+       .case-studies-hero,
+       .blog-hero {
+           padding: 2rem 0.75rem;
+           min-height: 300px;
+       }
+       .hero h1,
+       .quantum-title,
+       .services-title,
+       .about-title,
+       .case-studies-title,
+       .blog-title,
+       .chatbot-title,
+       .contact-title {
+           font-size: 1.75rem;
+           margin-bottom: 0.75rem;
+       }
+       .hero p,
+       .quantum-subtitle,
+       .services-subtitle,
+       .about-subtitle,
+       .case-studies-subtitle,
+       .blog-subtitle,
+       .contact-subtitle {
+           font-size: 0.9rem;
+           margin-bottom: 1rem;
+       }
+       .btn,
+       .quantum-btn,
+       .footer-form button,
+       .chatbot-input button,
+       .see-all-cases,
+       .case-studies-cta-content .quantum-btn,
+       .contact-btn {
+           padding: 0.5rem 1.2rem;
+           font-size: 0.8rem;
+       }
+       .form-container {
+           padding: 0.75rem;
+           margin: 1rem auto;
+       }
+       .logo-text {
+           font-size: 1.2rem;
+       }
+       .logo-image {
+           width: 28px;
+           height: 28px;
+       }
+       .service-card,
+       .case-study {
+           padding: 1rem;
+       }
+       .service-card h2,
+       .case-study h2 {
+           font-size: 1.25rem;
+       }
+       .service-card p,
+       .case-study p {
+           font-size: 0.85rem;
+       }
+       .chatbot-section {
+           padding: 4rem 1rem 2rem;
+       }
+       .chatbot-title {
+           font-size: 2rem;
+       }
+       .chatbot-subtitle {
+           font-size: 1rem;
+       }
+   }
+
+   /* ==========================================================================
+   Chatbot Section
+   ========================================================================== */
+.chatbot-section {
+    position: relative;
+    padding: 6rem 2rem 4rem;
+    background: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.chatbot-container {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.particles-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 0.5;
+}
+
+.chatbot-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3rem;
+    color: #00e0ff;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+    margin-top: 1rem;
+}
+
+.chatbot-subtitle {
+    font-size: 1.2rem;
+    color: #e0e0e0;
+    margin-bottom: 3rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.large-mobile-frame {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1000px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.mobile-device {
+    position: relative;
+    width: 360px;
+    height: 680px;
+    background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+    border: 12px solid #222;
+    border-radius: 40px;
+    box-shadow: 0 0 10px rgba(0, 224, 255, 0.3);
+    overflow: hidden;
+    transform: rotateX(5deg) rotateY(3deg);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.mobile-device:hover {
+    transform: rotateX(0deg) rotateY(0deg);
+}
+
+.mobile-notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 24px;
+    background: #000;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-screen {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    border-radius: 28px;
+    overflow: hidden;
+}
+
+.chatbot-widget {
+    width: 100%;
+    height: 100%;
+    background: #e5ddd5 url('https://www.whatsapp.com/img/backgrounds/background-1.jpg') repeat;
+    background-size: 60%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 28px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.chatbot-header.whatsapp-header {
+    background: #075e54;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top-left-radius: 28px;
+    border-top-right-radius: 28px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+.whatsapp-contact {
+    display: flex;
+    align-items: center;
+}
+
+.whatsapp-avatar {
+    width: 32px;
+    height: 32px;
+    background: #25d366;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.whatsapp-avatar i {
+    color: #fff;
+    font-size: 1.1rem;
+}
+
+.whatsapp-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.whatsapp-name {
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.whatsapp-number {
+    color: #d1d1d1;
+    font-size: 0.65rem;
+}
+
+.whatsapp-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.whatsapp-actions i {
+    color: #fff;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.whatsapp-actions i:hover {
+    color: #25d366;
+}
+
+.chatbot-body.whatsapp-body {
+    flex: 1;
+    padding: 0.5rem;
+    overflow-y: auto;
+    position: relative;
+}
+
+.chatbot-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.05);
+    z-index: 1;
+}
+
+.chatbot-body > * {
+    position: relative;
+    z-index: 2;
+}
+
+.chatbot-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.chatbot-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chatbot-body::-webkit-scrollbar-thumb {
+    background: #075e54;
+    border-radius: 2px;
+}
+
+.chatbot-message {
+    position: relative;
+    max-width: 75%;
+    padding: 0.4rem 0.6rem;
+    margin-bottom: 0.3rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease;
+}
+
+.chatbot-message:hover {
+    transform: scale(1.02);
+}
+
+.chatbot-message.bot {
+    background: #fff;
+    color: #333;
+    margin-right: auto;
+    border-bottom-left-radius: 2px;
+}
+
+.chatbot-message.bot::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    bottom: 0;
+    width: 10px;
+    height: 10px;
+    background: #fff;
+    border-bottom-left-radius: 10px;
+    clip-path: polygon(0 100%, 100% 0, 100% 100%);
+}
+
+.chatbot-message.user {
+    background: #dcf8c6;
+    color: #333;
+    margin-left: auto;
+    border-bottom-right-radius: 2px;
+}
+
+.chatbot-message.user::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    bottom: 0;
+    width: 10px;
+    height: 10px;
+    background: #dcf8c6;
+    border-bottom-right-radius: 10px;
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+.chatbot-message.error {
+    background: rgba(255, 0, 0, 0.1);
+    color: #ff0000;
+    border: 1px solid rgba(255, 0, 0, 0.3);
+}
+
+.message-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 0.2rem;
+    font-size: 0.6rem;
+    color: #888;
+}
+
+.message-time {
+    margin-right: 0.2rem;
+}
+
+.message-status i {
+    color: #34b7f1;
+    font-size: 0.6rem;
+}
+
+.chatbot-input.whatsapp-input {
+    display: flex;
+    align-items: center;
+    padding: 0.3rem;
+    background: #075e54;
+    border-bottom-left-radius: 28px;
+    border-bottom-right-radius: 28px;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+.input-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 18px;
+    padding: 0 0.4rem;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.input-icon {
+    color: #888;
+    font-size: 0.9rem;
+    margin-right: 0.4rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.input-icon:hover {
+    color: #25d366;
+}
+
+.chatbot-input input {
+    flex: 1;
+    padding: 0.4rem 0;
+    border: none;
+    background: transparent;
+    color: #333;
+    font-size: 0.8rem;
+}
+
+.chatbot-input input:focus {
+    outline: none;
+}
+
+.chatbot-input button {
+    background: #25d366;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.4rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.chatbot-input button:hover {
+    background: #20b858;
+    transform: scale(1.1);
+}
+
+.chatbot-input button i {
+    color: #fff;
+    font-size: 1rem;
+}
+
+.chatbot-custom-info {
+    text-align: center;
+    font-size: 1rem;
+    color: #b0b0b0;
+    margin-top: 7rem;
+    margin-bottom: 5rem;
+    font-family: 'Inter', sans-serif;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.chatbot-custom-info p {
+    font-size: 1.1rem;
+    color: #ffffff;
+    opacity: 0.9;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.chatbot-custom-info strong {
+    color: #00e0ff;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+.quantum-footer {
+    background: rgba(30, 30, 30, 0.8);
+    color: #b0b0b0;
+    padding: 5rem 2rem 2rem;
+    font-family: 'Inter', sans-serif;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+.footer-tagline {
+    display: block;
+    text-align: center; /* Opcional para centrar */
+    line-height: 1.5; /* Ajusta el espaciado entre líneas si es necesario */
+}
+
+.footer-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding-bottom: 2rem;
+}
+
+.footer-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.footer-logo {
+    height: 32px;
+    width: auto;
+    filter: brightness(1.2);
+    margin-bottom: 0.5rem;
+}
+
+.footer-tagline {
+    font-size: 0.9rem;
+    font-weight: 300;
+    color: #00e0ff;
+    letter-spacing: 0.05em;
+}
+
+.footer-links,
+.footer-legal,
+.footer-social {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.footer-links h3,
+.footer-legal h3,
+.footer-social h3,
+.footer-contact h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.footer-links ul,
+.footer-legal ul,
+.footer-social ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer-links li,
+.footer-legal li {
+    margin-bottom: 0.75rem;
+}
+
+.footer-links a,
+.footer-legal a {
+    font-size: 0.9rem;
+    color: #b0b0b0;
+    transition: color 0.3s ease;
+}
+
+.footer-links a:hover,
+.footer-legal a:hover {
+    color: #00e0ff;
+}
+
+.social-icons {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+}
+
+.social-icons a {
+    font-size: 1.25rem;
+    color: #00e0ff;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.social-icons a:hover {
+    color: #ffffff;
+    transform: scale(1.1);
+}
+
+.footer-contact {
+    margin: 2rem 0 3rem;
+    text-align: center;
+}
+
+.footer-form {
+    display: flex;
+    flex-direction: column;
+    max-width: 400px;
+    margin: 0 auto;
+    gap: 1rem;
+    align-items: center;
+}
+
+.footer-form input,
+.footer-form textarea {
+    min-height: 80px;
+}
+
+.footer-form button {
+    width: 100%;
+    max-width: 200px;
+}
+
+.footer-bottom {
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.85rem;
+    color: #b0b0b0;
+}
+
+/* ==========================================================================
+   Componentes Específicos
+   ========================================================================== */
+.whatsapp-btn-wrapper {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 1000;
+}
+
+.whatsapp-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background: #25D366;
+    color: #ffffff;
+    font-size: 2rem;
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.whatsapp-btn:hover {
+    background: #20C058;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.whatsapp-tooltip {
+    position: absolute;
+    right: 70px;
+    background: #1e1e1e;
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.whatsapp-btn:hover .whatsapp-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #121212;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+.loader.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loader-circle {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #00e0ff;
+    border-top: 4px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite, glow 1.5s ease-in-out infinite;
+}
+
+.loader p {
+    margin-top: 1rem;
+    color: #00e0ff;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* ==========================================================================
+   Case Studies Page
+   ========================================================================== */
+.case-studies-hero {
+    background: transparent;
+    padding: 4rem 2rem 0;
+    text-align: center;
+    position: relative;
+}
+
+.case-studies-hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.case-studies-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+}
+
+.case-studies-subtitle {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1.25rem;
+    font-weight: 300;
+    color: #b0b0b0;
+    margin-bottom: 0.5rem;
+    opacity: 0.8;
+}
+
+.case-studies-list {
+    padding: 0 2rem 10rem;
+    background: transparent;
+    text-align: center;
+    margin-top: -6rem;
+}
+
+.case-study-card {
+    position: relative;
+    background: rgba(18, 18, 18, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 2rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 224, 255, 0.1);
+    max-height: 350px;
+    will-change: transform;
+}
+
+.case-study-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.case-study-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 20px rgba(0, 224, 255, 0.3);
+    border: 1px solid #00e0ff;
+}
+
+.holographic-scan {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(0, 224, 255, 0) 0%, rgba(0, 224, 255, 0.5) 50%, rgba(0, 224, 255, 0) 100%);
+    animation: scan 4s infinite linear;
+}
+
+.case-study-card:hover .case-study-icon {
+    transform: scale(1.1);
+    color: #ff00ff;
+}
+
+.case-study-content h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.75rem;
+}
+
+.case-study-content p {
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 300;
+    color: #cccccc;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.case-study-content p strong {
+    color: #00e0ff;
+    font-weight: 500;
+}
+
+.case-studies-cta {
+    padding: 7rem 2rem;
+    background: linear-gradient(135deg, rgba(0, 224, 255, 0.1), rgba(255, 0, 255, 0.1));
+    text-align: center;
+    position: relative;
+    margin-top: -5rem;
+    margin-bottom: 7rem;
+}
+
+.case-studies-cta-content {
+    background: rgba(18, 18, 18, 0.6);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 224, 255, 0.1);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.case-studies-cta-content .quantum-btn {
+    font-size: 1.1rem;
+    padding: 1rem 3rem;
+}
+
+/* ==========================================================================
+   Cosmic Carousel
+   ========================================================================== */
+.cosmic-carousel {
+    padding: 2rem 1rem 8rem;
+    background: transparent;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    overflow: hidden;
+    pointer-events: auto;
+    margin-top: 3rem;
+}
+
+.cosmic-carousel-header {
+    position: relative;
+    z-index: 2;
+}
+
+.cosmic-carousel-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 500;
+    color: #ffffff;
+    letter-spacing: 3px;
+    margin-bottom: 3rem;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+    margin-top: 2rem;
+}
+
+.cosmic-carousel-container {
+    position: relative;
+    overflow: hidden;
+    max-width: 100%;
+    margin: 0 auto;
+    z-index: 2;
+    min-height: 450px;
+    display: flex;
+    align-items: center;
+}
+
+.cosmic-carousel-track {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+    perspective: 1200px;
+    width: max-content;
+}
+
+.cosmic-carousel-item {
+    flex: 0 0 clamp(240px, 80vw, 380px);
+    margin-right: 20px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+}
+
+.cosmic-card {
+    position: relative;
+    perspective: 1200px;
+    transform-style: preserve-3d;
+    width: 100%;
+}
+
+.cosmic-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s ease;
+    transform-style: preserve-3d;
+}
+
+.cosmic-card-front {
+    background: rgba(18, 18, 18, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 224, 255, 0.3);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    transform: rotateY(0deg);
+    backface-visibility: hidden;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.cosmic-card:hover .cosmic-card-inner {
+    transform: rotateY(10deg) scale(1.05);
+}
+
+.cosmic-card:hover .cosmic-card-front {
+    border-color: #c400c4;
+    box-shadow: 0 10px 20px rgba(196, 0, 196, 0.4);
+}
+
+.cosmic-card-icon i {
+    font-size: 2rem;
+    color: #00e0ff;
+    margin-bottom: 1rem;
+    transition: color 0.3s ease;
+}
+
+.cosmic-card:hover .cosmic-card-icon i {
+    color: #c400c4;
+}
+
+.cosmic-card-content {
+    text-align: center;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.cosmic-card h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: #ffffff;
+    margin-bottom: 0.75rem;
+    line-height: 1.3;
+    text-shadow: 0 0 5px rgba(0, 224, 255, 0.3);
+}
+
+.cosmic-card p {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 300;
+    color: #b0b0b0;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.cosmic-see-all {
+    display: inline-block;
+    margin-top: 3rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    color: #00e0ff;
+    text-decoration: none;
+    letter-spacing: 1px;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.cosmic-see-all:hover {
+    color: #c400c4;
+    text-shadow: 0 0 5px rgba(196, 0, 196, 0.5);
+}
+
+.cosmic-nav {
+    position: absolute;
+    top: 50%;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    transform: translateY(-50%);
+    z-index: 3;
+    padding: 0 1rem;
+    box-sizing: border-box;
+}
+
+.cosmic-nav-btn {
+    background: rgba(18, 18, 18, 0.7);
+    border: 1px solid rgba(0, 224, 255, 0.3);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #00e0ff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(0, 224, 255, 0.2);
+}
+
+.cosmic-nav-btn:hover {
+    background: rgba(0, 224, 255, 0.2);
+    border-color: #c400c4;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(196, 0, 196, 0.4);
+    transform: scale(1.1);
+}
+
+.cosmic-nav-btn.prev {
+    left: -70px;
+}
+
+.cosmic-nav-btn.next {
+    right: -70px;
+}
+
+/* ==========================================================================
+   Animaciones
+   ========================================================================== */
+@keyframes glitch-top {
+    0%, 100% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(2px, -2px); }
+    60% { transform: translate(-1px, 1px); }
+    80% { transform: translate(1px, -1px); }
+}
+
+@keyframes glitch-bottom {
+    0%, 100% { transform: translate(0); }
+    25% { transform: translate(2px, -2px); }
+    50% { transform: translate(-2px, 2px); }
+    75% { transform: translate(1px, -1px); }
+}
+
+@keyframes scan-glow {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes energy-pulse {
+    0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.4; }
+    50% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+    100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.4; }
+}
+
+@keyframes holographic-oscillate {
+    0% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+    100% { transform: rotate(-5deg); }
+}
+
+@keyframes holographic-border {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes particle-float {
+    0% { transform: translate(0, 0); opacity: 0.8; }
+    50% { transform: translate(5px, -5px); opacity: 1; }
+    100% { transform: translate(0, 0); opacity: 0.8; }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 10px #00e0ff; }
+    50% { box-shadow: 0 0 20px #00e0ff, 0 0 30px #00e0ff; }
+}
+
+@keyframes scan {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(1000px); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   Media Queries Optimizadas para Tabletas y Móviles
+   ========================================================================== */
+@media (max-width: 1024px) {
+    .chatbot-section {
+        padding: 5rem 1.5rem 3rem;
+    }
+    .chatbot-title {
+        font-size: 2.5rem;
+██: 1rem;
+    }
+    .chatbot-subtitle {
+        font-size: 1.1rem;
+    }
+    .mobile-device {
+        width: 340px;
+        height: 640px;
+    }
+    .cosmic-carousel {
+        padding: 2rem 1rem 6rem;
+    }
+    .cosmic-carousel-title {
+        font-size: 2.2rem;
+    }
+    .cosmic-carousel-container {
+        min-height: 400px;
+    }
+    .cosmic-carousel-item {
+        flex: 0 0 clamp(220px, 75vw, 340px);
+    }
+    .cosmic-nav-btn.prev { left: -50px; }
+    .cosmic-nav-btn.next { right: -50px; }
+    .quantum-footer {
+        padding: 4rem 1.5rem 1.5rem;
+    }
+    .footer-container {
+        gap: 1.5rem;
+    }
+    .case-studies-hero {
+        padding: 3rem 1.5rem 0;
+    }
+    .case-studies-title {
+        font-size: 2.5rem;
+    }
+    .case-studies-list {
+        padding: 0 1.5rem 8rem;
+    }
+    .case-studies-cta {
+        padding: 5rem 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .chatbot-section {
+        padding: 4rem 1rem 2rem;
+    }
+    .chatbot-title {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+    }
+    .chatbot-subtitle {
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
+    .mobile-device {
+        width: 320px;
+        height: 600px;
+        border: 10px solid #222;
+    }
+    .mobile-notch {
+        width: 100px;
+        height: 20px;
+    }
+    .whatsapp-avatar {
+        width: 28px;
+        height: 28px;
+    }
+    .whatsapp-name {
+        font-size: 0.8rem;
+    }
+    .whatsapp-number {
+        font-size: 0.6rem;
+    }
+    .chatbot-message {
+        font-size: 0.75rem;
+    }
+    .chatbot-input button {
+        width: 28px;
+        height: 28px;
+    }
+    .chatbot-input button i {
+        font-size: 0.9rem;
+    }
+    .chatbot-custom-info {
+        margin-top: 5rem;
+        margin-bottom: 3rem;
+    }
+    .chatbot-custom-info p {
+        font-size: 1rem;
+    }
+    .quantum-footer {
+        padding: 3rem 1rem 1rem;
+    }
+    .footer-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .footer-form {
+        max-width: 100%;
+    }
+    .whatsapp-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+    .whatsapp-tooltip {
+        right: 60px;
+        font-size: 0.8rem;
+    }
+    .cosmic-carousel {
+        padding: 1.5rem 0.75rem 4rem;
+    }
+    .cosmic-carousel-title {
+        font-size: 1.75rem;
+        margin-bottom: 2rem;
+    }
+    .cosmic-carousel-container {
+        min-height: 350px;
+    }
+    .cosmic-carousel-item {
+        flex: 0 0 clamp(200px, 85vw, 300px);
+        margin-right: 15px;
+    }
+    .cosmic-card-front {
+        padding: 1rem;
+        min-height: 200px;
+    }
+    .cosmic-card h3 {
+        font-size: 1.2rem;
+    }
+    .cosmic-card p {
+        font-size: 0.85rem;
+    }
+    .cosmic-card-icon i {
+        font-size: 1.75rem;
+    }
+    .cosmic-see-all {
+        margin-top: 2rem;
+        font-size: 0.9rem;
+    }
+    .cosmic-nav-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    .cosmic-nav-btn.prev { left: -10px; }
+    .cosmic-nav-btn.next { right: -10px; }
+    .case-studies-hero {
+        padding: 2.5rem 1rem 0;
+    }
+    .case-studies-title {
+        font-size: 2rem;
+    }
+    .case-studies-subtitle {
+        font-size: 1rem;
+    }
+    .case-studies-list {
+        padding: 0 1rem 6rem;
+        margin-top: -4rem;
+    }
+    .case-study-card {
+        padding: 1.5rem;
+        max-height: 300px;
+    }
+    .case-study-content h2 {
+        font-size: 1.25rem;
+    }
+    .case-study-content p {
+        font-size: 0.9rem;
+    }
+    .case-studies-cta {
+        padding: 4rem 1rem;
+        margin-top: -3rem;
+    }
+    .case-studies-cta-content {
+        padding: 1.5rem;
+    }
+    .case-studies-cta-content .quantum-btn {
+        font-size: 1rem;
+        padding: 0.75rem 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .chatbot-section {
+        padding: 3rem 0.75rem 1.5rem;
+    }
+    .chatbot-title {
+        font-size: 1.75rem;
+    }
+    .chatbot-subtitle {
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+    }
+    .mobile-device {
+        width: 280px;
+        height: 520px;
+        border: 8px solid #222;
+    }
+    .mobile-notch {
+        width: 80px;
+        height: 18px;
+    }
+    .whatsapp-avatar {
+        width: 24px;
+        height: 24px;
+    }
+    .whatsapp-avatar i {
+        font-size: 0.9rem;
+    }
+    .whatsapp-name {
+        font-size: 0.75rem;
+    }
+    .whatsapp-number {
+        font-size: 0.55rem;
+    }
+    .whatsapp-actions i {
+        font-size: 0.8rem;
+    }
+    .chatbot-message {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.5rem;
+    }
+    .message-meta {
+        font-size: 0.55rem;
+    }
+    .chatbot-input input {
+        font-size: 0.75rem;
+    }
+    .chatbot-input button {
+        width: 24px;
+        height: 24px;
+    }
+    .chatbot-input button i {
+        font-size: 0.8rem;
+    }
+    .chatbot-custom-info {
+        margin-top: 4rem;
+        margin-bottom: 2rem;
+    }
+    .chatbot-custom-info p {
+        font-size: 0.9rem;
+    }
+    .quantum-footer {
+        padding: 2rem 0.75rem 0.75rem;
+    }
+    .footer-logo {
+        height: 28px;
+    }
+    .footer-tagline {
+        font-size: 0.8rem;
+    }
+    .footer-links h3,
+    .footer-legal h3,
+    .footer-social h3,
+    .footer-contact h3 {
+        font-size: 0.9rem;
+    }
+    .footer-links a,
+    .footer-legal a {
+        font-size: 0.8rem;
+    }
+    .social-icons a {
+        font-size: 1.1rem;
+    }
+    .footer-contact {
+        margin: 1.5rem 0 2rem;
+    }
+    .footer-form input,
+    .footer-form textarea {
+        min-height: 60px;
+    }
+    .footer-bottom {
+        font-size: 0.75rem;
+    }
+    .whatsapp-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 1.25rem;
+    }
+    .whatsapp-tooltip {
+        right: 50px;
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
+    }
+    .loader-circle {
+        width: 50px;
+        height: 50px;
+    }
+    .loader p {
+        font-size: 0.9rem;
+    }
+    .cosmic-carousel {
+        padding: 1rem 0.5rem 3rem;
+    }
+    .cosmic-carousel-title {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .cosmic-carousel-container {
+        min-height: 300px;
+    }
+    .cosmic-carousel-item {
+        flex: 0 0 clamp(180px, 90vw, 240px);
+        margin-right: 10px;
+    }
+    .cosmic-card-front {
+        padding: 0.75rem;
+        min-height: 180px;
+    }
+    .cosmic-card h3 {
+        font-size: 1rem;
+    }
+    .cosmic-card p {
+        font-size: 0.8rem;
+    }
+    .cosmic-card-icon i {
+        font-size: 1.5rem;
+    }
+    .cosmic-see-all {
+        font-size: 0.85rem;
+    }
+    .cosmic-nav-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+    .case-studies-hero {
+        padding: 2rem 0.75rem 0;
+    }
+    .case-studies-title {
+        font-size: 1.75rem;
+    }
+    .case-studies-subtitle {
+        font-size: 0.9rem;
+    }
+    .case-studies-list {
+        padding: 0 0.75rem 4rem;
+        margin-top: -3rem;
+    }
+    .case-study-card {
+        padding: 1rem;
+        max-height: 250px;
+    }
+    .case-study-content h2 {
+        font-size: 1.1rem;
+    }
+    .case-study-content p {
+        font-size: 0.85rem;
+    }
+    .case-studies-cta {
+        padding: 3rem 0.75rem;
+        margin-top: -2rem;
+    }
+    .case-studies-cta-content {
+        padding: 1rem;
+    }
+    .case-studies-cta-content .quantum-btn {
+        font-size: 0.9rem;
+        padding: 0.6rem 1.5rem;
+    }
+}
+
+/* ==========================================================================
+   Clases de Utilidad
+   ========================================================================== */
+.hidden { display: none; }
+.visible { display: block; }
+.fade-in { animation: fadeIn 0.5s ease forwards; }
+.slide-up { animation: slideUp 0.5s ease forwards; }
+.text-center { text-align: center; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.my-4 { margin-top: 1rem; margin-bottom: 1rem; }
+
+/* ==========================================================================
+   Estilos de Impresión
+   ========================================================================== */
+@media print {
+    body {
+        background: #fff;
+        color: #000;
+    }
+    header,
+    footer,
+    .whatsapp-btn-wrapper,
+    .loader,
+    #particles-js,
+    #three-canvas,
+    .cosmic-nav {
+        display: none;
+    }
+    a {
+        color: #000;
+        text-decoration: underline;
+    }
+    .quantum-hero,
+    .services-hero,
+    .about-hero,
+    .case-studies-hero,
+    .blog-hero,
+    .chatbot-section {
+        height: auto;
+        padding: 1rem;
+    }
+    .form-container,
+    .service-card,
+    .case-study,
+    .blog-post {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+}
+
+/* ==========================================================================
+   Hero Section (Ajustado para Terms y Privacy)
+   ========================================================================== */
+.about-hero {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: transparent;
+    text-align: center;
+    padding: 2rem 2rem 1rem;
+    height: auto;
+    min-height: 200px;
+    overflow: hidden;
+}
+
+.about-hero-content {
+    position: relative;
+    z-index: 10;
+    padding: 0 2rem;
+}
+
+.about-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+}
+
+.about-subtitle {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1.25rem;
+    font-weight: 300;
+    color: #b0b0b0;
+    margin-bottom: 0.5rem;
+    opacity: 0.8;
+}
+
+.terms-section,
+.privacy-section {
+    padding: 1rem 2rem 4rem;
+    background: linear-gradient(135deg, rgba(18, 18, 18, 0.9), rgba(30, 30, 30, 0.9));
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    margin-top: -1rem;
+    margin-bottom: 5rem;
+}
+
+/* ==========================================================================
+   Terms and Privacy Sections
+   ========================================================================== */
+.terms-section,
+.privacy-section {
+    padding: 1rem 2rem 4rem;
+    background: linear-gradient(135deg, rgba(18, 18, 18, 0.9), rgba(30, 30, 30, 0.9));
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    margin-top: -1rem;
+    margin-bottom: 5rem;
+}
+
+.terms-container,
+.privacy-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: rgba(18, 18, 18, 0.7);
+    border-radius: 12px;
+    padding: 3rem;
+    box-shadow: 0 4px 20px rgba(0, 224, 255, 0.2);
+    position: relative;
+    border: 1px solid rgba(0, 224, 255, 0.2);
+    backdrop-filter: blur(5px);
+}
+
+.terms-container::after,
+.privacy-container::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 2px;
+    background: linear-gradient(90deg, #00e0ff, #00e0ff 50%, transparent);
+    border-radius: 1px;
+    box-shadow: 0 0 8px rgba(0, 224, 255, 0.5), 0 0 12px rgba(0, 224, 255, 0.3);
+    z-index: 1;
+    animation: border-light 12s linear infinite;
+}
+
+@keyframes border-light {
+    0% { top: 0; left: 0; transform: translate(-50%, -50%); }
+    25% { top: 0; left: 100%; transform: translate(-50%, -50%); }
+    50% { top: 100%; left: 100%; transform: translate(-50%, -50%); }
+    75% { top: 100%; left: 0; transform: translate(-50%, -50%); }
+    100% { top: 0; left: 0; transform: translate(-50%, -50%); }
+}
+
+.terms-header,
+.privacy-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    border-bottom: 1px solid rgba(0, 224, 255, 0.2);
+    padding-bottom: 1.5rem;
+}
+
+.terms-header h2,
+.privacy-header h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #00e0ff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+    margin-bottom: 0.5rem;
+}
+
+.terms-header p,
+.privacy-header p {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1rem;
+    color: #b0b0b0;
+    font-weight: 300;
+}
+
+.terms-content,
+.privacy-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.terms-content h3,
+.privacy-content h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.terms-content h3::after,
+.privacy-content h3::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 50px;
+    height: 2px;
+    background: linear-gradient(90deg, #00e0ff, #ff00ff);
+    box-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+}
+
+.terms-content p,
+.privacy-content p {
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    color: #cccccc;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+.terms-content ul,
+.privacy-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem 0;
+}
+
+.terms-content ul li,
+.privacy-content ul li {
+    position: relative;
+    padding-left: 1.5rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    color: #cccccc;
+    line-height: 1.8;
+    margin-bottom: 0.75rem;
+}
+
+.terms-content ul li::before,
+.privacy-content ul li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #00e0ff;
+    font-size: 1.2rem;
+}
+
+.terms-content ul li strong,
+.privacy-content ul li strong {
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.quantum-link {
+    color: #00e0ff;
+    font-weight: 500;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.quantum-link:hover {
+    color: #ff00ff;
+    text-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
+}
+
+/* ==========================================================================
+   Media Queries para Terms y Privacy
+   ========================================================================== */
+@media (max-width: 1024px) {
+    .terms-section,
+    .privacy-section {
+        padding: 1rem 1.5rem 3rem;
+    }
+    .terms-container,
+    .privacy-container {
+        padding: 2.5rem;
+    }
+    .terms-header h2,
+    .privacy-header h2 {
+        font-size: 1.5rem;
+    }
+    .terms-content h3,
+    .privacy-content h3 {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .terms-section,
+    .privacy-section {
+        padding: 0.5rem 1rem 3rem;
+        margin-top: -0.5rem;
+    }
+    .terms-container,
+    .privacy-container {
+        padding: 2rem;
+    }
+    .terms-header h2,
+    .privacy-header h2 {
+        font-size: 1.5rem;
+    }
+    .terms-content h3,
+    .privacy-content h3 {
+        font-size: 1.25rem;
+    }
+    .terms-content p,
+    .privacy-content p,
+    .terms-content ul li,
+    .privacy-content ul li {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .terms-section,
+    .privacy-section {
+        padding: 0.3rem 0.75rem 2rem;
+        margin-top: -0.3rem;
+    }
+    .terms-container,
+    .privacy-container {
+        padding: 1.5rem;
+    }
+    .terms-header h2,
+    .privacy-header h2 {
+        font-size: 1.25rem;
+    }
+    .terms-content h3,
+    .privacy-content h3 {
+        font-size: 1.1rem;
+    }
+    .terms-content p,
+    .privacy-content p,
+    .terms-content ul li,
+    .privacy-content ul li {
+        font-size: 0.85rem;
+    }
+}
+
+/* Ajustes para el formulario del footer */
+.footer-contact {
+    margin: 2rem 0 3rem;
+    text-align: center;
+    position: relative; /* Para que el mensaje flash se posicione correctamente */
+}
+
+.footer-form {
+    display: flex;
+    flex-direction: column;
+    max-width: 400px;
+    margin: 0 auto;
+    gap: 1rem;
+    align-items: center;
+}
+
+.footer-form .input-wrapper {
+    position: relative;
+    background: rgba(18, 18, 18, 0.9);
+    border-radius: 4px;
+    padding: 2px;
+    width: 100%;
+}
+
+.footer-form .contact-input {
+    background: transparent;
+    border: none;
+    color: #00e0ff;
+    width: 100%;
+}
+
+.footer-form .input-wrapper::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 224, 255, 0.5);
+    pointer-events: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.footer-form .input-wrapper:focus-within::after {
+    border-color: #ff00ff;
+    box-shadow: 0 0 8px rgba(255, 0, 255, 0.5);
+}
+
+.footer-form .input-wrapper:focus-within::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00e0ff, transparent);
+    animation: scan-effect 1s linear;
+}
+
+.footer-form textarea {
+    min-height: 80px;
+}
+
+.footer-form .quantum-btn {
+    width: 100%;
+    max-width: 200px;
+}
+
+/* Estilo del mensaje flash del footer */
+.footer-contact .form-message {
+    position: fixed; /* Cambiado a fixed para que aparezca en el centro de la pantalla */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+    padding: 1.5rem;
+    border-radius: 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    color: #ffffff;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    opacity: 0;
+    display: none;
+    z-index: 1001;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 40px rgba(0, 224, 255, 0.6);
+    overflow: hidden;
+}
+
+.footer-contact .form-message:not(.hidden) {
+    opacity: 1;
+    display: block;
+    animation: quantum-entry 0.8s ease-out forwards;
+}
+
+/* Contenedor del contenido */
+.footer-contact .message-content {
+    position: relative;
+    z-index: 2;
+}
+
+/* Fondo dinámico con efecto de partículas y escaneo */
+.footer-contact .message-background {
+    position: absolute;
+    inset: 0;
+    background: rgba(18, 18, 18, 0.9);
+    border-radius: 12px;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.footer-contact .message-background::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(0, 224, 255, 0.4) 10%, transparent 60%);
+    animation: energy-wave 4s infinite ease-in-out;
+    opacity: 0.5;
+}
+
+.footer-contact .message-background::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 0, 255, 0.3), transparent);
+    animation: digital-scan 2s infinite linear;
+}
+
+/* Borde holográfico */
+.footer-contact .form-message::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 15px;
+    background: linear-gradient(45deg, #00e0ff, #ff00ff, #00e0ff);
+    filter: blur(8px);
+    opacity: 0.9;
+    z-index: -1;
+    animation: holographic-flow 3s infinite ease-in-out;
+}
+
+/* Partículas animadas */
+.footer-contact .message-particles-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.footer-contact .message-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #00e0ff;
+    border-radius: 50%;
+    opacity: 0;
+    box-shadow: 0 0 10px rgba(0, 224, 255, 0.8);
+    transition: opacity 0.3s ease;
+}
+
+.footer-contact .form-message:not(.hidden) .message-particle {
+    opacity: 0.9;
+}
+
+.footer-contact .particle-1 {
+    top: 15%;
+    left: 20%;
+    animation: particle-orbit 2.5s infinite ease-in-out;
+}
+
+.footer-contact .particle-2 {
+    top: 75%;
+    left: 30%;
+    animation: particle-orbit 3s infinite ease-in-out 0.5s;
+}
+
+.footer-contact .particle-3 {
+    top: 25%;
+    left: 80%;
+    animation: particle-orbit 2.8s infinite ease-in-out 1s;
+}
+
+.footer-contact .particle-4 {
+    top: 65%;
+    left: 70%;
+    animation: particle-orbit 3.2s infinite ease-in-out 0.8s;
+}
+
+/* Estilo para éxito y error */
+.footer-contact .form-message.success p {
+    color: #00e0ff;
+    text-shadow: 0 0 10px rgba(0, 224, 255, 0.9), 0 0 20px rgba(0, 224, 255, 0.6);
+}
+
+.footer-contact .form-message.error p {
+    color: #ff00ff;
+    text-shadow: 0 0 10px rgba(255, 0, 255, 0.9), 0 0 20px rgba(255, 0, 255, 0.6);
+}
+
+/* Animaciones (reutilizadas de contact.html) */
+@keyframes digital-pulse {
+    0% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.02); }
+    100% { opacity: 0.5; transform: scale(1); }
+}
+
+@keyframes scan-effect {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes particle-move {
+    0% { transform: translate(0, 0); }
+    50% { transform: translate(5px, -5px); }
+    100% { transform: translate(0, 0); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes quantum-entry {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.7) rotateX(30deg);
+        filter: blur(8px);
+    }
+    50% {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1.1) rotateX(-10deg);
+        filter: blur(0);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1) rotateX(0deg);
+        filter: blur(0);
+    }
+}
+
+@keyframes energy-wave {
+    0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+    50% { transform: translate(-50%, -50%) rotate(180deg) scale(1.15); }
+    100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
+}
+
+@keyframes holographic-flow {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+}
+
+@keyframes particle-orbit {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+    25% { transform: translate(12px, -12px) scale(1.3); opacity: 1; }
+    50% { transform: translate(18px, 0) scale(0.8); opacity: 0.7; }
+    75% { transform: translate(6px, 12px) scale(1.2); opacity: 0.9; }
+    100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+}
+
+@keyframes digital-scan {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+    .footer-form {
+        max-width: 100%;
+        padding: 0 1rem;
+    }
+    .footer-contact .form-message {
+        width: 80%;
+        padding: 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .footer-form textarea {
+        min-height: 60px;
+    }
+    .footer-form .quantum-btn {
+        padding: 0.5rem 1.2rem;
+        font-size: 0.8rem;
+    }
+}
+
+
+/* ==========================================================================
+   Secciones de Contenido
+   ========================================================================== */
+   .blog-posts {
+    padding: 4rem 2rem;
+    background: rgba(18, 18, 18, 0.9);
+    text-align: center;
+    position: relative;
+    z-index: 10;
+}
+
+.blog-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    box-sizing: border-box; /* Asegurar que el padding no cause desbordamiento */
+}
+
+.blog-container h1 {
+    font-weight: 700;
+}
+
+.blog-container h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 3rem;
+    text-shadow: 0 0 5px rgba(0, 224, 255, 0.3);
+}
+
+.blog-container p {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1rem;
+    font-weight: 300;
+    color: #cccccc;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.blog-post {
+    background: rgba(30, 30, 30, 0.95);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-align: left;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.blog-post:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 16px rgba(0, 224, 255, 0.2);
+    border-color: rgba(0, 224, 255, 0.3);
+}
+
+.blog-post h2 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 0.75rem;
+    line-height: 1.3;
+}
+
+.blog-post h2 a {
+    color: inherit;
+    transition: color 0.3s ease;
+}
+
+.blog-post h2 a:hover {
+    color: #00e0ff;
+}
+
+.read-more {
+    display: inline-block;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #00e0ff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(0, 224, 255, 0.3);
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    z-index: 15;
+}
+
+.read-more:hover {
+    color: #ffffff;
+    background: rgba(0, 224, 255, 0.1);
+    border-color: #00e0ff;
+    transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   Media Queries Optimizadas para Tabletas y Móviles
+   ========================================================================== */
+@media (max-width: 1024px) {
+    .blog-posts {
+        padding: 3rem 1.5rem;
+    }
+
+    .blog-container {
+        max-width: 100%; /* Asegurar que no desborde */
+        padding: 0 1rem;
+    }
+
+    .blog-container h2 {
+        font-size: 2.2rem;
+        margin-bottom: 2rem;
+    }
+
+    .blog-post {
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .blog-post h2 {
+        font-size: 1.3rem;
+    }
+
+    .blog-post p {
+        font-size: 0.95rem;
+    }
+
+    .read-more {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .blog-posts {
+        padding: 2.5rem 1rem;
+    }
+
+    .blog-container {
+        max-width: 100%;
+        padding: 0 0.5rem; /* Reducir padding para evitar desbordamiento */
+    }
+
+    .blog-container h2 {
+        font-size: 1.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .blog-container p {
+        font-size: 0.9rem;
+    }
+
+    .blog-post {
+        padding: 1rem;
+        margin-bottom: 1.25rem;
+        /* Desactivar el efecto de hover en móvil */
+        transition: none;
+    }
+
+    .blog-post:hover {
+        transform: none; /* Desactivar el desplazamiento en hover */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Mantener sombra base */
+    }
+
+    .blog-post h2 {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .blog-post p {
+        font-size: 0.85rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .read-more {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.7rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .blog-posts {
+        padding: 2rem 0.75rem;
+    }
+
+    .blog-container {
+        max-width: 100%;
+        padding: 0 0.25rem; /* Reducir aún más el padding */
+    }
+
+    .blog-container h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .blog-container p {
+        font-size: 0.8rem;
+    }
+
+    .blog-post {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .blog-post h2 {
+        font-size: 1rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .blog-post p {
+        font-size: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .read-more {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.6rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .blog-posts {
+        padding: 1.5rem 0.5rem;
+    }
+
+    .blog-container {
+        padding: 0 0.2rem;
+    }
+
+    .blog-container h2 {
+        font-size: 1.3rem;
+    }
+
+    .blog-post {
+        padding: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .blog-post h2 {
+        font-size: 0.9rem;
+    }
+
+    .blog-post p {
+        font-size: 0.7rem;
+    }
+
+    .read-more {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+    }
+}
+
+
+/* ==========================================================================
+   Header y Navegación
+   ========================================================================== */
+   header {
+    background: rgba(18, 18, 18, 0.95);
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1280px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 10000;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logo-image {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    transform: translateY(6px);
+}
+
+.logo-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #00e0ff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+    transform: translateY(-2px);
+}
+
+.logo-text::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -10%;
+    width: 120%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0, 224, 255, 0.8), transparent);
+    animation: scan-glow 3s infinite linear;
+}
+
+.logo:hover .logo-image {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 10px rgba(0, 224, 255, 0.5));
+}
+
+.logo:hover .logo-text {
+    color: #ffca28;
+    text-shadow: 0 0 10px rgba(255, 202, 40, 0.8);
+}
+
+/* ==========================================================================
+   Media Queries Optimizadas para Tabletas y Móviles
+   ========================================================================== */
+@media (max-width: 768px) {
+    header {
+        padding: 1rem;
+    }
+
+    nav {
+        padding: 0 1rem;
+        justify-content: flex-start; /* Alinear el contenido a la izquierda */
+    }
+
+    .logo {
+        margin-right: auto; /* Empujar el logo hacia la izquierda */
+    }
+
+    nav ul {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        gap: 1rem;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: rgba(18, 18, 18, 0.95);
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    nav ul.active {
+        display: flex;
+    }
+
+    .menu-toggle {
+        display: block;
+    }
+}
+
+@media (max-width: 480px) {
+    header {
+        padding: 0.75rem;
+    }
+
+    nav {
+        padding: 0 0.5rem; /* Reducir el padding para dar más espacio al logo */
+        justify-content: flex-start; /* Mantener alineación a la izquierda */
+    }
+
+    .logo {
+        margin-left: 0.25rem; /* Ajustar el margen para mover el logo más a la izquierda */
+    }
+
+    .logo-image {
+        width: 28px;
+        height: 28px;
+    }
+
+    .logo-text {
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 360px) {
+    nav {
+        padding: 0 0.3rem;
+    }
+
+    .logo {
+        margin-left: 0.2rem;
+    }
+
+    .logo-image {
+        width: 24px;
+        height: 24px;
+    }
+
+    .logo-text {
+        font-size: 1rem;
+    }
+}
+
+
+
+/* Estilos para la sección de detalle del blog */
+.blog-post-detail {
+    padding: 4rem 2rem; /* Padding general para la sección */
+    background: rgba(18, 18, 18, 0.9); /* Fondo oscuro con opacidad */
+    color: #ffffff; /* Texto blanco para contraste */
+    position: relative;
+    z-index: 10;
+    margin-bottom: 4rem; /* Espacio para separar del footer */
+}
+
+.blog-container {
+    max-width: 1000px; /* Ancho máximo del contenedor */
+    margin: 0 auto; /* Centrar el contenedor */
+    padding: 0 1rem; /* Padding lateral */
+    box-sizing: border-box; /* Asegurar que el padding no cause desbordamiento */
+}
+
+/* Estilos para los elementos dentro del contenedor */
+.blog-container h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 1.5rem; /* Espacio debajo del título principal */
+    text-shadow: 0 0 5px rgba(0, 224, 255, 0.3);
+}
+
+.blog-container p {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1rem;
+    font-weight: 300;
+    color: #cccccc;
+    line-height: 1.6;
+    margin-bottom: 1.5rem; /* Espacio entre párrafos */
+}
+
+/* Párrafo introductorio en cursiva */
+.blog-container p em {
+    font-style: italic;
+    color: #e0e0e0;
+    display: block; /* Asegurar que ocupe toda la línea */
+    margin-bottom: 2rem; /* Más espacio debajo del intro */
+}
+
+/* Línea divisoria */
+.blog-container hr {
+    border: none;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 2rem 0; /* Espacio arriba y abajo de la línea */
+}
+
+/* Subtítulos */
+.blog-container h2 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 2.5rem 0 1rem; /* Espacio arriba y abajo de los subtítulos */
+    line-height: 1.3;
+}
+
+/* Enlaces dentro del contenido */
+.blog-container a {
+    color: #00e0ff;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.blog-container a:hover {
+    color: #ffca28;
+    text-decoration: underline;
+}
+
+/* Media Queries para tabletas y móviles */
+@media (max-width: 1024px) {
+    .blog-post-detail {
+        padding: 3rem 1.5rem;
+        margin-bottom: 3rem; /* Reducir espacio del footer en tabletas */
+    }
+
+    .blog-container {
+        max-width: 100%;
+        padding: 0 1rem;
+    }
+
+    .blog-container h1 {
+        font-size: 2.2rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .blog-container h2 {
+        font-size: 1.6rem;
+        margin: 2rem 0 0.8rem;
+    }
+
+    .blog-container p {
+        font-size: 0.95rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .blog-container p em {
+        margin-bottom: 1.5rem;
+    }
+
+    .blog-container hr {
+        margin: 1.5rem 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .blog-post-detail {
+        padding: 2.5rem 1rem;
+        margin-bottom: 2.5rem; /* Reducir espacio del footer en móviles */
+    }
+
+    .blog-container {
+        padding: 0 0.5rem;
+    }
+
+    .blog-container h1 {
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+    }
+
+    .blog-container h2 {
+        font-size: 1.4rem;
+        margin: 1.8rem 0 0.6rem;
+    }
+
+    .blog-container p {
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+
+    .blog-container p em {
+        margin-bottom: 1.2rem;
+    }
+
+    .blog-container hr {
+        margin: 1.2rem 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .blog-post-detail {
+        padding: 2rem 0.75rem;
+        margin-bottom: 2rem; /* Reducir aún más el espacio del footer */
+    }
+
+    .blog-container {
+        padding: 0 0.25rem;
+    }
+
+    .blog-container h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .blog-container h2 {
+        font-size: 1.2rem;
+        margin: 1.5rem 0 0.5rem;
+    }
+
+    .blog-container p {
+        font-size: 0.85rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .blog-container p em {
+        margin-bottom: 1rem;
+    }
+
+    .blog-container hr {
+        margin: 1rem 0;
+    }
+}
+
+@media (max-width: 360px) {
+    .blog-post-detail {
+        padding: 1.5rem 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .blog-container h1 {
+        font-size: 1.3rem;
+    }
+
+    .blog-container h2 {
+        font-size: 1.1rem;
+        margin: 1.2rem 0 0.4rem;
+    }
+
+    .blog-container p {
+        font-size: 0.8rem;
+        margin-bottom: 0.6rem;
+    }
+}
+
+
+
+
+
+ 

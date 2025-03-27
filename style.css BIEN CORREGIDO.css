@@ -1,0 +1,2443 @@
+/* ==========================================================================
+   Fuentes e Importaciones
+   ========================================================================== */
+   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Roboto+Mono:wght@400;500&family=Orbitron:wght@400;700&display=swap');
+
+   /* ==========================================================================
+      Estilos Globales
+      ========================================================================== */
+   body {
+       font-family: 'Inter', sans-serif;
+       font-size: 16px;
+       line-height: 1.6;
+       background: #121212;
+       color: #e0e0e0;
+       margin: 0;
+       padding: 0;
+       overflow-x: hidden;
+   }
+   
+   a {
+       text-decoration: none;
+       transition: color 0.3s ease;
+   }
+   
+   #particles-js,
+   #three-canvas {
+       position: fixed;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       z-index: 0;
+   }
+   
+   #three-canvas {
+       z-index: 2;
+   }
+   
+   /* ==========================================================================
+      Botones y Formularios
+      ========================================================================== */
+   .btn,
+   .quantum-btn,
+   .footer-form button,
+   .chatbot-input button,
+   .see-all-cases,
+   .case-studies-cta-content .quantum-btn,
+   .contact-btn {
+       display: inline-block;
+       background: #00e0ff;
+       color: #121212;
+       padding: 0.75rem 2rem;
+       border: none;
+       border-radius: 4px;
+       font-weight: 500;
+       font-size: 0.9rem;
+       text-transform: uppercase;
+       letter-spacing: 0.05em;
+       cursor: pointer;
+       transition: background 0.3s ease, transform 0.3s ease;
+   }
+   
+   .btn:hover,
+   .quantum-btn:hover,
+   .footer-form button:hover,
+   .chatbot-input button:hover,
+   .see-all-cases:hover,
+   .case-studies-cta-content .quantum-btn:hover,
+   .contact-btn:hover {
+       background: #00c4e0;
+       transform: translateY(-2px);
+   }
+   
+   .quantum-btn,
+   .case-studies-cta-content .quantum-btn,
+   .contact-btn {
+       position: relative;
+       border-radius: 50px;
+       overflow: hidden;
+       z-index: 1;
+   }
+   
+   .quantum-btn::before,
+   .footer-form button::before,
+   .contact-btn::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: -100%;
+       width: 100%;
+       height: 100%;
+       background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+       transition: left 0.5s ease;
+   }
+   
+   .quantum-btn:hover::before,
+   .footer-form button:hover::before,
+   .contact-btn:hover::before {
+       left: 100%;
+   }
+   
+   .quantum-hero .quantum-btn,
+   .contact-btn {
+       background: linear-gradient(45deg, rgba(0, 224, 255, 0.1), rgba(255, 0, 255, 0.1));
+       color: #00e0ff;
+       box-shadow: 0 0 10px rgba(0, 224, 255, 0.5), 0 0 20px rgba(0, 224, 255, 0.3);
+   }
+   
+   .quantum-hero .quantum-btn::before,
+   .contact-btn::before {
+       top: -50%;
+       left: -50%;
+       width: 200%;
+       height: 200%;
+       background: radial-gradient(circle, rgba(0, 224, 255, 0.3) 10%, transparent 50%);
+       animation: energy-pulse 3s infinite ease-in-out;
+       z-index: -2;
+       opacity: 0.5;
+   }
+   
+   .quantum-hero .quantum-btn::after,
+   .contact-btn::after {
+       content: '';
+       position: absolute;
+       inset: -2px;
+       border-radius: 50px;
+       background: linear-gradient(90deg, rgba(0, 224, 255, 0) 0%, rgba(0, 224, 255, 0.8) 20%, rgba(255, 0, 255, 0.8) 50%, rgba(0, 224, 255, 0.8) 80%, rgba(0, 224, 255, 0) 100%);
+       animation: holographic-border 2.5s infinite linear;
+       z-index: -1;
+       filter: blur(2px);
+   }
+   
+   .quantum-hero .quantum-btn span.particles,
+   .contact-btn .btn-text {
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       pointer-events: none;
+       overflow: hidden;
+       z-index: 0;
+   }
+   
+   .quantum-hero .quantum-btn span.particles::before,
+   .quantum-hero .quantum-btn span.particles::after,
+   .contact-btn .btn-text::before,
+   .contact-btn .btn-text::after {
+       content: '';
+       position: absolute;
+       width: 4px;
+       height: 4px;
+       background: rgba(0, 224, 255, 0.8);
+       border-radius: 50%;
+       animation: particle-float 4s infinite ease-in-out;
+   }
+   
+   .quantum-hero .quantum-btn span.particles::before,
+   .contact-btn .btn-text::before {
+       top: 20%;
+       left: 30%;
+   }
+   
+   .quantum-hero .quantum-btn span.particles::after,
+   .contact-btn .btn-text::after {
+       top: 60%;
+       left: 70%;
+       animation-delay: 1.5s;
+   }
+   
+   .quantum-hero .quantum-btn:hover,
+   .contact-btn:hover {
+       color: #ffffff;
+       background: linear-gradient(45deg, rgba(0, 224, 255, 0.3), rgba(255, 0, 255, 0.3));
+       box-shadow: 0 0 25px rgba(0, 224, 255, 1), 0 0 40px rgba(0, 224, 255, 0.8), 0 0 60px rgba(255, 0, 255, 0.6);
+   }
+   
+   .see-all-cases {
+       margin-top: 2rem;
+       background: #ff6f61;
+   }
+   
+   .see-all-cases:hover {
+       background: #e65a50;
+   }
+   
+   .contact-btn.loading .btn-text { opacity: 0; }
+   .contact-btn.loading .btn-loader {
+       display: inline-block;
+       width: 20px;
+       height: 20px;
+       border: 2px solid #121212;
+       border-top: 2px solid transparent;
+       border-radius: 50%;
+       animation: spin 0.8s linear infinite;
+   }
+   
+   .btn-loader { display: none; }
+   
+   input,
+   textarea,
+   .chatbot-input input,
+   .contact-input {
+       width: 100%;
+       padding: 0.75rem;
+       background: #1e1e1e;
+       border: 1px solid rgba(255, 255, 255, 0.1);
+       border-radius: 4px;
+       color: #e0e0e0;
+       font-family: 'Roboto Mono', monospace;
+       font-size: 0.9rem;
+       transition: border-color 0.3s ease, box-shadow 0.3s ease;
+   }
+   
+   .contact-input {
+       background: rgba(255, 255, 255, 0.05);
+       border: 1px solid rgba(255, 255, 255, 0.2);
+       color: #0a0a0a;
+   }
+   
+   input::placeholder,
+   textarea::placeholder,
+   .chatbot-input input::placeholder,
+   .contact-input::placeholder {
+       color: #b0b0b0;
+       font-style: italic;
+       opacity: 1;
+       transition: transform 0.3s ease, opacity 0.3s ease;
+   }
+   
+   input:focus,
+   textarea:focus,
+   .chatbot-input input:focus,
+   .contact-input:focus {
+       outline: none;
+       border-color: #00e0ff;
+       box-shadow: 0 0 5px rgba(0, 224, 255, 0.3);
+   }
+   
+   .contact-input:focus {
+       box-shadow: 0 0 10px rgba(0, 224, 255, 0.5), 0 0 20px rgba(0, 224, 255, 0.3);
+       transform: translateY(-2px);
+   }
+   
+   .contact-input:focus::placeholder {
+       transform: translateY(-20px);
+       opacity: 0;
+   }
+   
+   textarea { min-height: 100px; resize: vertical; }
+   
+   .form-container {
+       max-width: 600px;
+       margin: 3rem auto 5rem;
+       padding: 2rem;
+       background: rgba(255, 255, 255, 0.05);
+       border: 1px solid rgba(255, 255, 255, 0.1);
+       border-radius: 12px;
+       backdrop-filter: blur(10px);
+       box-shadow: 0 0 20px rgba(0, 224, 255, 0.2);
+       transition: box-shadow 0.3s ease;
+       overflow: hidden;
+       position: relative;
+   }
+   
+   .form-container::before {
+       content: '';
+       position: absolute;
+       inset: -2px;
+       border-radius: 12px;
+       background: linear-gradient(90deg, rgba(0, 224, 255, 0) 0%, rgba(0, 224, 255, 0.8) 20%, rgba(255, 0, 255, 0.8) 50%, rgba(0, 224, 255, 0.8) 80%, rgba(0, 224, 255, 0) 100%);
+       animation: holographic-border 2.5s infinite linear;
+       z-index: -1;
+       filter: blur(2px);
+   }
+   
+   .form-container:hover {
+       box-shadow: 0 0 30px rgba(0, 224, 255, 0.4), 0 0 50px rgba(255, 0, 255, 0.2);
+   }
+   
+   .contact-form {
+       display: flex;
+       flex-direction: column;
+       gap: 1.5rem;
+   }
+   
+   .form-message {
+       margin-top: 1rem;
+       padding: 1rem;
+       border-radius: 4px;
+       font-size: 0.9rem;
+       text-align: center;
+       opacity: 0;
+       transition: opacity 0.3s ease;
+   }
+   
+   .form-message.success,
+   .flash.success {
+       background: rgba(0, 255, 0, 0.1);
+       color: #00ff00;
+       border: 1px solid rgba(0, 255, 0, 0.3);
+   }
+   
+   .form-message.error,
+   .flash.error {
+       background: rgba(255, 0, 0, 0.1);
+       color: #ff0000;
+       border: 1px solid rgba(255, 0, 0, 0.3);
+   }
+   
+   .form-message.visible { opacity: 1; }
+   
+   .flash {
+       padding: 1rem;
+       margin: 1rem auto;
+       max-width: 600px;
+       border-radius: 4px;
+       font-size: 0.9rem;
+       text-align: center;
+   }
+   
+   /* ==========================================================================
+      Header y Navegación
+      ========================================================================== */
+   header {
+       background: rgba(18, 18, 18, 0.95);
+       padding: 1.5rem 2rem;
+       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+   }
+   
+   nav {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       max-width: 1280px;
+       margin: 0 auto;
+       position: relative;
+       z-index: 10000;
+   }
+   
+   .logo {
+       display: flex;
+       align-items: center;
+       gap: 14px;
+   }
+   
+   .logo-image {
+       width: 32px;
+       height: 32px;
+       object-fit: contain;
+       transition: transform 0.3s ease, filter 0.3s ease;
+       transform: translateY(6px);
+   }
+   
+   .logo-text {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 1.5rem;
+       font-weight: 700;
+       color: #00e0ff;
+       text-transform: uppercase;
+       letter-spacing: 2px;
+       text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+       transition: color 0.3s ease, text-shadow 0.3s ease;
+       transform: translateY(-2px);
+   }
+   
+   .logo-text::after {
+       content: '';
+       position: absolute;
+       top: 50%;
+       left: -10%;
+       width: 120%;
+       height: 2px;
+       background: linear-gradient(90deg, transparent, rgba(0, 224, 255, 0.8), transparent);
+       animation: scan-glow 3s infinite linear;
+   }
+   
+   .logo:hover .logo-image {
+       transform: scale(1.1);
+       filter: drop-shadow(0 0 10px rgba(0, 224, 255, 0.5));
+   }
+   
+   .logo:hover .logo-text {
+       color: #ffca28;
+       text-shadow: 0 0 10px rgba(255, 202, 40, 0.8);
+   }
+   
+   nav ul {
+       display: flex;
+       list-style: none;
+       gap: 2.5rem;
+       margin: 0;
+       padding: 0;
+   }
+   
+   nav a {
+       position: relative;
+       color: #00e0ff;
+       font-weight: 500;
+       font-size: 0.95rem;
+       text-transform: uppercase;
+       letter-spacing: 0.05em;
+       transition: color 0.3s ease;
+   }
+   
+   nav a::after {
+       content: '';
+       position: absolute;
+       width: 0;
+       height: 2px;
+       bottom: -4px;
+       left: 0;
+       background: #00e0ff;
+       box-shadow: 0 0 10px #00e0ff, 0 0 20px #00e0ff;
+       transition: width 0.3s ease;
+   }
+   
+   nav a:hover {
+       color: #ffffff;
+       text-shadow: 0 0 5px #00e0ff, 0 0 10px #00e0ff;
+   }
+   
+   nav a:hover::after { width: 100%; }
+   
+   .menu-toggle {
+       display: none;
+       background: none;
+       border: none;
+       color: #00e0ff;
+       font-size: 1.5rem;
+       cursor: pointer;
+       padding: 0;
+   }
+   
+   /* ==========================================================================
+      Hero Sections
+      ========================================================================== */
+   .quantum-hero,
+   .services-hero,
+   .about-hero,
+   .case-studies-hero,
+   .blog-hero {
+       position: relative;
+       display: flex;
+       justify-content: center;
+       align-items: flex-start;
+       background: transparent;
+       text-align: center;
+       padding-top: 5.5rem;
+       padding-bottom: 3rem;
+       padding-left: 2rem;
+       padding-right: 2rem;
+       overflow: hidden;
+       height: 60vh;
+       min-height: 500px;
+   }
+   
+   .contact-hero {
+       padding-top: 7rem;
+       padding-bottom: 8rem;
+       min-height: 100vh;
+       height: auto;
+   }
+   
+   .hero-content,
+   .services-hero-content,
+   .about-hero-content,
+   .case-studies-hero-content,
+   .blog-hero-content,
+   .contact-content {
+       position: relative;
+       z-index: 10;
+       padding: 0 2rem;
+   }
+   
+   .contact-content {
+       max-width: 600px;
+       margin: 0 auto;
+       padding-top: 0;
+   }
+   
+   .contact-hero .form-container {
+       margin: 2rem auto 5rem;
+   }
+   
+   .hero h1,
+   .quantum-title,
+   .services-title,
+   .about-title,
+   .case-studies-title,
+   .blog-title,
+   .chatbot-title,
+   .contact-title {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 3.5rem;
+       font-weight: 700;
+       color: #ffffff;
+       letter-spacing: 2px;
+       margin-bottom: 2.5rem;
+       text-transform: uppercase;
+       position: relative;
+       overflow: hidden;
+   }
+   
+   .quantum-title::before,
+   .services-title::before,
+   .about-title::before,
+   .case-studies-title::before,
+   .blog-title::before,
+   .chatbot-title::before,
+   .contact-title::before {
+       content: attr(data-text);
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       color: #00e0ff;
+       animation: glitch-top 3s linear infinite;
+       clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+   }
+   
+   .quantum-title::after,
+   .services-title::after,
+   .about-title::after,
+   .case-studies-title::after,
+   .blog-title::after,
+   .chatbot-title::after,
+   .contact-title::after {
+       content: attr(data-text);
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       color: #ff00ff;
+       animation: glitch-bottom 3.5s linear infinite;
+       clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%);
+   }
+   
+   .hero p,
+   .quantum-subtitle,
+   .services-subtitle,
+   .about-subtitle,
+   .case-studies-subtitle,
+   .blog-subtitle,
+   .contact-subtitle {
+       font-size: 1.25rem;
+       font-weight: 300;
+       color: #b0b0b0;
+       margin-bottom: 3.5rem;
+       opacity: 0.8;
+   }
+   
+   .services-subtitle,
+   .about-subtitle,
+   .case-studies-subtitle,
+   .blog-subtitle,
+   .contact-subtitle {
+       font-family: 'Roboto Mono', monospace;
+   }
+   
+   .quantum-hero .quantum-title { margin-bottom: 2.5rem; }
+   .quantum-hero .quantum-subtitle { margin-bottom: 3.5rem; }
+   .quantum-hero .quantum-btn { margin-bottom: 1rem; }
+   
+   /* ==========================================================================
+      Secciones de Contenido
+      ========================================================================== */
+   .about-mission,
+   .about-vision,
+   .about-services,
+   .about-benefits,
+   .team-section {
+       padding: 3rem 2rem;
+       background: transparent;
+       text-align: center;
+       margin-bottom: -1rem;
+   }
+   
+   .about-cta {
+       padding: 7rem 2rem;
+       background: linear-gradient(135deg, rgba(0, 224, 255, 0.1), rgba(255, 0, 255, 0.1));
+       text-align: center;
+       position: relative;
+       margin-bottom: 4rem;
+   }
+   
+   .services-details {
+       padding: 3rem 2rem;
+       background: rgba(18, 18, 18, 0.9);
+       text-align: center;
+       opacity: 0;
+       transform: translateY(20px);
+       transition: opacity 0.5s ease, transform 0.5s ease;
+   }
+   
+   .services-details.visible {
+       opacity: 1;
+       transform: translateY(0);
+   }
+   
+   .testimonials,
+   .stats-section,
+   .case-studies-carousel {
+       padding: 6rem 2rem;
+       background: rgba(18, 18, 18, 0.7);
+       text-align: center;
+   }
+   
+   .blog-posts {
+       padding: 4rem 2rem;
+       background: rgba(18, 18, 18, 0.9);
+       text-align: center;
+       position: relative;
+       z-index: 10;
+   }
+   
+   .about-container,
+   .services-container,
+   .testimonials-container,
+   .blog-container,
+   .team-container,
+   .stats-container {
+       max-width: 900px;
+       margin: 0 auto;
+   }
+   
+   .services-container,
+   .tech-container {
+       max-width: 1200px;
+   }
+   
+   .blog-container {
+       max-width: 1000px;
+       padding: 0 1rem;
+   }
+   
+   .about-container,
+   .team-container {
+       background: rgba(18, 18, 18, 0.6);
+       border-radius: 12px;
+       padding: 2rem;
+       box-shadow: 0 4px 12px rgba(0, 224, 255, 0.1);
+   }
+   
+   .about-container.align-left {
+       display: flex;
+       flex-direction: column;
+       align-items: flex-start;
+       text-align: left;
+       max-width: 800px;
+       margin-left: 0;
+   }
+   
+   .about-container.align-right {
+       display: flex;
+       flex-direction: column;
+       align-items: flex-end;
+       text-align: right;
+       max-width: 800px;
+       margin-right: 0;
+   }
+   
+   .about-container h2,
+   .services-container h2,
+   .testimonials-container h2,
+   .blog-container h2,
+   .team-container h2,
+   .stats-container h2,
+   .about-cta h2,
+   .services-cta h2,
+   .case-studies-cta-content h2,
+   .matrix-content h2,
+   .carousel-title {
+       font-size: 2.5rem;
+       font-weight: 600;
+       color: #ffffff;
+       margin-bottom: 1.5rem;
+       text-transform: uppercase;
+       letter-spacing: 0.05em;
+   }
+   
+   .blog-container h2 {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 2.5rem;
+       font-weight: 700;
+       color: #ffffff;
+       text-transform: uppercase;
+       letter-spacing: 1.5px;
+       margin-bottom: 3rem;
+       text-shadow: 0 0 5px rgba(0, 224, 255, 0.3);
+   }
+   
+   .blog-container h1 { font-weight: 700; }
+   
+   .about-container p,
+   .services-container p,
+   .testimonials-container p,
+   .blog-container p,
+   .team-container p,
+   .stats-container p,
+   .about-cta p,
+   .services-cta p,
+   .case-studies-cta-content p,
+   .matrix-content p {
+       font-size: 1.2rem;
+       color: #b0b0b0;
+       font-weight: 300;
+       line-height: 1.8;
+       margin-bottom: 1rem;
+   }
+   
+   .services-grid,
+   .testimonials-grid,
+   .team-grid,
+   .stats-grid,
+   .tech-grid {
+       display: grid;
+       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+       gap: 2rem;
+   }
+   
+   .services-grid {
+       grid-template-columns: repeat(3, 1fr);
+       gap: 3rem;
+       max-width: 98vw;
+       padding: 0 0.25rem;
+       box-sizing: border-box;
+   }
+   
+   .service-card,
+   .testimonial-card,
+   .team-member,
+   .tech-card,
+   .case-study {
+       background: rgba(18, 18, 18, 0.6);
+       border: none;
+       border-radius: 12px;
+       padding: 1.5rem;
+       text-align: left;
+       transition: transform 0.3s ease, box-shadow 0.3s ease;
+       position: relative;
+       overflow: hidden;
+       box-shadow: 0 4px 12px rgba(0, 224, 255, 0.1);
+   }
+   
+   .service-card,
+   .case-study {
+       padding: 2rem;
+       width: 100%;
+       min-width: 0;
+       max-width: 100%;
+       box-sizing: border-box;
+   }
+   
+   .case-study {
+       transform-style: preserve-3d;
+   }
+   
+   .service-card:hover,
+   .testimonial-card:hover,
+   .team-member:hover,
+   .tech-card:hover,
+   .case-study:hover {
+       transform: translateY(-5px);
+       box-shadow: 0 6px 16px rgba(0, 224, 255, 0.3);
+   }
+   
+   .service-card::before,
+   .tech-card::before,
+   .case-study::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: -100%;
+       width: 100%;
+       height: 100%;
+       background: linear-gradient(90deg, transparent, rgba(0, 224, 255, 0.2), transparent);
+       transition: left 0.5s ease;
+   }
+   
+   .team-member::before,
+   .service-card::before {
+       inset: 0;
+       border-radius: 12px;
+       padding: 2px;
+       background: linear-gradient(90deg, rgba(0, 224, 255, 0) 0%, rgba(0, 224, 255, 0.8) 20%, rgba(255, 0, 255, 0.8) 50%, rgba(0, 224, 255, 0.8) 80%, rgba(0, 224, 255, 0) 100%);
+       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+       -webkit-mask-composite: xor;
+       mask-composite: exclude;
+       animation: holographic-border 2.5s infinite linear;
+       opacity: 0;
+   }
+   
+   .team-member::after,
+   .service-card::after {
+       content: '';
+       position: absolute;
+       inset: 2px;
+       background: rgba(18, 18, 18, 0.6);
+       border-radius: 10px;
+       z-index: -1;
+   }
+   
+   .service-card::after {
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 2px;
+       background: rgba(0, 224, 255, 0.5);
+       transform: translateY(-100%);
+       transition: transform 0.5s ease;
+   }
+   
+   .service-card:hover::before,
+   .tech-card:hover::before,
+   .case-study:hover::before {
+       left: 100%;
+   }
+   
+   .team-member:hover::before,
+   .service-card:hover::before {
+       opacity: 1;
+   }
+   
+   .service-card:hover::after {
+       transform: translateY(100vh);
+   }
+   
+   .service-card h3,
+   .testimonial-card h3,
+   .team-member h3,
+   .tech-card h3,
+   .case-study h2 {
+       font-size: 1.25rem;
+       font-weight: 500;
+       color: #00e0ff;
+       margin-bottom: 0.75rem;
+   }
+   
+   .team-member h3,
+   .service-card h3 { color: #ffffff; }
+   
+   .service-card h2,
+   .tech-card h3,
+   .case-study h2 {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 1.5rem;
+       font-weight: 600;
+       color: #ffffff;
+       text-transform: uppercase;
+       letter-spacing: 1px;
+   }
+   
+   .service-card h2 {
+       text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+       word-wrap: break-word;
+   }
+   
+   .tech-card h3 { text-shadow: 0 0 5px rgba(0, 224, 255, 0.3); }
+   
+   .service-card p,
+   .testimonial-card p,
+   .team-member p,
+   .tech-card p,
+   .case-study p {
+       font-size: 0.9rem;
+       color: #b0b0b0;
+   }
+   
+   .team-member p,
+   .service-card p { color: #cccccc; }
+   
+   .service-card p,
+   .tech-card p,
+   .case-study p {
+       font-family: 'Inter', sans-serif;
+       font-size: 1rem;
+       line-height: 1.6;
+   }
+   
+   .tech-intro,
+   .tech-card p { color: #cccccc; }
+   
+   .service-card p { margin-bottom: 1.5rem; }
+   .testimonial-card p { font-style: italic; margin-bottom: 1rem; }
+   
+   .team-member img {
+       width: 100px;
+       height: 100px;
+       border-radius: 50%;
+       margin-bottom: 1rem;
+       border: 2px solid #00e0ff;
+   }
+   
+   .team-member span,
+   .testimonial-card span {
+       font-size: 0.85rem;
+       color: #00e0ff;
+       font-weight: 300;
+   }
+   
+   .team-member span {
+       display: block;
+       margin-bottom: 0.5rem;
+       color: #cccccc;
+   }
+   
+   .service-card ul,
+   .benefits-list,
+   .tech-list {
+       list-style: none;
+       padding: 0;
+       margin: 0;
+   }
+   
+   .benefits-list {
+       margin: 2rem auto;
+       text-align: left;
+       max-width: 600px;
+   }
+   
+   .benefits-list li {
+       font-size: 1rem;
+       color: #cccccc;
+       margin-bottom: 1.5rem;
+       position: relative;
+       padding-left: 3rem;
+       display: flex;
+       align-items: center;
+   }
+   
+   .benefits-list li i {
+       position: absolute;
+       left: 0;
+       font-size: 1.5rem;
+       color: #00e0ff;
+       margin-right: 1rem;
+   }
+   
+   .service-card li {
+       font-family: 'Roboto Mono', monospace;
+       font-size: 0.9rem;
+       color: #b0b0b0;
+       margin-bottom: 0.75rem;
+       position: relative;
+       padding-left: 1.5rem;
+   }
+   
+   .service-card li:before,
+   .benefits-list li:before {
+       content: "•";
+       color: #00e0ff;
+       position: absolute;
+       left: 0;
+   }
+   
+   .service-card li:before { font-size: 1.2rem; }
+   
+   .benefits-list strong { color: #ffffff; font-weight: 500; }
+   .case-study p strong { color: #ffca28; }
+   
+   .service-item {
+       margin-bottom: 2rem;
+   }
+   
+   .service-item h2 {
+       font-size: 1.75rem;
+       font-weight: 600;
+       color: #ffffff;
+       margin-bottom: 1rem;
+       text-transform: uppercase;
+       letter-spacing: 0.05em;
+   }
+   
+   .service-item ul { list-style: none; padding: 0; margin: 0; }
+   
+   .service-item li {
+       font-size: 0.9rem;
+       color: #b0b0b0;
+       margin-bottom: 0.5rem;
+       position: relative;
+       padding-left: 1.5rem;
+   }
+   
+   .service-item li:before {
+       content: "•";
+       color: #00e0ff;
+       position: absolute;
+       left: 0;
+   }
+   
+    /* Case Studies Container */
+    .case-studies-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 3rem; /* Aumentado de 2rem a 3rem para más separación */
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 2rem 3rem 2rem; /* Aumentado padding-bottom de 2rem a 12rem para más espacio con el CTA */
+    }
+   
+   .case-study-icon,
+   .tech-icon {
+       font-size: 2.5rem;
+       color: #00e0ff;
+       margin-bottom: 1rem;
+       transition: transform 0.3s ease;
+   }
+   
+   .case-study:hover .case-study-icon,
+   .tech-card:hover .tech-icon { transform: scale(1.1); }
+   
+   .blog-post {
+       background: rgba(30, 30, 30, 0.95);
+       border-radius: 8px;
+       padding: 1.5rem;
+       margin-bottom: 2rem;
+       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+       transition: transform 0.3s ease, box-shadow 0.3s ease;
+       text-align: left;
+       border: 1px solid rgba(255, 255, 255, 0.05);
+   }
+   
+   .blog-post:hover {
+       transform: translateY(-5px);
+       box-shadow: 0 6px 16px rgba(0, 224, 255, 0.2);
+       border-color: rgba(0, 224, 255, 0.3);
+   }
+   
+   .blog-post h2 {
+       font-family: 'Inter', sans-serif;
+       font-size: 1.5rem;
+       font-weight: 600;
+       color: #ffffff;
+       margin-bottom: 0.75rem;
+       line-height: 1.3;
+   }
+   
+   .blog-post h2 a {
+       color: inherit;
+       transition: color 0.3s ease;
+   }
+   
+   .blog-post h2 a:hover {
+       color: #00e0ff;
+   }
+   
+   .blog-post p {
+       font-family: 'Roboto Mono', monospace;
+       font-size: 1rem;
+       font-weight: 300;
+       color: #cccccc;
+       line-height: 1.6;
+       margin-bottom: 1rem;
+   }
+   
+   .read-more {
+       display: inline-block;
+       font-family: 'Inter', sans-serif;
+       font-size: 0.9rem;
+       font-weight: 500;
+       color: #00e0ff;
+       text-transform: uppercase;
+       letter-spacing: 0.5px;
+       padding: 0.5rem 1rem;
+       border: 1px solid rgba(0, 224, 255, 0.3);
+       border-radius: 4px;
+       transition: all 0.3s ease;
+       cursor: pointer;
+       position: relative;
+       z-index: 15;
+   }
+   
+   .read-more:hover {
+       color: #ffffff;
+       background: rgba(0, 224, 255, 0.1);
+       border-color: #00e0ff;
+       transform: translateY(-2px);
+   }
+   
+   .blog-container a:hover { text-decoration: underline; }
+   
+   .blog-container hr {
+       border: 0;
+       border-top: 1px solid rgba(255, 255, 255, 0.1);
+       margin: 2rem 0;
+   }
+   
+   .matrix-section {
+       position: relative;
+       padding: 7rem 2rem;
+       background: rgba(18, 18, 18, 0.8);
+       text-align: center;
+       overflow: hidden;
+       width: 100%;
+   }
+   
+   #matrix-canvas {
+       position: absolute;
+       top: 0;
+       left: 50%;
+       transform: translateX(-50%);
+       width: 100vw;
+       height: 100%;
+       z-index: 1;
+       opacity: 0.3;
+   }
+   
+   .matrix-content {
+       position: relative;
+       z-index: 2;
+       color: #ffffff;
+       max-width: 1200px;
+       margin: 0 auto;
+   }
+   
+   .stats-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+   
+   .stat-item h3 {
+       font-size: 2.5rem;
+       font-weight: 700;
+       color: #00e0ff;
+       margin-bottom: 0.5rem;
+   }
+   
+   .carousel-title { margin-bottom: 2rem; letter-spacing: 1px; }
+   
+   .carousel-container {
+       position: relative;
+       max-width: 1200px;
+       margin: 0 auto;
+       overflow: hidden;
+   }
+   
+   .carousel-track {
+       display: flex;
+       gap: 2rem;
+       width: max-content;
+   }
+   
+   .carousel-item { flex: 0 0 300px; }
+   
+   .carousel-item .case-study {
+       background: #2c2c2c;
+       padding: 1.5rem;
+       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+   }
+   
+   .carousel-item .case-study:hover {
+       transform: translateY(-5px);
+       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+   }
+   
+   .carousel-item .case-study-icon {
+       font-size: 2rem;
+       color: #ff6f61;
+       margin-bottom: 1rem;
+   }
+   
+   .carousel-item h3 {
+       font-size: 1.25rem;
+       font-weight: 600;
+       color: #ffffff;
+       margin-bottom: 0.5rem;
+   }
+   
+   .carousel-item p {
+       font-size: 0.95rem;
+       color: #cccccc;
+       line-height: 1.5;
+   }
+   
+   /* ==========================================================================
+      Tech Section
+      ========================================================================== */
+   .tech-section {
+       position: relative;
+       padding: 8rem 2rem;
+       background: rgba(18, 18, 18, 0.7);
+       text-align: center;
+       overflow: hidden;
+   }
+   
+   .tech-container {
+       position: relative;
+       z-index: 2;
+       max-width: 1200px;
+       margin: 0 auto;
+   }
+   
+   .tech-title {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 3rem;
+       font-weight: 700;
+       color: #ffffff;
+       margin-bottom: 1.5rem;
+       text-transform: uppercase;
+       letter-spacing: 2px;
+       text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+       opacity: 0;
+   }
+   
+   .tech-intro {
+       font-family: 'Roboto Mono', monospace;
+       font-size: 1.2rem;
+       font-weight: 300;
+       color: #cccccc;
+       line-height: 1.8;
+       margin-bottom: 3rem;
+       opacity: 0;
+   }
+   
+   .tech-card {
+       opacity: 0;
+       box-shadow: 0 4px 12px rgba(0, 224, 255, 0.1);
+   }
+   
+   .tech-card:hover .tech-icon { transform: scale(1.1); }
+   
+   .tech-card::before { opacity: 0; }
+   .tech-card:hover::before { opacity: 1; }
+   
+   /* ==========================================================================
+      Chatbot Section
+      ========================================================================== */
+   .chatbot-section {
+       position: relative;
+       padding: 6rem 2rem 4rem;
+       background: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+       min-height: 100vh;
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       justify-content: center;
+       overflow: hidden;
+   }
+   
+   .chatbot-container {
+       position: relative;
+       z-index: 2;
+       text-align: center;
+       max-width: 1200px;
+       margin: 0 auto;
+       width: 100%;
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+   }
+   
+   .particles-bg {
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       z-index: 1;
+       opacity: 0.5;
+   }
+   
+   .chatbot-title {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 3rem;
+       color: #00e0ff;
+       margin-bottom: 1rem;
+       text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+   }
+   
+   .chatbot-subtitle {
+       font-size: 1.2rem;
+       color: #e0e0e0;
+       margin-bottom: 3rem;
+       max-width: 600px;
+       margin-left: auto;
+       margin-right: auto;
+   }
+   
+   .large-mobile-frame {
+       display: flex;
+       justify-content: center;
+       align-items: center;
+       perspective: 1000px;
+       margin: 0 auto;
+       width: 100%;
+   }
+   
+   .mobile-device {
+       position: relative;
+       width: 360px;
+       height: 680px;
+       background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+       border: 12px solid #222;
+       border-radius: 40px;
+       box-shadow: 0 0 10px rgba(0, 224, 255, 0.3);
+       overflow: hidden;
+       transform: rotateX(5deg) rotateY(3deg);
+       transition: transform 0.3s ease, box-shadow 0.3s ease;
+       backdrop-filter: blur(5px);
+   }
+   
+   .mobile-device:hover {
+       transform: rotateX(0deg) rotateY(0deg);
+   }
+   
+   .mobile-notch {
+       position: absolute;
+       top: 0;
+       left: 50%;
+       transform: translateX(-50%);
+       width: 120px;
+       height: 24px;
+       background: #000;
+       border-bottom-left-radius: 16px;
+       border-bottom-right-radius: 16px;
+       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+   }
+   
+   .mobile-screen {
+       width: 100%;
+       height: 100%;
+       background: #000;
+       border-radius: 28px;
+       overflow: hidden;
+   }
+   
+   .chatbot-widget {
+       width: 100%;
+       height: 100%;
+       background: #e5ddd5 url('https://www.whatsapp.com/img/backgrounds/background-1.jpg') repeat;
+       background-size: 60%;
+       display: flex;
+       flex-direction: column;
+       border-radius: 28px;
+       box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+   }
+   
+   .chatbot-header.whatsapp-header {
+       background: #075e54;
+       padding: 0.5rem 0.75rem;
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       border-top-left-radius: 28px;
+       border-top-right-radius: 28px;
+       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+       flex-shrink: 0;
+   }
+   
+   .whatsapp-contact { display: flex; align-items: center; }
+   
+   .whatsapp-avatar {
+       width: 32px;
+       height: 32px;
+       background: #25d366;
+       border-radius: 50%;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       margin-right: 0.5rem;
+       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+   }
+   
+   .whatsapp-avatar i {
+       color: #fff;
+       font-size: 1.1rem;
+   }
+   
+   .whatsapp-info { display: flex; flex-direction: column; }
+   
+   .whatsapp-name {
+       color: #fff;
+       font-size: 0.85rem;
+       font-weight: 500;
+   }
+   
+   .whatsapp-number {
+       color: #d1d1d1;
+       font-size: 0.65rem;
+   }
+   
+   .whatsapp-actions {
+       display: flex;
+       align-items: center;
+       gap: 1rem;
+   }
+   
+   .whatsapp-actions i {
+       color: #fff;
+       font-size: 0.9rem;
+       cursor: pointer;
+       transition: color 0.3s ease;
+   }
+   
+   .whatsapp-actions i:hover { color: #25d366; }
+   
+   .chatbot-body.whatsapp-body {
+       flex: 1;
+       padding: 0.5rem;
+       overflow-y: auto;
+       position: relative;
+   }
+   
+   .chatbot-body::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       background: rgba(0, 0, 0, 0.05);
+       z-index: 1;
+   }
+   
+   .chatbot-body > * { position: relative; z-index: 2; }
+   
+   .chatbot-body::-webkit-scrollbar { width: 4px; }
+   .chatbot-body::-webkit-scrollbar-track { background: transparent; }
+   .chatbot-body::-webkit-scrollbar-thumb {
+       background: #075e54;
+       border-radius: 2px;
+   }
+   
+   .chatbot-message {
+       position: relative;
+       max-width: 75%;
+       padding: 0.4rem 0.6rem;
+       margin-bottom: 0.3rem;
+       border-radius: 10px;
+       font-size: 0.8rem;
+       line-height: 1.3;
+       word-wrap: break-word;
+       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+       display: flex;
+       flex-direction: column;
+       transition: transform 0.2s ease;
+   }
+   
+   .chatbot-message:hover { transform: scale(1.02); }
+   
+   .chatbot-message.bot {
+       background: #fff;
+       color: #333;
+       margin-right: auto;
+       border-bottom-left-radius: 2px;
+   }
+   
+   .chatbot-message.bot::before {
+       content: '';
+       position: absolute;
+       left: -6px;
+       bottom: 0;
+       width: 10px;
+       height: 10px;
+       background: #fff;
+       border-bottom-left-radius: 10px;
+       clip-path: polygon(0 100%, 100% 0, 100% 100%);
+   }
+   
+   .chatbot-message.user {
+       background: #dcf8c6;
+       color: #333;
+       margin-left: auto;
+       border-bottom-right-radius: 2px;
+   }
+   
+   .chatbot-message.user::after {
+       content: '';
+       position: absolute;
+       right: -6px;
+       bottom: 0;
+       width: 10px;
+       height: 10px;
+       background: #dcf8c6;
+       border-bottom-right-radius: 10px;
+       clip-path: polygon(0 0, 100% 100%, 0 100%);
+   }
+   
+   .chatbot-message.error {
+       background: rgba(255, 0, 0, 0.1);
+       color: #ff0000;
+       border: 1px solid rgba(255, 0, 0, 0.3);
+   }
+   
+   .message-meta {
+       display: flex;
+       align-items: center;
+       justify-content: flex-end;
+       margin-top: 0.2rem;
+       font-size: 0.6rem;
+       color: #888;
+   }
+   
+   .message-time { margin-right: 0.2rem; }
+   .message-status i { color: #34b7f1; font-size: 0.6rem; }
+   
+   .chatbot-input.whatsapp-input {
+       display: flex;
+       align-items: center;
+       padding: 0.3rem;
+       background: #075e54;
+       border-bottom-left-radius: 28px;
+       border-bottom-right-radius: 28px;
+       box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+       flex-shrink: 0;
+   }
+   
+   .input-wrapper {
+       flex: 1;
+       position: relative;
+       display: flex;
+       align-items: center;
+       background: #fff;
+       border-radius: 18px;
+       padding: 0 0.4rem;
+       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+   }
+   
+   .input-icon {
+       color: #888;
+       font-size: 0.9rem;
+       margin-right: 0.4rem;
+       cursor: pointer;
+       transition: color 0.3s ease;
+   }
+   
+   .input-icon:hover { color: #25d366; }
+   
+   .chatbot-input input {
+       flex: 1;
+       padding: 0.4rem 0;
+       border: none;
+       background: transparent;
+       color: #333;
+       font-size: 0.8rem;
+   }
+   
+   .chatbot-input input:focus { outline: none; }
+   
+   .chatbot-input button {
+       background: #25d366;
+       border: none;
+       border-radius: 50%;
+       width: 32px;
+       height: 32px;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       margin-left: 0.4rem;
+       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+   }
+   
+   .chatbot-input button:hover {
+       background: #20b858;
+       transform: scale(1.1);
+   }
+   
+   .chatbot-input button i {
+       color: #fff;
+       font-size: 1rem;
+   }
+   
+   .chatbot-custom-info {
+       margin: 4rem auto;
+       text-align: center;
+       max-width: 700px;
+   }
+   
+   .chatbot-custom-info p {
+       font-size: 1.1rem;
+       color: #ffffff;
+       opacity: 0.9;
+       line-height: 1.5;
+       margin: 0;
+   }
+   
+   .chatbot-custom-info strong {
+       color: #00e0ff;
+       font-weight: 600;
+   }
+   
+   /* ==========================================================================
+      Footer
+      ========================================================================== */
+   .quantum-footer {
+       background: rgba(30, 30, 30, 0.8);
+       color: #b0b0b0;
+       padding: 5rem 2rem 2rem;
+       font-family: 'Inter', sans-serif;
+       border-top: 1px solid rgba(255, 255, 255, 0.1);
+       position: relative;
+       z-index: 1;
+   }
+   
+   .footer-container {
+       display: grid;
+       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+       gap: 2rem;
+       max-width: 1280px;
+       margin: 0 auto;
+       padding-bottom: 2rem;
+   }
+   
+   .footer-brand {
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       text-align: center;
+   }
+   
+   .footer-logo {
+       height: 32px;
+       width: auto;
+       filter: brightness(1.2);
+       margin-bottom: 0.5rem;
+   }
+   
+   .footer-tagline {
+       font-size: 0.9rem;
+       font-weight: 300;
+       color: #00e0ff;
+       letter-spacing: 0.05em;
+   }
+   
+   .footer-links,
+   .footer-legal,
+   .footer-social {
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       text-align: center;
+   }
+   
+   .footer-links h3,
+   .footer-legal h3,
+   .footer-social h3,
+   .footer-contact h3 {
+       font-size: 1rem;
+       font-weight: 600;
+       color: #ffffff;
+       margin-bottom: 1rem;
+       text-transform: uppercase;
+       letter-spacing: 0.05em;
+   }
+   
+   .footer-links ul,
+   .footer-legal ul,
+   .footer-social ul {
+       list-style: none;
+       padding: 0;
+       margin: 0;
+   }
+   
+   .footer-links li,
+   .footer-legal li {
+       margin-bottom: 0.75rem;
+   }
+   
+   .footer-links a,
+   .footer-legal a {
+       font-size: 0.9rem;
+       color: #b0b0b0;
+       transition: color 0.3s ease;
+   }
+   
+   .footer-links a:hover,
+   .footer-legal a:hover { color: #00e0ff; }
+   
+   .social-icons {
+       display: flex;
+       gap: 1.5rem;
+       justify-content: center;
+   }
+   
+   .social-icons a {
+       font-size: 1.25rem;
+       color: #00e0ff;
+       transition: color 0.3s ease, transform 0.3s ease;
+   }
+   
+   .social-icons a:hover {
+       color: #ffffff;
+       transform: scale(1.1);
+   }
+   
+   .footer-contact {
+       margin: 2rem 0 3rem;
+       text-align: center;
+   }
+   
+   .footer-form {
+       display: flex;
+       flex-direction: column;
+       max-width: 400px;
+       margin: 0 auto;
+       gap: 1rem;
+       align-items: center;
+   }
+   
+   .footer-form input,
+   .footer-form textarea { min-height: 80px; }
+   
+   .footer-form button {
+       width: 100%;
+       max-width: 200px;
+   }
+   
+   .footer-bottom {
+       text-align: center;
+       padding-top: 2rem;
+       border-top: 1px solid rgba(255, 255, 255, 0.1);
+       font-size: 0.85rem;
+       color: #b0b0b0;
+   }
+   
+   /* ==========================================================================
+      Componentes Específicos
+      ========================================================================== */
+   .whatsapp-btn-wrapper {
+       position: fixed;
+       bottom: 30px;
+       right: 30px;
+       z-index: 1000;
+   }
+   
+   .whatsapp-btn {
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       width: 60px;
+       height: 60px;
+       background: #25D366;
+       color: #ffffff;
+       font-size: 2rem;
+       border-radius: 50%;
+       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+       transition: all 0.3s ease;
+   }
+   
+   .whatsapp-btn:hover {
+       background: #20C058;
+       transform: translateY(-3px);
+       box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+   }
+   
+   .whatsapp-tooltip {
+       position: absolute;
+       right: 70px;
+       background: #1e1e1e;
+       color: #ffffff;
+       padding: 0.5rem 1rem;
+       border-radius: 4px;
+       font-size: 0.9rem;
+       white-space: nowrap;
+       opacity: 0;
+       visibility: hidden;
+       transition: opacity 0.3s ease, visibility 0.3s ease;
+   }
+   
+   .whatsapp-btn:hover .whatsapp-tooltip {
+       opacity: 1;
+       visibility: visible;
+   }
+   
+   .loader {
+       position: fixed;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       background: #121212;
+       display: flex;
+       flex-direction: column;
+       justify-content: center;
+       align-items: center;
+       z-index: 99999;
+       opacity: 1;
+       transition: opacity 0.5s ease;
+   }
+   
+   .loader.hidden { opacity: 0; pointer-events: none; }
+   
+   .loader-circle {
+       width: 60px;
+       height: 60px;
+       border: 4px solid #00e0ff;
+       border-top: 4px solid transparent;
+       border-radius: 50%;
+       animation: spin 1s linear infinite, glow 1.5s ease-in-out infinite;
+   }
+   
+   .loader p {
+       margin-top: 1rem;
+       color: #00e0ff;
+       font-family: 'Roboto Mono', monospace;
+       font-size: 1rem;
+       text-transform: uppercase;
+       letter-spacing: 2px;
+   }
+   
+   /* ==========================================================================
+      Case Studies Page
+      ========================================================================== */
+   .case-studies-hero {
+       background: transparent;
+       padding: 4rem 2rem 0.2rem 2rem;
+       text-align: center;
+       position: relative;
+   }
+   
+   .case-studies-hero-content {
+       max-width: 800px;
+       margin: 0 auto;
+   }
+   
+   .case-studies-title {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 3.5rem;
+       font-weight: 700;
+       color: #ffffff;
+       letter-spacing: 2px;
+       margin-bottom: 1rem;
+       text-transform: uppercase;
+       position: relative;
+       overflow: hidden;
+   }
+   
+   .case-studies-subtitle {
+       font-family: 'Roboto Mono', monospace;
+       font-size: 1.25rem;
+       font-weight: 300;
+       color: #b0b0b0;
+       margin-bottom: 0.5rem;
+       opacity: 0.8;
+   }
+   
+   .case-studies-list {
+       padding: 0.2rem 2rem 10rem 2rem;
+       background: transparent;
+       text-align: center;
+   }
+   
+    /* Case Study Card */
+    .case-study-card {
+        position: relative;
+        background: rgba(18, 18, 18, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 2rem;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 224, 255, 0.1);
+        max-height: 350px; /* Limitamos la altura para evitar superposiciones */
+        will-change: transform; /* Optimizamos el rendimiento del paralaje */
+    }
+
+        /* Aseguramos que el contenido dentro de la tarjeta tenga espacio adicional */
+    .case-study-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem; /* Espacio entre el título y el párrafo */
+    }
+   
+    .case-study-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 8px 20px rgba(0, 224, 255, 0.3);
+        border: 1px solid #00e0ff;
+    }
+   
+   .holographic-scan {
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 2px;
+       background: linear-gradient(90deg, rgba(0, 224, 255, 0) 0%, rgba(0, 224, 255, 0.5) 50%, rgba(0, 224, 255, 0) 100%);
+       animation: scan 4s infinite linear;
+   }
+   
+   .case-study-card:hover .case-study-icon {
+       transform: scale(1.1);
+       color: #ff00ff;
+   }
+   
+   .case-study-content h2 {
+       font-family: 'Orbitron', sans-serif;
+       font-size: 1.5rem;
+       font-weight: 600;
+       color: #ffffff;
+       text-transform: uppercase;
+       letter-spacing: 1px;
+       margin-bottom: 0.75rem;
+   }
+   
+   .case-study-content p {
+       font-family: 'Inter', sans-serif;
+       font-size: 1rem;
+       font-weight: 300;
+       color: #cccccc;
+       line-height: 1.6;
+       margin-bottom: 1rem;
+   }
+   
+   .case-study-content p strong {
+       color: #00e0ff;
+       font-weight: 500;
+   }
+   
+    /* Case Studies CTA */
+    .case-studies-cta {
+        padding: 7rem 2rem;
+        background: linear-gradient(135deg, rgba(0, 224, 255, 0.1), rgba(255, 0, 255, 0.1));
+        text-align: center;
+        position: relative;
+        margin-top: 1.5rem; /* Añadimos margen superior para más separación */
+        margin-bottom: 4rem;
+    }
+   
+   .case-studies-cta-content {
+       background: rgba(18, 18, 18, 0.6);
+       border-radius: 12px;
+       padding: 2rem;
+       box-shadow: 0 4px 12px rgba(0, 224, 255, 0.1);
+       max-width: 800px;
+       margin: 0 auto;
+   }
+   
+   .case-studies-cta-content .quantum-btn {
+       font-size: 1.1rem;
+       padding: 1rem 3rem;
+   }
+   
+   /* ==========================================================================
+      Animaciones
+      ========================================================================== */
+   @keyframes spin {
+       0% { transform: rotate(0deg); }
+       100% { transform: rotate(360deg); }
+   }
+   
+   @keyframes glow {
+       0%, 100% { box-shadow: 0 0 10px #00e0ff; }
+       50% { box-shadow: 0 0 20px #00e0ff, 0 0 30px #00e0ff; }
+   }
+   
+   @keyframes energy-pulse {
+       0% { transform: scale(1) rotate(0deg); opacity: 0.5; }
+       50% { transform: scale(1.2) rotate(180deg); opacity: 0.8; }
+       100% { transform: scale(1) rotate(360deg); opacity: 0.5; }
+   }
+   
+   @keyframes holographic-border {
+       0% { background-position: 0% 50%; }
+       100% { background-position: 400% 50%; }
+   }
+   
+   @keyframes particle-float {
+       0% { transform: translate(0, 0); opacity: 0.8; }
+       25% { transform: translate(5px, -5px); opacity: 0.5; }
+       50% { transform: translate(-5px, 5px); opacity: 0.8; }
+       75% { transform: translate(3px, -3px); opacity: 0.6; }
+       100% { transform: translate(0, 0); opacity: 0.8; }
+   }
+   
+   @keyframes scan-glow {
+       0% { transform: translateX(-100%); }
+       50% { transform: translateX(100%); }
+       100% { transform: translateX(-100%); }
+   }
+   
+   @keyframes glitch-top {
+       2%, 64% { transform: translate(2px, -2px); }
+       4%, 60% { transform: translate(-2px, 2px); }
+       62% { transform: translate(0, 0); }
+   }
+   
+   @keyframes glitch-bottom {
+       2%, 64% { transform: translate(-2px, 0); }
+       4%, 60% { transform: translate(2px, 0); }
+       62% { transform: translate(0, 0); }
+   }
+   
+   @keyframes scan {
+       0% { transform: translateY(-100%); }
+       100% { transform: translateY(100vh); }
+   }
+   
+   /* ==========================================================================
+      Media Queries
+      ========================================================================== */
+   @media (max-width: 768px) {
+       .menu-toggle { display: block; }
+   
+       nav ul.nav-links {
+           display: none;
+           flex-direction: column;
+           position: absolute;
+           top: 70px;
+       }
+   
+       .quantum-hero,
+       .services-hero,
+       .about-hero,
+       .case-studies-hero {
+           padding-top: 9rem;
+           padding-left: 1.5rem;
+           padding-right: 1.5rem;
+           min-height: 80vh;
+       }
+   
+       .quantum-hero .quantum-title { margin-bottom: 2rem; }
+       .quantum-hero .quantum-subtitle { margin-bottom: 3rem; }
+       .quantum-hero .quantum-btn { margin-bottom: 0.8rem; }
+   
+       .about-container.align-left,
+       .about-container.align-right {
+           align-items: center;
+           text-align: center;
+           margin-left: auto;
+           margin-right: auto;
+       }
+   
+       .about-mission,
+       .about-vision,
+       .about-services,
+       .about-benefits,
+       .team-section,
+       .about-cta {
+           padding: 2rem 1.5rem;
+       }
+   
+       .about-hero {
+           padding: 6rem 1.5rem 1.5rem 1.5rem;
+       }
+   
+       .about-mission { padding-top: 0.5rem; }
+   
+       .services-details { padding: 2rem 1.5rem; }
+   
+       .services-hero {
+           padding-bottom: 1rem;
+           min-height: 350px;
+       }
+   
+       .services-title { font-size: 2.5rem; }
+       .services-subtitle {
+           font-size: 1.1rem;
+           margin-bottom: 1.5rem;
+       }
+   
+       .case-studies-hero {
+           padding: 2rem 1.5rem 0.1rem 1.5rem;
+       }
+   
+       .case-studies-list {
+           padding: 0.1rem 1.5rem 6rem 1.5rem;
+       }
+   
+        .case-studies-container {
+            grid-template-columns: 1fr;
+            padding: 1.5rem 1.5rem 2.5rem 1.5rem; /* Ajustamos padding-bottom */
+            gap: 2.5rem; /* Reducimos ligeramente el gap */
+        }
+   
+        .case-study-card {
+            max-height: 400px; /* Aumentado de 350px a 400px en móviles */
+            padding: 1.5rem;
+        }
+
+        .case-study-content p {
+            margin-bottom: 0.75rem; /* Margen ajustado para móviles */
+        }
+   
+        .case-studies-cta {
+            padding: 4rem 1.5rem;
+            margin-top: 1rem; /* Reducimos margen superior */
+        }
+   
+       .blog-posts { padding: 3rem 1.5rem; }
+   
+       .blog-container h2 {
+           font-size: 2rem;
+           margin-bottom: 2.5rem;
+       }
+   
+       .blog-post {
+           padding: 1.25rem;
+           margin-bottom: 1.5rem;
+       }
+   
+       .blog-post h2 { font-size: 1.25rem; }
+       .blog-post p { font-size: 0.95rem; }
+       .read-more {
+           font-size: 0.85rem;
+           padding: 0.4rem 0.8rem;
+       }
+   
+       .tech-section { padding: 6rem 1.5rem; }
+       .tech-title { font-size: 2.5rem; }
+       .tech-intro { font-size: 1rem; }
+       .tech-grid {
+           grid-template-columns: 1fr;
+           gap: 1.5rem;
+       }
+   
+       .chatbot-section { padding: 5rem 1rem 4rem; }
+       .chatbot-title { font-size: 2rem; }
+       .chatbot-subtitle { font-size: 0.9rem; }
+       .chatbot-custom-info { margin: 2rem auto; }
+       .chatbot-custom-info p { font-size: 0.95rem; }
+   
+       .mobile-device {
+           width: 280px;
+           height: 520px;
+           border-width: 8px;
+           border-radius: 32px;
+       }
+   
+       .mobile-notch {
+           width: 80px;
+           height: 18px;
+           border-bottom-left-radius: 12px;
+           border-bottom-right-radius: 12px;
+       }
+   
+       .mobile-screen { border-radius: 24px; }
+   
+       .chatbot-header.whatsapp-header {
+           padding: 0.4rem 0.6rem;
+           border-top-left-radius: 24px;
+           border-top-right-radius: 24px;
+       }
+   
+       .whatsapp-avatar { width: 28px; height: 28px; }
+       .whatsapp-avatar i { font-size: 1rem; }
+       .whatsapp-name { font-size: 0.8rem; }
+       .whatsapp-number { font-size: 0.6rem; }
+       .whatsapp-actions { gap: 0.8rem; }
+       .whatsapp-actions i { font-size: 0.85rem; }
+   
+       .chatbot-input.whatsapp-input {
+           padding: 0.2rem;
+           border-bottom-left-radius: 24px;
+           border-bottom-right-radius: 24px;
+       }
+   
+       .input-wrapper { padding: 0 0.25rem; }
+       .input-icon {
+           font-size: 0.8rem;
+           margin-right: 0.25rem;
+       }
+   
+       .chatbot-input input {
+           padding: 0.25rem 0;
+           font-size: 0.7rem;
+       }
+   
+       .chatbot-input button {
+           width: 26px;
+           height: 26px;
+           margin-left: 0.25rem;
+       }
+   
+       .chatbot-input button i { font-size: 0.85rem; }
+   
+       .footer-container {
+           grid-template-columns: 1fr;
+           text-align: center;
+       }
+   
+       .footer-brand,
+       .footer-links,
+       .footer-legal,
+       .footer-social {
+           align-items: center;
+       }
+   
+       .social-icons { justify-content: center; }
+       .footer-form { max-width: 300px; }
+       .footer-contact { margin-bottom: 2.5rem; }
+       .footer-bottom { padding-top: 1.5rem; }
+       .quantum-footer { padding: 4rem 1.5rem 1.5rem; }
+   
+       .matrix-section { padding: 5rem 1.5rem; }
+   
+       @keyframes glitch-top {
+           2%, 64% { transform: translate(0.5px, -0.5px); }
+           4%, 60% { transform: translate(-0.5px, 0.5px); }
+           62% { transform: translate(0, 0); }
+       }
+   
+       @keyframes glitch-bottom {
+           2%, 64% { transform: translate(-0.5px, 0); }
+           4%, 60% { transform: translate(0.5px, 0); }
+           62% { transform: translate(0, 0); }
+       }
+   }
+   
+   @media (max-width: 480px) {
+       .quantum-hero,
+       .services-hero,
+       .about-hero,
+       .case-studies-hero,
+       .blog-hero,
+       .contact-hero {
+           padding-top: 7rem;
+           padding-left: 1rem;
+           padding-right: 1rem;
+           min-height: 70vh;
+       }
+   
+       .quantum-hero .quantum-title { margin-bottom: 1.5rem; }
+       .quantum-hero .quantum-subtitle { margin-bottom: 2.5rem; }
+       .quantum-hero .quantum-btn { margin-bottom: 0.6rem; }
+   
+       .about-mission,
+       .about-vision,
+       .about-services,
+       .about-benefits,
+       .team-section,
+       .about-cta {
+           padding: 1.5rem 1rem;
+       }
+   
+       .about-hero {
+           padding: 4rem 1rem 1rem 1rem;
+       }
+   
+       .services-hero {
+           padding-bottom: 0.5rem;
+           min-height: 300px;
+       }
+   
+       .services-title { font-size: 2rem; }
+       .services-subtitle {
+           font-size: 0.9rem;
+           margin-bottom: 1rem;
+       }
+   
+       .services-details { padding: 1.5rem 1rem; }
+   
+       .case-studies-hero {
+           padding: 1.5rem 1rem 0.1rem 1rem;
+       }
+   
+       .case-studies-title { font-size: 2rem; }
+       .case-studies-subtitle {
+           font-size: 0.9rem;
+           margin-bottom: 0.3rem;
+       }
+   
+       .case-studies-list {
+           padding: 0.1rem 1rem 5rem 1rem;
+       }
+   
+       .case-study-content h2 { font-size: 1.25rem; }
+       .case-study-content p { font-size: 0.9rem; }
+   
+       .case-studies-cta {
+           padding: 3rem 1rem;
+           margin-bottom: 2rem;
+       }
+
+        .case-studies-container {
+            padding: 1rem 1rem 2rem 1rem; /* Más espacio en pantallas pequeñas */
+            gap: 2rem;
+        }
+
+        .case-study-card {
+            max-height: 450px; /* Aumentado de 400px a 450px en pantallas pequeñas */
+            padding: 1.5rem;
+        }
+
+        .case-study-content p {
+            margin-bottom: 0.5rem; /* Margen ajustado para pantallas muy pequeñas */
+        }
+
+        .case-studies-cta {
+            padding: 3rem 1rem;
+            margin-top: 0.75rem;
+        }
+   
+       .case-studies-cta-content h2 { font-size: 1.75rem; }
+       .case-studies-cta-content p { font-size: 1rem; }
+
+
+   
+       .blog-posts { padding: 2rem 1rem; }
+       .blog-container h2 {
+           font-size: 1.75rem;
+           margin-bottom: 2rem;
+       }
+   
+       .blog-post {
+           padding: 1rem;
+           margin-bottom: 1rem;
+       }
+   
+       .blog-post h2 { font-size: 1.1rem; }
+       .blog-post p { font-size: 0.9rem; }
+       .read-more {
+           font-size: 0.8rem;
+           padding: 0.35rem 0.7rem;
+       }
+   
+       .tech-section { padding: 5rem 1rem; }
+       .tech-title { font-size: 2rem; }
+       .tech-intro { font-size: 0.9rem; }
+   
+       .matrix-section { padding: 4rem 1rem; }
+   
+       .footer-form { max-width: 250px; }
+       .footer-form button { max-width: 150px; }
+       .footer-contact { margin-bottom: 2rem; }
+       .footer-bottom { padding-top: 1.2rem; }
+       .quantum-footer { padding: 3rem 1.5rem 1.5rem; }
+   }
+   
+   @media (min-width: 769px) {
+       .menu-toggle { display: none !important; }
+   }
+
+/* Case Studies Hero Section */
+.case-studies-hero {
+    background: transparent;
+    padding: 4rem 2rem 0rem 2rem; /* Reducido padding-bottom de 0.1rem a 0rem */
+    text-align: center;
+    position: relative;
+}
+
+/* Case Studies Title */
+.case-studies-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 2px;
+    margin-bottom: 0.2rem; /* Reducido de 0.5rem a 0.2rem */
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Case Studies Subtitle */
+.case-studies-subtitle {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1.25rem;
+    font-weight: 300;
+    color: #b0b0b0;
+    margin-bottom: 0.1rem; /* Reducido de 0.25rem a 0.1rem */
+    opacity: 0.8;
+}
+
+/* Case Studies List */
+.case-studies-list {
+    padding: 0rem 2rem 3rem 2rem; /* Reducido padding-top de 0.1rem a 0rem */
+    background: transparent;
+    text-align: center;
+}
+
+/* Case Studies CTA */
+.case-studies-cta {
+    padding: 7rem 2rem;
+    background: linear-gradient(135deg, rgba(0, 224, 255, 0.1), rgba(255, 0, 255, 0.1));
+    text-align: center;
+    position: relative;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem; /* Reducido de 2rem a 1rem para que el footer suba más */
+}
+
+/* Footer */
+.quantum-footer {
+    background: rgba(30, 30, 30, 0.8);
+    color: #b0b0b0;
+    padding: 5rem 2rem 2rem;
+    font-family: 'Inter', sans-serif;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    z-index: 1;
+    margin-top: 0;
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+    .case-studies-hero {
+        padding: 2rem 1.5rem 0rem 1.5rem; /* Reducido padding-bottom a 0rem */
+    }
+
+    .case-studies-title {
+        font-size: 2.5rem;
+        margin-bottom: 0.15rem; /* Reducido de 0.4rem a 0.15rem */
+    }
+
+    .case-studies-subtitle {
+        font-size: 1.1rem;
+        margin-bottom: 0.05rem; /* Reducido de 0.2rem a 0.05rem */
+    }
+
+    .case-studies-list {
+        padding: 0rem 1.5rem 2.5rem 1.5rem; /* Reducido padding-top a 0rem */
+    }
+
+    .case-studies-cta {
+        padding: 4rem 1.5rem;
+        margin-top: 1rem;
+        margin-bottom: 0.75rem; /* Reducido de 1.5rem a 0.75rem */
+    }
+
+    .quantum-footer {
+        padding: 4rem 1.5rem 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .case-studies-hero {
+        padding: 1.5rem 1rem 0rem 1rem;
+    }
+
+    .case-studies-title {
+        font-size: 2rem;
+        margin-bottom: 0.1rem; /* Reducido de 0.3rem a 0.1rem */
+    }
+
+    .case-studies-subtitle {
+        font-size: 0.9rem;
+        margin-bottom: 0.05rem; /* Reducido de 0.15rem a 0.05rem */
+    }
+
+    .case-studies-list {
+        padding: 0rem 1rem 2rem 1rem; /* Reducido padding-top a 0rem */
+    }
+
+    .case-studies-cta {
+        padding: 3rem 1rem;
+        margin-top: 0.75rem;
+        margin-bottom: 0.5rem; /* Reducido de 1rem a 0.5rem */
+    }
+
+    .quantum-footer {
+        padding: 3rem 1.5rem 1.5rem;
+    }
+}
+   

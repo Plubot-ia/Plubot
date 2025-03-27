@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Quantum | Prueba Chatbot{% endblock %}
+
+{% block meta_description %}Prueba QuantumBot, nuestro chatbot inteligente integrado con WhatsApp. Automatiza tu negocio y mejora la experiencia de tus clientes con IA conversacional.{% endblock %}
+
+{% block content %}
+<section class="chatbot-section">
+    <div id="chatbot-particles" class="particles-bg"></div>
+    <div class="chatbot-container">
+        <h1 class="chatbot-title" data-text="Prueba QuantumBot" data-aos="fade-down">Prueba QuantumBot</h1>
+        <p class="chatbot-subtitle" data-aos="fade-up" data-aos-delay="200">Experimenta cómo nuestro chatbot puede transformar tu negocio con una integración perfecta en WhatsApp.</p>
+            
+        <!-- Contenedor del móvil -->
+        <div class="large-mobile-frame">
+            <div class="mobile-device">
+                <div class="mobile-notch"></div>
+                <div class="mobile-screen">
+                    <div class="chatbot-widget active">
+                        <div class="chatbot-header whatsapp-header">
+                            <div class="whatsapp-contact">
+                                <div class="whatsapp-avatar">
+                                    <i class="fab fa-whatsapp"></i>
+                                </div>
+                                <div class="whatsapp-info">
+                                    <span class="whatsapp-name">QuantumBot</span>
+                                    <span class="whatsapp-number">+54 9 11 1234-5678</span>
+                                </div>
+                            </div>
+                            <div class="whatsapp-actions">
+                                <i class="fas fa-phone-alt" aria-label="Llamar"></i>
+                                <i class="fas fa-ellipsis-v" aria-label="Más opciones"></i>
+                            </div>
+                        </div>
+                        <div class="chatbot-body whatsapp-body">
+                            <!-- Mensaje inicial -->
+                            <div class="chatbot-message bot">
+                                <span class="message-text">¡Hola! Soy QuantumBot, tu asistente virtual. ¿En qué puedo ayudarte hoy? 👋</span>
+                                <span class="message-meta">
+                                    <span class="message-time">10:00</span>
+                                    <span class="message-status"><i class="fas fa-check-double"></i></span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="chatbot-input whatsapp-input">
+                            <div class="input-wrapper">
+                                <i class="fas fa-smile input-icon" aria-label="Añadir emoji"></i>
+                                <input type="text" placeholder="Escribe un mensaje..." />
+                            </div>
+                            <button><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Texto personalizado debajo del chatbot -->
+    <div class="chatbot-custom-info">
+        <p>Este es solo un ejemplo. QuantumBot es <strong>100% personalizable</strong> y se adapta a las necesidades únicas de tu negocio.</p>
+    </div>
+</section>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+<script>
+    // Animación de entrada suavizada para el móvil
+    gsap.from(".mobile-device", {
+        opacity: 0,
+        y: 20,
+        rotationX: 5,
+        duration: 1.2,
+        ease: "power3.out",
+        delay: 0.5
+    });
+
+    // Efecto de pulso sutil en lugar de flotación
+    gsap.to(".mobile-device", {
+        boxShadow: "0 0 15px rgba(0, 224, 255, 0.5), 0 0 25px rgba(0, 224, 255, 0.3)",
+        duration: 2,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut"
+    });
+
+    // Animación para el texto personalizado
+    gsap.from(".chatbot-custom-info", {
+        scrollTrigger: {
+            trigger: ".chatbot-custom-info",
+            start: "top 90%", // Se activa cuando el elemento entra en el 90% de la pantalla
+            toggleActions: "play none none none"
+        },
+        opacity: 0,
+        y: 20,
+        scale: 0.95,
+        duration: 1,
+        ease: "power3.out",
+        onStart: () => {
+            // Efecto de "escaneo" adicional al aparecer
+            gsap.to(".chatbot-custom-info", {
+                boxShadow: "0 0 10px rgba(0, 224, 255, 0.5), 0 0 20px rgba(0, 224, 255, 0.3)",
+                duration: 0.5,
+                repeat: 1,
+                yoyo: true,
+                ease: "power1.inOut"
+            });
+        }
+    });
+
+    // Inicializar partículas
+    const initParticles = (elementId, config) => {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    particlesJS(elementId, config);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { rootMargin: '200px' });
+
+        observer.observe(element);
+    };
+
+    const chatbotParticlesConfig = {
+        particles: {
+            number: { value: 60, density: { enable: true, value_area: 800 } },
+            color: { value: '#00e0ff' },
+            shape: { type: 'circle' },
+            opacity: { value: 0.4, random: true },
+            size: { value: 3, random: true },
+            line_linked: { enable: true, distance: 150, color: '#00e0ff', opacity: 0.3, width: 1 },
+            move: { enable: true, speed: 1.5, direction: 'none', random: false, straight: false, out_mode: 'out', bounce: false }
+        },
+        interactivity: {
+            detect_on: 'canvas',
+            events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' }, resize: true },
+            modes: { repulse: { distance: 100, duration: 0.4 }, push: { particles_nb: 4 } }
+        },
+        retina_detect: true
+    };
+
+    initParticles('chatbot-particles', chatbotParticlesConfig);
+
+    // === Chatbot ===
+    let messageHistory = [
+        {"role": "system", "content": "Eres QuantumBot, un asistente virtual de Quantum Web. Responde de manera amigable, breve y directa, usando un tono alegre. Limítate a respuestas cortas (máximo 2-3 frases). Si es posible, incluye un emoji o icono relevante al final de tu respuesta."}
+    ];
+
+    const chatbotWidget = document.querySelector('.chatbot-widget');
+    if (chatbotWidget) {
+        const chatbotInput = document.querySelector('.chatbot-input input');
+        const chatbotSend = document.querySelector('.chatbot-input button');
+        const chatbotBody = document.querySelector('.chatbot-body');
+
+        if (chatbotInput && chatbotSend && chatbotBody) {
+            // Evento para enviar mensaje
+            chatbotSend.addEventListener('click', sendMessage);
+            chatbotInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            async function sendMessage() {
+                const message = chatbotInput.value.trim();
+                if (message) {
+                    const userMessage = document.createElement('div');
+                    userMessage.classList.add('chatbot-message', 'user');
+                    userMessage.innerHTML = `
+                        <span class="message-text">${message}</span>
+                        <span class="message-meta">
+                            <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span class="message-status"><i class="fas fa-check-double"></i></span>
+                        </span>
+                    `;
+                    chatbotBody.appendChild(userMessage);
+                    chatbotInput.value = '';
+
+                    const typingMessage = document.createElement('div');
+                    typingMessage.classList.add('chatbot-message', 'bot');
+                    typingMessage.innerHTML = `
+                        <span class="message-text">Escribiendo... ⏳</span>
+                        <span class="message-meta">
+                            <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </span>
+                    `;
+                    chatbotBody.appendChild(typingMessage);
+                    chatbotBody.scrollTop = chatbotBody.scrollHeight;
+
+                    messageHistory.push({"role": "user", "content": message});
+
+                    try {
+                        const response = await fetch('/api/grok', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ message, history: messageHistory })
+                        });
+
+                        const data = await response.json();
+                        typingMessage.remove();
+
+                        if (data.error) {
+                            const errorMessage = document.createElement('div');
+                            errorMessage.classList.add('chatbot-message', 'bot', 'error');
+                            errorMessage.innerHTML = `
+                                <span class="message-text">Lo siento, algo salió mal. Intenta de nuevo. 😓</span>
+                                <span class="message-meta">
+                                    <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                </span>
+                            `;
+                            chatbotBody.appendChild(errorMessage);
+                        } else {
+                            const botMessage = document.createElement('div');
+                            botMessage.classList.add('chatbot-message', 'bot');
+                            botMessage.innerHTML = `
+                                <span class="message-text">${data.response}</span>
+                                <span class="message-meta">
+                                    <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span class="message-status"><i class="fas fa-check-double"></i></span>
+                                </span>
+                            `;
+                            chatbotBody.appendChild(botMessage);
+                            messageHistory.push({"role": "assistant", "content": data.response});
+                        }
+                    } catch (error) {
+                        typingMessage.remove();
+                        const errorMessage = document.createElement('div');
+                        errorMessage.classList.add('chatbot-message', 'bot', 'error');
+                        errorMessage.innerHTML = `
+                            <span class="message-text">No pude conectar con el servidor. Intenta de nuevo. 😓</span>
+                            <span class="message-meta">
+                                <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </span>
+                        `;
+                        chatbotBody.appendChild(errorMessage);
+                    }
+
+                    chatbotBody.scrollTop = chatbotBody.scrollHeight;
+                }
+            }
+        } else {
+            console.error('Uno o más elementos del chatbot no se encontraron en el DOM.');
+        }
+    }
+</script>
+{% endblock %}
