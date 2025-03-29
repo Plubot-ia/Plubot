@@ -63,6 +63,7 @@
         {% endwith %}
         {% block content %}{% endblock %}
     </main>
+    {% block footer %}
     <footer class="quantum-footer">
         <div class="footer-container">
             <div class="footer-brand">
@@ -74,15 +75,19 @@
             </div>
             <div class="footer-links">
                 <h3>Navegación</h3>
-                <ul>
-                    <li><a href="{{ url_for('index') }}">Inicio</a></li>
-                    <li><a href="{{ url_for('services') }}">Servicios</a></li>
-                    <li><a href="{{ url_for('chatbot') }}">Chatbot IA</a></li>
-                    <li><a href="{{ url_for('case_studies') }}">Potencial IA</a></li>
-                    <li><a href="{{ url_for('about') }}">Sobre Nosotros</a></li>
-                    <li><a href="{{ url_for('contacto') }}">Contacto</a></li>
-                    <li><a href="{{ url_for('blog') }}">Blog</a></li>
-                </ul>
+                <div class="footer-links-columns">
+                    <ul class="footer-links-column">
+                        <li><a href="{{ url_for('index') }}">Inicio</a></li>
+                        <li><a href="{{ url_for('services') }}">Servicios</a></li>
+                        <li><a href="{{ url_for('chatbot') }}">Chatbot IA</a></li>
+                    </ul>
+                    <ul class="footer-links-column">
+                        <li><a href="{{ url_for('case_studies') }}">Potencial IA</a></li>
+                        <li><a href="{{ url_for('about') }}">Sobre Nosotros</a></li>
+                        <li><a href="{{ url_for('contacto') }}">Contacto</a></li>
+                        <li><a href="{{ url_for('blog') }}">Blog</a></li>
+                    </ul>
+                </div>
             </div>
             <div class="footer-social">
                 <h3>Síguenos</h3>
@@ -101,40 +106,39 @@
                 </ul>
             </div>
         </div>
-        <div class="footer-contact">
-            <h3>¿Tienes Preguntas?</h3>
-            <form action="{{ url_for('contacto') }}" method="POST" class="footer-form" id="footer-contact-form">
-                <!-- Campo oculto para nombre -->
-                <input type="hidden" name="nombre" value="Usuario del Footer">
-                <div class="input-wrapper">
-                    <input type="email" name="email" placeholder="Tu correo electrónico" required class="contact-input">
-                </div>
-                <div class="input-wrapper">
-                    <textarea name="message" placeholder="Escribe tu mensaje" required class="contact-input"></textarea>
-                </div>
-                <button type="submit" class="quantum-btn contact-btn">
-                    <span class="btn-text">Enviar</span>
-                    <span class="btn-loader hidden"></span>
-                    <span class="btn-particles"></span>
-                </button>
-            </form>
-            <div class="form-message hidden" id="footer-form-message">
-                <div class="message-content">
-                    <p id="footer-form-message-text"></p>
-                    <div class="message-particles-container">
-                        <span class="message-particle particle-1"></span>
-                        <span class="message-particle particle-2"></span>
-                        <span class="message-particle particle-3"></span>
-                        <span class="message-particle particle-4"></span>
+        <!-- Sección de suscripción separada -->
+        <div class="footer-subscribe-section">
+            <h3 class="footer-title">Suscríbete a nuestro boletín</h3>
+            <p class="footer-description">Recibe las últimas actualizaciones y noticias directamente en tu correo.</p>
+            <form id="footer-subscribe-form" action="{{ url_for('subscribe') }}" method="POST" class="subscribe-form">
+                <div class="footer-subscribe">
+                    <div class="subscribe-input-wrapper">
+                        <input type="email" name="email" placeholder="Tu correo electrónico" required class="subscribe-input">
                     </div>
+                    <button type="submit" class="subscribe-btn">
+                        <span class="btn-text">Suscribirme</span>
+                        <span class="btn-loader hidden"></span>
+                    </button>
                 </div>
-                <div class="message-background"></div>
-            </div>
+                <div id="footer-form-message" class="form-message hidden">
+                    <div class="message-content">
+                        <span id="footer-form-message-text"></span>
+                        <div class="message-particles-container">
+                            <span class="message-particle particle-1"></span>
+                            <span class="message-particle particle-2"></span>
+                            <span class="message-particle particle-3"></span>
+                            <span class="message-particle particle-4"></span>
+                        </div>
+                    </div>
+                    <div class="message-background"></div>
+                </div>
+            </form>
         </div>
         <div class="footer-bottom">
             <p>© 2025 Quantum Web. Todos los derechos reservados.</p>
         </div>
     </footer>
+    {% endblock %}
 
     <!-- Botón de WhatsApp -->
     <div class="whatsapp-btn-wrapper">
@@ -156,14 +160,16 @@
         <script src="{{ url_for('static', filename='js/quantum-three.js') }}"></script>
         <script src="{{ url_for('static', filename='js/contact.js') }}"></script>
     {% endif %}
-    <script src="{{ url_for('static', filename='js/footer-contact.js') }}"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
         AOS.init();
     </script>
+    <!-- Scripts de Cloudflare (sin cambios) -->
     <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'925a48fb2ce4b023',t:'MTc0Mjg2MjQ3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
     <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'925a64e76b908832',t:'MTc0Mjg2MzYxNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
     <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'925c6da079b7bf7a',t:'MTc0Mjg4NDk0Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
     <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'926d0ec0a995bf8e',t:'MTc0MzA1OTMxNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'926d531afd87adc3',t:'MTc0MzA2MjExNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'926d531afd87adc3',t:'MTc0MzA2MjExNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'927d251279164570',t:'MTc0MzIyODAwNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
 </html>

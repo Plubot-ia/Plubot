@@ -63,6 +63,34 @@ def contacto():
 
     return render_template('contact.html')
 
+# Nueva ruta para el formulario de suscripción en el footer
+@app.route('/subscribe', methods=['POST'])
+def subscribe():
+    if request.method == 'POST':
+        try:
+            email = request.form.get('email')
+
+            if not email:
+                return jsonify({'status': 'error', 'message': 'El campo de correo electrónico es requerido.'}), 400
+
+            msg_to_subscriber = Message(
+                subject='¡Gracias por suscribirte a Quantum Web!',
+                recipients=[email],
+                body=f'Hola,\n\nGracias por suscribirte a nuestro boletín. ¡Pronto recibirás actualizaciones y noticias de Quantum Web!\n\nSaludos,\nEl equipo de Quantum Web'
+            )
+            msg_to_admin = Message(
+                subject='Nueva suscripción al boletín',
+                recipients=['quantumweb.ia@gmail.com'],
+                body=f'Nuevo suscriptor:\nEmail: {email}'
+            )
+            mail.send(msg_to_subscriber)
+            mail.send(msg_to_admin)
+            return jsonify({'status': 'success', 'message': '¡Gracias por suscribirte! Revisa tu correo para confirmar.'}), 200
+        except Exception as e:
+            print(f"Error al procesar la suscripción: {str(e)}")
+            return jsonify({'status': 'error', 'message': 'Error al procesar tu suscripción. Intenta de nuevo.'}), 500
+    return jsonify({'status': 'error', 'message': 'Método no permitido'}), 405
+
 @app.route('/about')
 def about():
     return render_template('about.html')

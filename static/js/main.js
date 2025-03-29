@@ -1,76 +1,133 @@
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("main.js cargado");
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log("main.js cargado");
 
-// === Manejo del Formulario de Contacto ===
-const contactForm = document.getElementById('contact-form');
-const formMessage = document.getElementById('form-message');
-const formMessageText = document.getElementById('form-message-text');
-const submitBtn = document.querySelector('.contact-btn');
-const btnText = submitBtn?.querySelector('.btn-text');
-const btnLoader = submitBtn?.querySelector('.btn-loader');
+    // === Formulario de Contacto (página contact.html) ===
+    const contactForm = document.getElementById('contact-form');
+    const formMessage = document.getElementById('form-message');
+    const formMessageText = document.getElementById('form-message-text');
+    const submitBtn = document.querySelector('.contact-btn');
+    const btnText = submitBtn?.querySelector('.btn-text');
+    const btnLoader = submitBtn?.querySelector('.btn-loader');
 
-if (contactForm && formMessage && formMessageText && submitBtn && btnText && btnLoader) {
-    contactForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        btnText.classList.add('hidden');
-        btnLoader.classList.remove('hidden');
-        submitBtn.disabled = true;
+    if (contactForm && formMessage && formMessageText && submitBtn && btnText && btnLoader) {
+        contactForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            btnText.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+            submitBtn.disabled = true;
 
-        const formData = new FormData(contactForm);
+            const formData = new FormData(contactForm);
+
+            try {
+                const response = await fetch(contactForm.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                formMessageText.textContent = data.message;
+                formMessage.classList.remove('hidden', 'success', 'error');
+                formMessage.classList.add(data.status || (response.ok ? 'success' : 'error'));
+                formMessage.style.opacity = '1';
+                formMessage.style.display = 'block';
+
+                if (response.ok) {
+                    contactForm.reset();
+                }
+
+                setTimeout(() => {
+                    formMessage.classList.add('hidden');
+                    formMessage.style.opacity = '0';
+                    formMessage.style.display = 'none';
+                }, 5000);
+            } catch (error) {
+                formMessageText.textContent = 'Error al enviar el mensaje. Intenta de nuevo.';
+                formMessage.classList.remove('hidden', 'success', 'error');
+                formMessage.classList.add('error');
+                formMessage.style.opacity = '1';
+                formMessage.style.display = 'block';
+
+                setTimeout(() => {
+                    formMessage.classList.add('hidden');
+                    formMessage.style.opacity = '0';
+                    formMessage.style.display = 'none';
+                }, 5000);
+
+                console.error('Error en el envío del formulario:', error);
+            } finally {
+                btnText.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+                submitBtn.disabled = false;
+            }
+        });
+    }
+
+
+// === Formulario de Suscripción en el Footer ===
+const footerForm = document.getElementById('footer-subscribe-form');
+const footerMessage = document.getElementById('footer-form-message');
+const footerMessageText = document.getElementById('footer-form-message-text');
+const footerSubmitBtn = footerForm?.querySelector('.subscribe-btn');
+const footerBtnText = footerSubmitBtn?.querySelector('.btn-text');
+const footerBtnLoader = footerSubmitBtn?.querySelector('.btn-loader');
+
+if (footerForm && footerMessage && footerMessageText && footerSubmitBtn && footerBtnText && footerBtnLoader) {
+    footerForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Evita la redirección
+
+        // Mostrar loader
+        footerSubmitBtn.disabled = true;
+        footerBtnText.classList.add('hidden');
+        footerBtnLoader.classList.remove('hidden');
+
+        const formData = new FormData(footerForm);
 
         try {
-            const response = await fetch(contactForm.action, {
+            const response = await fetch(footerForm.action, {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
             });
 
-            const data = await response.json();
+            const result = await response.json();
 
-            // Actualizar el mensaje
-            formMessageText.textContent = data.message;
-            formMessage.classList.remove('hidden', 'success', 'error');
-            formMessage.classList.add(data.status || (response.ok ? 'success' : 'error')); // Usamos data.status si está disponible, sino response.ok
+            // Mostrar mensaje
+            footerMessageText.textContent = result.message;
+            footerMessage.classList.remove('hidden');
+            footerMessage.classList.add(result.status);
 
-            // Asegurarnos de que el mensaje sea visible
-            formMessage.style.opacity = '1';
-            formMessage.style.display = 'block';
+            // Ocultar mensaje después de 3 segundos
+            setTimeout(() => {
+                footerMessage.classList.add('hidden');
+                footerMessage.classList.remove('success', 'error');
+            }, 3000);
 
-            // Restablecer el formulario si fue exitoso
-            if (response.ok) {
-                contactForm.reset();
+            // Resetear formulario si fue exitoso
+            if (result.status === 'success') {
+                footerForm.reset();
             }
-
-            // Ocultar el mensaje después de 5 segundos
-            setTimeout(() => {
-                formMessage.classList.add('hidden');
-                formMessage.style.opacity = '0';
-                formMessage.style.display = 'none';
-            }, 5000);
         } catch (error) {
-            // Manejo de errores en caso de fallo en la solicitud
-            formMessageText.textContent = 'Error al enviar el mensaje. Intenta de nuevo.';
-            formMessage.classList.remove('hidden', 'success', 'error');
-            formMessage.classList.add('error');
-            formMessage.style.opacity = '1';
-            formMessage.style.display = 'block';
-
+            console.error('Error al enviar el formulario de suscripción:', error);
+            footerMessageText.textContent = 'Error al procesar tu suscripción. Intenta de nuevo.';
+            footerMessage.classList.remove('hidden');
+            footerMessage.classList.add('error');
             setTimeout(() => {
-                formMessage.classList.add('hidden');
-                formMessage.style.opacity = '0';
-                formMessage.style.display = 'none';
-            }, 5000);
-
-            console.error('Error en el envío del formulario:', error);
+                footerMessage.classList.add('hidden');
+                footerMessage.classList.remove('success', 'error');
+            }, 3000);
         } finally {
-            // Restablecer el botón
-            btnText.classList.remove('hidden');
-            btnLoader.classList.add('hidden');
-            submitBtn.disabled = false;
+            // Ocultar loader
+            footerSubmitBtn.disabled = false;
+            footerBtnText.classList.remove('hidden');
+            footerBtnLoader.classList.add('hidden');
         }
     });
 } else {
-    console.error('Elementos del formulario de contacto no encontrados:', {
-        contactForm, formMessage, formMessageText, submitBtn, btnText, btnLoader
+    console.error('Elementos del formulario de suscripción no encontrados:', {
+        footerForm, footerMessage, footerMessageText, footerSubmitBtn, footerBtnText, footerBtnLoader
     });
 }
 
