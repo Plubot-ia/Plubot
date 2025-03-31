@@ -212,58 +212,67 @@ def whatsapp_webhook():
     # Inicializar estado de conversación si no existe
     if sender not in conversation_state:
         conversation_state[sender] = {
-            "step": "initial",
+            "step": "greet",
             "data": {"business_type": None, "needs": [], "contacted": False}
         }
 
     state = conversation_state[sender]
     messages = [
-        {"role": "system", "content": f"{QUANTUM_WEB_CONTEXT}\n\nInstrucciones: Eres QuantumBot de Quantum Web. Responde con amabilidad y empatía, escucha al cliente y haz preguntas para recabar información sobre el tipo de chatbot que desea (negocio, necesidades específicas). Mantén respuestas cortas (2-3 frases max). Una vez recolectada la info, agradece y di que nos contactaremos en 24 horas. Usa emojis para un tono alegre."}
+        {"role": "system", "content": f"{QUANTUM_WEB_CONTEXT}\n\nInstrucciones: Eres QuantumBot de Quantum Web. Saluda siempre de forma educada y amigable al iniciar. Si el cliente saluda (ej. 'hola'), responde con '¿En qué puedo ayudarte?' antes de recabar info. Recolecta datos sobre el tipo de chatbot que desea (negocio, necesidades específicas) con preguntas naturales. Responde en 2-3 frases max, usa emojis para un tono alegre. Una vez recolectada la info, agradece y di que nos contactaremos en 24 horas."}
     ]
 
     # Lógica de conversación basada en el estado
-    if state["step"] == "initial":
+    if state["step"] == "greet":
         messages.append({"role": "user", "content": message})
+        if message.lower().startswith(("hola", "buenos", "buenas", "hey")):
+            reply = "¡Hola! Soy QuantumBot de Quantum Web, un placer conocerte. ¿En qué puedo ayudarte hoy? 😊"
+            state["step"] = "awaiting_response"
+        else:
+            reply = "¡Hola! Soy QuantumBot de Quantum Web, estoy aquí para ayudarte. ¿Qué tipo de negocio tienes? 😊"
+            state["step"] = "ask_business_type"
+    elif state["step"] == "awaiting_response":
+        messages.append({"role": "user", "content": message})
+        reply = "¡Gracias por responder! ¿Qué tipo de negocio tienes? 😊"
         state["step"] = "ask_business_type"
     elif state["step"] == "ask_business_type":
         state["data"]["business_type"] = message
-        messages.append({"role": "user", "content": "Gracias por tu respuesta. ¿Qué necesitas que haga tu chatbot (por ejemplo, ventas, reservas, soporte)?"})
+        messages.append({"role": "user", "content": "¡Entendido! ¿Qué necesitas que haga tu chatbot (por ejemplo, ventas, reservas, soporte)? 😊"})
         state["step"] = "ask_needs"
     elif state["step"] == "ask_needs":
         state["data"]["needs"].append(message)
-        messages.append({"role": "user", "content": "¿Algo más que quieras que haga tu chatbot? Si no, dime 'listo' para terminar."})
+        messages.append({"role": "user", "content": "¡Perfecto, lo tengo! ¿Algo más que quieras que haga tu chatbot? Si terminaste, solo di 'listo'. 😊"})
         state["step"] = "more_needs"
     elif state["step"] == "more_needs" and message.lower() == "listo":
-        messages.append({"role": "user", "content": "Perfecto, ya tengo todo. ¡Gracias por confiar en Quantum Web! Nos contactaremos contigo en las próximas 24 horas. 😊"})
+        messages.append({"role": "user", "content": "¡Genial, ya está todo listo! Muchas gracias por confiar en Quantum Web, nos contactaremos contigo en las próximas 24 horas. 😊"})
         state["step"] = "done"
         state["data"]["contacted"] = True
     elif state["step"] == "more_needs":
         state["data"]["needs"].append(message)
-        messages.append({"role": "user", "content": "¿Algo más? Si terminaste, solo di 'listo'."})
+        messages.append({"role": "user", "content": "¡Anotado! ¿Algo más? Si terminaste, di 'listo'. 😊"})
     elif state["step"] == "done":
         messages.append({"role": "user", "content": message})
 
-    # Llamar al API de Grok
-    url = "https://api.x.ai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {XAI_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": "grok-2-1212",
-        "messages": messages,
-        "temperature": 0.5,
-        "max_tokens": 70  # Límite ajustado para respuestas útiles pero breves
-    }
-
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()
-        grok_response = response.json()
-        reply = grok_response['choices'][0]['message']['content']
-    except requests.exceptions.RequestException as e:
-        print(f"Error connecting to Grok API: {str(e)}")
-        reply = "¡Ups! Algo salió mal, intenta de nuevo. 😅"
+    # Si ya se generó una respuesta en la lógica, no llamar a Grok
+    if 'reply' not in locals():
+        try:
+            url = "https://api.x.ai/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {XAI_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": "grok-2-1212",
+                "messages": messages,
+                "temperature": 0.5,
+                "max_tokens": 70
+            }
+            response = requests.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+            grok_response = response.json()
+            reply = grok_response['choices'][0]['message']['content']
+        except requests.exceptions.RequestException as e:
+            print(f"Error connecting to Grok API: {str(e)}")
+            reply = "¡Ups! Algo salió mal, intenta de nuevo. 😅"
 
     # Enviar la respuesta usando Twilio
     client = Client(TWILIO_SID, TWILIO_TOKEN)
@@ -281,7 +290,7 @@ def whatsapp_webhook():
     # Limpiar estado si la conversación terminó
     if state["step"] == "done":
         print(f"Conversation data for {sender}: {state['data']}")
-        del conversation_state[sender]  # Eliminar para no acumular memoria
+        del conversation_state[sender]
 
     return jsonify({'status': 'success'}), 200
 
