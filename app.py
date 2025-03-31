@@ -58,11 +58,11 @@ QUANTUM_WEB_CONTEXT_SHORT = """
 Eres QuantumBot de Quantum Web. Responde con amabilidad y empatía, usa un tono alegre y respuestas cortas (2-3 frases max). Incluye emojis cuando sea apropiado.
 """
 
-# Función para llamar a Grok
-def call_grok(messages):
+# Función para llamar a Grok con max_tokens dinámico
+def call_grok(messages, max_tokens=150):
     url = "https://api.x.ai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {XAI_API_KEY}", "Content-Type": "application/json"}
-    payload = {"model": "grok-2-1212", "messages": messages, "temperature": 0.5, "max_tokens": 70}
+    payload = {"model": "grok-2-1212", "messages": messages, "temperature": 0.5, "max_tokens": max_tokens}
     try:
         response = requests.post(url, json=payload, headers=headers)
         response.raise_for_status()
@@ -235,21 +235,33 @@ def whatsapp_webhook():
 
     state = conversation_state[sender]
 
+    # Determinar si la respuesta requiere más tokens
+    info_keywords = ["saber más", "información", "qué son", "cómo funcionan", "detalles"]
+    price_keywords = ["precio", "coste", "cuánto cuesta", "valor", "tarifa"]
+    needs_max_tokens = 300 if any(keyword in message.lower() for keyword in info_keywords + price_keywords) else 150
+
     # Lógica de conversación basada en el estado
     if state["step"] == "greet":
         if message.lower().startswith(("hola", "buenos", "buenas", "hey")):
             reply = "¡Hola! Soy QuantumBot de Quantum Web, un placer conocerte. ¿En qué puedo ayudarte hoy? 😊"
             state["step"] = "awaiting_response"
         else:
-            reply = "¡Hola! Soy QuantumBot de Quantum Web, estoy aquí para ayudarte. ¿Qué tipo de negocio tienes? 😊"
+            if any(keyword in message.lower() for keyword in price_keywords):
+                reply = "¡Hola! Para darte el mejor precio, necesitamos saber más sobre tu negocio, ya que no es lo mismo un pequeño negocio que uno grande. ¿Qué tipo de negocio tienes? 😊"
+            else:
+                reply = "¡Hola! Soy QuantumBot de Quantum Web, estoy aquí para ayudarte. ¿Qué tipo de negocio tienes? 😊"
             state["step"] = "ask_business_type"
     elif state["step"] == "awaiting_response":
-        messages = [
-            {"role": "system", "content": QUANTUM_WEB_CONTEXT_FULL + "\n\nInstrucciones: Interpreta la respuesta del usuario y responde自然mente antes de preguntar por el tipo de negocio."},
-            {"role": "user", "content": message}
-        ]
-        reply = call_grok(messages)
-        state["step"] = "ask_business_type"
+        if any(keyword in message.lower() for keyword in price_keywords):
+            reply = "¡Entendido! Para ofrecerte el mejor precio disponible, necesitamos saber más sobre tu negocio, ya que no es lo mismo un pequeño negocio que uno grande. ¿Qué tipo de negocio tienes? 😊"
+            state["step"] = "ask_business_type"
+        else:
+            messages = [
+                {"role": "system", "content": QUANTUM_WEB_CONTEXT_FULL + "\n\nInstrucciones: Interpreta la respuesta del usuario y responde naturalmente antes de preguntar por el tipo de negocio. Si pide info general (ej. 'saber más'), da una respuesta clara, completa y útil sin truncar."},
+                {"role": "user", "content": message}
+            ]
+            reply = call_grok(messages, max_tokens=needs_max_tokens)
+            state["step"] = "ask_business_type"
     elif state["step"] == "ask_business_type":
         state["data"]["business_type"] = message
         reply = "¡Entendido! ¿Qué necesitas que haga tu chatbot (por ejemplo, ventas, reservas, soporte)? 😊"
@@ -272,7 +284,7 @@ def whatsapp_webhook():
                 reply = "¡Perfecto! ¿Cuántas reservas esperas manejar por día? 😊"
                 state["step"] = "ask_reservations_details"
             else:
-                reply = "¡Genial, ya está todo listo! Muchas gracias por confiar en Quantum Web, nos contactaremos contigo en las próximas 24 horas. 😊"
+                reply = "¡Genial, ya está todo listo! Muchas gracias por tu interés en Quantum Web, te contactaremos en un máximo de 24 horas con más información. 😊"
                 state["step"] = "done"
                 state["data"]["contacted"] = True
         else:
@@ -280,25 +292,29 @@ def whatsapp_webhook():
             reply = "¡Anotado! ¿Algo más? Si terminaste, di 'listo'. 😊"
     elif state["step"] == "ask_sales_details":
         state["data"]["specifics"]["products"] = message
-        reply = "¡Gracias por la info! Nos contactaremos contigo en las próximas 24 horas para personalizar tu solución. 😊"
+        reply = "¡Gracias por la info! Muchas gracias por tu interés en Quantum Web, te contactaremos en un máximo de 24 horas con más información sobre tu solución y precios personalizados. 😊"
         state["step"] = "done"
         state["data"]["contacted"] = True
     elif state["step"] == "ask_support_details":
         state["data"]["specifics"]["daily_clients"] = message
-        reply = "¡Gracias por la info! Nos contactaremos contigo en las próximas 24 horas para personalizar tu solución. 😊"
+        reply = "¡Gracias por la info! Muchas gracias por tu interés en Quantum Web, te contactaremos en un máximo de 24 horas con más información sobre tu solución y precios personalizados. 😊"
         state["step"] = "done"
         state["data"]["contacted"] = True
     elif state["step"] == "ask_reservations_details":
         state["data"]["specifics"]["daily_reservations"] = message
-        reply = "¡Gracias por la info! Nos contactaremos contigo en las próximas 24 horas para personalizar tu solución. 😊"
+        reply = "¡Gracias por la info! Muchas gracias por tu interés en Quantum Web, te contactaremos en un máximo de 24 horas con más información sobre tu solución y precios personalizados. 😊"
         state["step"] = "done"
         state["data"]["contacted"] = True
     elif state["step"] == "done":
         messages = [
-            {"role": "system", "content": QUANTUM_WEB_CONTEXT_SHORT},
+            {"role": "system", "content": QUANTUM_WEB_CONTEXT_SHORT + "\n\nInstrucciones: Responde siempre con frases completas, sin truncar, ajustándote al límite de tokens. Si pregunta por precios, indica que necesitamos más info sobre su negocio."},
             {"role": "user", "content": message}
         ]
-        reply = call_grok(messages)
+        if any(keyword in message.lower() for keyword in price_keywords):
+            reply = "¡Entendido! Para darte un precio exacto, necesitamos saber más sobre tu negocio, ya que varía según si es pequeño o grande. ¿Qué tipo de negocio tienes? 😊"
+            state["step"] = "ask_business_type"
+        else:
+            reply = call_grok(messages, max_tokens=needs_max_tokens)
 
     # Enviar la respuesta usando Twilio
     client = Client(TWILIO_SID, TWILIO_TOKEN)
