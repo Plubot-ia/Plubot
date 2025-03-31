@@ -191,25 +191,68 @@ def grok_api():
         
 
 # Agregar esta ruta al final de tu archivo Flask
+@app.route('/whatsapp/webhook', methods=['GET'])
+def verify_webhook():
+    token = request.args.get('hub.verify_token')
+    challenge = request.args.get('hub.challenge')
+    expected_token = os.getenv('WHATSAPP_VERIFY_TOKEN')
+    print(f"Received token: {token}, Expected token: {expected_token}")  # Depuración
+    if token == expected_token:
+        print("Verification successful!")
+        return challenge, 200
+    print("Verification failed!")
+    return jsonify({'status': 'error', 'message': 'Verification failed'}), 403
+
 @app.route('/whatsapp/webhook', methods=['POST'])
 def whatsapp_webhook():
-    data = request.get_json()
-    if not data or 'messages' not in data:
-        return jsonify({'status': 'error', 'message': 'No message received'}), 400
+    # Imprimir los datos crudos recibidos
+    raw_data = request.get_data(as_text=True)
+    print(f"Raw data received: {raw_data}")
 
-    # Extraer el mensaje del usuario desde el payload de WhatsApp
-    message = data['messages'][0]['text']['body']
-    sender = data['messages'][0]['from']  # Número del usuario que envía el mensaje
+    # Intentar parsear los datos como JSON
+    data = request.get_json(silent=True)
+    if data is None:
+        print("Failed to parse JSON data")
+        return jsonify({'status': 'error', 'message': 'Invalid JSON'}), 400
 
-    # Llamar al API de Grok con el mensaje recibido
-    grok_payload = {
-        "message": message,
-        "history": []  # Puedes mantener un historial si lo deseas
-    }
-    grok_response = requests.post('http://localhost:5000/api/grok', json=grok_payload).json()
-    reply = grok_response.get('response', 'Lo siento, no pude procesar tu mensaje.')
+    print(f"Parsed data: {data}")
 
-    # En WApp Business API
+    # Verificar si es una notificación de suscripción
+    if data.get('object') != 'whatsapp_business_account' or 'entry' not in data:
+        print("Invalid data format")
+        return jsonify({'status': 'error', 'message': 'Invalid data format'}), 400
+
+    entry = data['entry'][0]
+    if 'changes' not in entry:
+        print("No 'changes' field in entry")
+        return jsonify({'status': 'error', 'message': 'No changes in entry'}), 400
+
+    change = entry['changes'][0]
+    if 'value' not in change or change['field'] != 'messages':
+        print("No 'value' field or incorrect field")
+        return jsonify({'status': 'error', 'message': 'No value or incorrect field'}), 400
+
+    value = change['value']
+    if 'messages' not in value:
+        print("No 'messages' field in value")
+        return jsonify({'status': 'error', 'message': 'No messages in value'}), 400
+
+    messages = value['messages']
+    if not messages:
+        print("Messages list is empty")
+        return jsonify({'status': 'error', 'message': 'No messages in list'}), 400
+
+    try:
+        message = messages[0]['text']['body']
+        sender = messages[0]['from']
+        print(f"Message: {message}, Sender: {sender}")  # Depuración
+    except (KeyError, IndexError) as e:
+        print(f"Error extracting message: {e}")
+        return jsonify({'status': 'error', 'message': 'Invalid message format'}), 400
+
+    # Respuesta estática para probar
+    reply = "¡Hola! Soy QuantumBot. Esto es una respuesta de prueba."
+
     whatsapp_api_url = f"https://graph.facebook.com/v20.0/{os.getenv('WHATSAPP_PHONE_NUMBER_ID')}/messages"
     headers = {
         "Authorization": f"Bearer {os.getenv('WHATSAPP_ACCESS_TOKEN')}",
@@ -221,22 +264,17 @@ def whatsapp_webhook():
         "type": "text",
         "text": {"body": reply}
     }
-    response = requests.post(whatsapp_api_url, json=payload, headers=headers)
-
-    if response.status_code == 200:
-        return jsonify({'status': 'success'}), 200
-    else:
+    print(f"Sending reply to WhatsApp: {payload}")  # Depuración
+    try:
+        response = requests.post(whatsapp_api_url, json=payload, headers=headers)
+        response.raise_for_status()  # Lanza una excepción si la solicitud falla
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending reply to WhatsApp: {e}, Response: {response.text}")
         return jsonify({'status': 'error', 'message': 'Failed to send reply'}), 500
 
-# Asegúrate de verificar el webhook (requerido por WhatsApp Business API)
-@app.route('/whatsapp/webhook', methods=['GET'])
-def verify_webhook():
-    token = request.args.get('hub.verify_token')
-    challenge = request.args.get('hub.challenge')
-    if token == os.getenv('WHATSAPP_VERIFY_TOKEN'):
-        return challenge, 200
-    return jsonify({'status': 'error', 'message': 'Verification failed'}), 403
-
+    print("Reply sent successfully")
+    return jsonify({'status': 'success'}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.getenv('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
