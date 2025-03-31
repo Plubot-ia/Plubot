@@ -4758,7 +4758,8 @@ nav {
     font-family: 'Orbitron', sans-serif;
     font-size: 3rem;
     color: #00e0ff;
-    margin-bottom: 1rem;
+    margin-bottom: 5rem;
+    margin-top: 0rem;
     text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
 }
 
@@ -4766,6 +4767,7 @@ nav {
     font-size: 1.2rem;
     color: #e0e0e0;
     margin-bottom: 0;
+    margin-top: -3rem;
 }
 
 .large-mobile-frame {
@@ -4957,4 +4959,521 @@ nav {
     .chatbot-message {
         font-size: 0.8rem;
     }
+}
+
+
+.case-studies-hero{
+    margin-bottom: -15rem;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ==========================================================================
+   Media Queries Optimizadas para Tabletas y Móviles
+   ========================================================================== */
+
+/* Tablets (hasta 102 vorrei optimizar el diseño para pantallas más pequeñas */
+@media (max-width: 1024px) {
+    .quantum-hero,
+    .services-hero,
+    .about-hero,
+    .case-studies-hero,
+    .blog-hero,
+    .chatbot-section {
+        height: auto;
+        min-height: 400px;
+        padding: 4rem 2rem;
+    }
+    .hero h1,
+    .quantum-title,
+    .services-title,
+    .about-title,
+    .case-studies-title,
+    .blog-title,
+    .chatbot-title,
+    .contact-title {
+        font-size: 2.8rem;
+        margin-bottom: 1.5rem;
+    }
+    .hero p,
+    .quantum-subtitle,
+    .services-subtitle,
+    .about-subtitle,
+    .case-studies-subtitle,
+    .blog-subtitle,
+    .contact-subtitle {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+    }
+    .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+    }
+    .form-container {
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+    .chatbot-container.two-column {
+        flex-direction: column;
+        max-width: 700px;
+        margin: 2rem auto;
+    }
+    .chatbot-text-column {
+        max-width: 100%;
+        padding-right: 0;
+        margin-bottom: 2rem;
+    }
+    .large-mobile-frame {
+        max-width: 360px;
+    }
+    .cosmic-carousel-item {
+        flex: 0 0 clamp(240px, 70vw, 340px);
+    }
+    .quantum-footer {
+        padding: 4rem 2rem 2rem;
+    }
+}
+
+/* Móviles medianos (hasta 768px) */
+@media (max-width: 768px) {
+    body {
+        font-size: 15px;
+    }
+    .quantum-hero,
+    .services-hero,
+    .about-hero,
+    .case-studies-hero,
+    .blog-hero,
+    .chatbot-section {
+        padding: 3rem 1.5rem;
+        min-height: 350px;
+    }
+    .hero h1,
+    .quantum-title,
+    .services-title,
+    .about-title,
+    .case-studies-title,
+    .blog-title,
+    .chatbot-title,
+    .contact-title {
+        font-size: 2.2rem;
+        margin-bottom: 1rem;
+    }
+    .hero p,
+    .quantum-subtitle,
+    .services-subtitle,
+    .about-subtitle,
+    .case-studies-subtitle,
+    .blog-subtitle,
+    .contact-subtitle {
+        font-size: 1.1rem;
+        margin-bottom: 1.5rem;
+    }
+    header {
+        padding: 1rem 1.5rem;
+    }
+    nav {
+        padding: 0 1.5rem;
+    }
+    nav ul {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: rgba(18, 18, 18, 0.95);
+        padding: 1.5rem;
+    }
+    nav ul.active {
+        display: flex;
+    }
+    .menu-toggle {
+        display: block;
+        margin-left: 1.5rem;
+    }
+    .services-grid,
+    .case-studies-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    .form-container {
+        padding: 1.5rem;
+        margin: 1.5rem auto;
+    }
+    .btn,
+    .quantum-btn,
+    .footer-form button,
+    .chatbot-input button {
+        padding: 0.7rem 1.8rem;
+        font-size: 0.9rem;
+    }
+    .chatbot-container.two-column {
+        margin: 1.5rem auto;
+    }
+    .large-mobile-frame {
+        max-width: 340px;
+    }
+    .mobile-device {
+        width: 320px;
+        height: 580px;
+    }
+    .cosmic-carousel {
+        padding: 2rem 1rem 4rem;
+    }
+    .cosmic-carousel-item {
+        flex: 0 0 clamp(200px, 80vw, 300px);
+    }
+    .quantum-footer {
+        padding: 3rem 1.5rem 1.5rem;
+    }
+    .footer-container {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
+
+/* Móviles pequeños (hasta 480px) */
+@media (max-width: 480px) {
+    body {
+        font-size: 14px;
+    }
+    .quantum-hero,
+    .services-hero,
+    .about-hero,
+    .case-studies-hero,
+    .blog-hero,
+    .chatbot-section {
+        padding: 2.5rem 1rem;
+        min-height: 300px;
+    }
+    .hero h1,
+    .quantum-title,
+    .services-title,
+    .about-title,
+    .case-studies-title,
+    .blog-title,
+    .chatbot-title,
+    .contact-title {
+        font-size: 1.8rem;
+        margin-bottom: 0.8rem;
+    }
+    .hero p,
+    .quantum-subtitle,
+    .services-subtitle,
+    .about-subtitle,
+    .case-studies-subtitle,
+    .blog-subtitle,
+    .contact-subtitle {
+        font-size: 0.95rem;
+        margin-bottom: 1.2rem;
+    }
+    .btn,
+    .quantum-btn,
+    .footer-form button,
+    .chatbot-input button {
+        padding: 0.6rem 1.5rem;
+        font-size: 0.85rem;
+    }
+    .form-container {
+        padding: 1rem;
+        margin: 1rem auto;
+    }
+    .logo-text {
+        font-size: 1.1rem;
+        gap: 0.5rem;
+    }
+    .logo-image {
+        width: 24px;
+        height: 24px;
+        margin-left: -2rem;
+    }
+    .service-card,
+    .case-study {
+        padding: 1.2rem;
+    }
+    .service-card h2,
+    .case-study h2 {
+        font-size: 1.3rem;
+    }
+    .service-card p,
+    .case-study p {
+        font-size: 0.9rem;
+    }
+    .chatbot-container.two-column {
+        margin: 1rem auto;
+    }
+    .large-mobile-frame {
+        max-width: 300px;
+    }
+    .mobile-device {
+        width: 280px;
+        height: 520px;
+    }
+    .chatbot-message {
+        font-size: 0.8rem;
+    }
+    .cosmic-carousel {
+        padding: 1.5rem 0.75rem 3rem;
+    }
+    .cosmic-carousel-item {
+        flex: 0 0 clamp(180px, 90vw, 260px);
+    }
+    .quantum-footer {
+        padding: 2.5rem 1rem 1rem;
+    }
+}
+
+/* Pantallas muy pequeñas (hasta 360px) */
+@media (max-width: 360px) {
+    body {
+        font-size: 13px;
+    }
+    .quantum-hero,
+    .services-hero,
+    .about-hero,
+    .case-studies-hero,
+    .blog-hero,
+    .chatbot-section {
+        padding: 2rem 0.75rem;
+        min-height: 280px;
+    }
+    .hero h1,
+    .quantum-title,
+    .services-title,
+    .about-title,
+    .case-studies-title,
+    .blog-title,
+    .chatbot-title,
+    .contact-title {
+        font-size: 1.6rem;
+        margin-bottom: 0.7rem;
+    }
+    .hero p,
+    .quantum-subtitle,
+    .services-subtitle,
+    .about-subtitle,
+    .case-studies-subtitle,
+    .blog-subtitle,
+    .contact-subtitle {
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    .btn,
+    .quantum-btn {
+        padding: 0.5rem 1.2rem;
+        font-size: 0.8rem;
+    }
+    .logo-text {
+        font-size: 1rem;
+    }
+    .logo-image {
+        width: 20px;
+        height: 20px;
+    }
+    .service-card h2,
+    .case-study h2 {
+        font-size: 1.2rem;
+    }
+    .mobile-device {
+        width: 260px;
+        height: 480px;
+    }
+}
+
+/* Impresión */
+@media print {
+    body {
+        background: #fff;
+        color: #000;
+        font-size: 12px;
+    }
+    header,
+    footer,
+    .whatsapp-btn-wrapper,
+    .loader,
+    #particles-js,
+    #three-canvas,
+    .cosmic-nav {
+        display: none;
+    }
+    .quantum-hero,
+    .services-hero,
+    .about-hero,
+    .case-studies-hero,
+    .blog-hero {
+        padding: 1rem;
+        height: auto;
+    }
+    .form-container,
+    .service-card,
+    .case-study {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+}
+
+
+/* ==========================================================================
+   Media Queries Optimizadas para el Carrusel en Móviles
+   ========================================================================== */
+
+/* Tablets (hasta 1024px) */
+@media (max-width: 1024px) {
+    .cosmic-carousel {
+        padding: 2rem 1rem 6rem;
+        overflow-x: hidden; /* Evita desbordamiento horizontal */
+    }
+    .cosmic-carousel-title {
+        font-size: 2.2rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    .cosmic-carousel-container {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto; /* Habilita desplazamiento horizontal */
+        gap: 1.5rem;
+        padding: 0 1rem;
+        scroll-snap-type: x mandatory; /* Mejora la experiencia de desplazamiento */
+        -webkit-overflow-scrolling: touch; /* Suaviza el scroll en móviles */
+        min-height: 400px;
+    }
+    .cosmic-carousel-item {
+        flex: 0 0 clamp(240px, 70vw, 340px); /* Tamaño adaptable */
+        scroll-snap-align: center; /* Centra los ítems al desplazar */
+        margin-right: 1rem; /* Espacio entre ítems */
+    }
+    .cosmic-nav-btn.prev { left: 0; }
+    .cosmic-nav-btn.next { right: 0; }
+}
+
+/* Móviles medianos (hasta 768px) */
+@media (max-width: 768px) {
+    .cosmic-carousel {
+        padding: 1.5rem 0.75rem 4rem;
+    }
+    .cosmic-carousel-title {
+        font-size: 1.75rem;
+        margin-bottom: 1.5rem;
+    }
+    .cosmic-carousel-container {
+        gap: 1rem;
+        padding: 0 0.75rem;
+        min-height: 350px;
+    }
+    .cosmic-carousel-item {
+        flex: 0 0 clamp(200px, 80vw, 300px);
+        margin-right: 0.75rem;
+    }
+    .cosmic-nav-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    .cosmic-nav-btn.prev { left: 0; }
+    .cosmic-nav-btn.next { right: 0; }
+}
+
+/* Móviles pequeños (hasta 480px) */
+@media (max-width: 480px) {
+    .cosmic-carousel {
+        padding: 1rem 0.5rem 3rem;
+    }
+    .cosmic-carousel-title {
+        font-size: 1.5rem;
+        margin-bottom: 1.2rem;
+    }
+    .cosmic-carousel-container {
+        gap: 0.75rem;
+        padding: 0 0.5rem;
+        min-height: 300px;
+    }
+    .cosmic-carousel-item {
+        flex: 0 0 clamp(180px, 85vw, 260px);
+        margin-right: 0.5rem;
+    }
+    .cosmic-nav-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+}
+
+/* Pantallas muy pequeñas (hasta 360px) */
+@media (max-width: 360px) {
+    .cosmic-carousel {
+        padding: 1rem 0.25rem 2.5rem;
+    }
+    .cosmic-carousel-title {
+        font-size: 1.3rem;
+        margin-bottom: 1rem;
+    }
+    .cosmic-carousel-container {
+        gap: 0.5rem;
+        min-height: 280px;
+    }
+    .cosmic-carousel-item {
+        flex: 0 0 clamp(160px, 90vw, 240px);
+    }
+}
+
+/* Ajustes visuales propios Iphone (hasta 480px) */
+@media (max-width: 480px) {
+    .tech-title {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        text-align: center;
+        color: #ffffff;
+        text-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+        margin-bottom: 3rem;
+    }
+    .services-hero{
+        margin-bottom: -7rem;
+    }
+
+    .chatbot-title{
+        margin-bottom: 4rem;
+
+    }
+    .chatbot-subtitle {
+        margin-bottom: -1rem;            
+    }
+
+    .case-studies-title{
+        margin-bottom: 2rem;
+    }
+    .case-studies-subtitle {
+        margin-bottom: 15rem;            
+    }
+
+
 }

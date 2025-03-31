@@ -4,14 +4,14 @@ from dotenv import load_dotenv
 import os
 import requests
 import time
+from celery_config import init_celery  # Importa la configuración de Celery
+
 
 load_dotenv()
 app = Flask(__name__)
 
 # Cargar la clave API desde el archivo .env
 XAI_API_KEY = os.getenv("XAI_API_KEY")
-
-# Verificar que la clave API esté presente
 if not XAI_API_KEY:
     raise ValueError("No se encontró la clave API en el archivo .env. Asegúrate de que XAI_API_KEY esté definida.")
 
@@ -26,44 +26,47 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 # Inicializar Flask-Mail
 mail = Mail(app)
 
+# Inicializar Celery
+celery = init_celery(app)
+
+# Tarea asíncrona para enviar correos
+@celery.task
+def send_async_email(subject, recipients, body):
+    msg = Message(subject=subject, recipients=recipients, body=body)
+    with app.app_context():
+        mail.send(msg)
+
 # Rutas básicas
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Ruta unificada para manejar ambos formularios de contacto
 @app.route('/contacto', methods=['GET', 'POST'])
 def contacto():
     if request.method == 'POST':
         try:
-            nombre = request.form.get('nombre', 'Usuario del Footer')  # Nombre opcional, con valor predeterminado
+            nombre = request.form.get('nombre', 'Usuario del Footer')
             email = request.form.get('email')
-            mensaje = request.form.get('message')  # Busca 'message', que ahora coincide con ambos formularios
+            mensaje = request.form.get('message')
 
-            # Validación más específica
             if not email:
                 return jsonify({'status': 'error', 'message': 'El campo de correo electrónico es requerido.'}), 400
             if not mensaje:
                 return jsonify({'status': 'error', 'message': 'El campo de mensaje es requerido.'}), 400
 
-            # Crear el correo
-            msg = Message(
+            # Enviar correo asíncronamente
+            send_async_email.delay(
                 subject=f'Nuevo mensaje de contacto de {nombre}',
-                recipients=['quantumweb.ia@gmail.com'],  # Reemplaza con tu correo real
+                recipients=['quantumweb.ia@gmail.com'],
                 body=f'Nombre: {nombre}\nEmail: {email}\nMensaje: {mensaje}'
             )
 
-            # Enviar el correo
-            mail.send(msg)
-
             return jsonify({'status': 'success', 'message': 'Mensaje enviado con éxito. ¡Gracias por contactarnos!'}), 200
         except Exception as e:
-            print(f"Error al enviar el correo: {str(e)}")
+            print(f"Error al procesar el contacto: {str(e)}")
             return jsonify({'status': 'error', 'message': f'Error al enviar el mensaje: {str(e)}'}), 500
-
     return render_template('contact.html')
 
-# Nueva ruta para el formulario de suscripción en el footer
 @app.route('/subscribe', methods=['POST'])
 def subscribe():
     if request.method == 'POST':
@@ -73,18 +76,18 @@ def subscribe():
             if not email:
                 return jsonify({'status': 'error', 'message': 'El campo de correo electrónico es requerido.'}), 400
 
-            msg_to_subscriber = Message(
+            # Enviar correos asíncronamente
+            send_async_email.delay(
                 subject='¡Gracias por suscribirte a Quantum Web!',
                 recipients=[email],
                 body=f'Hola,\n\nGracias por suscribirte a nuestro boletín. ¡Pronto recibirás actualizaciones y noticias de Quantum Web!\n\nSaludos,\nEl equipo de Quantum Web'
             )
-            msg_to_admin = Message(
+            send_async_email.delay(
                 subject='Nueva suscripción al boletín',
                 recipients=['quantumweb.ia@gmail.com'],
                 body=f'Nuevo suscriptor:\nEmail: {email}'
             )
-            mail.send(msg_to_subscriber)
-            mail.send(msg_to_admin)
+
             return jsonify({'status': 'success', 'message': '¡Gracias por suscribirte! Revisa tu correo para confirmar.'}), 200
         except Exception as e:
             print(f"Error al procesar la suscripción: {str(e)}")
@@ -107,7 +110,6 @@ def terms():
 def services():
     return render_template('services.html')
 
-# Ruta para la página del chatbot
 @app.route('/chatbot')
 def chatbot():
     return render_template('chatbot.html')
@@ -132,12 +134,10 @@ def blog_automatizacion_emprendedores():
 def blog_futuro_atencion_cliente():
     return render_template('blog-futuro-atencion-cliente.html')
 
-# Nueva ruta para la página de prueba de partículas
 @app.route('/particulas')
 def particulas():
     return render_template('particulas.html')
 
-# Ruta para manejar solicitudes al API de Grok
 @app.route('/api/grok', methods=['POST'])
 def grok_api():
     data = request.get_json()
@@ -147,14 +147,12 @@ def grok_api():
     if not user_message:
         return jsonify({'error': 'No se proporcionó un mensaje'}), 400
 
-    # Construir el historial de mensajes
     messages = [
         {"role": "system", "content": "Eres QuantumBot, un asistente virtual de Quantum Web. Responde de manera amigable, breve y directa, usando un tono alegre. Limítate a respuestas cortas (máximo 2-3 frases). Si es posible, incluye un emoji o icono relevante al final de tu respuesta."}
     ]
     messages.extend(history)
     messages.append({"role": "user", "content": user_message})
 
-    # Configura la solicitud al API de Grok usando el modelo grok-2-1212
     url = "https://api.x.ai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {XAI_API_KEY}",
@@ -163,11 +161,10 @@ def grok_api():
     payload = {
         "model": "grok-2-1212",
         "messages": messages,
-        "temperature": 0.5,  # Menor para respuestas más predecibles y menos creativas
-        "max_tokens": 50     # Reducimos a 50 tokens para respuestas cortas
+        "temperature": 0.5,
+        "max_tokens": 50
     }
 
-    # Implementar reintentos en caso de error 429 (límite de solicitudes)
     max_retries = 3
     for attempt in range(max_retries):
         try:
