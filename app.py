@@ -4,28 +4,28 @@ from dotenv import load_dotenv
 import os
 import requests
 import time
-from twilio.rest import Client  # Importación para Twilio
-from twilio.base.exceptions import TwilioRestException  # Para manejar errores de Twilio
+from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
 
 load_dotenv()
 app = Flask(__name__)
 
 # Depuración para verificar que las variables se cargaron
-print("TWILIO_ACCOUNT_SID:", os.getenv('TWILIO_ACCOUNT_SID'))
-print("TWILIO_AUTH_TOKEN:", os.getenv('TWILIO_AUTH_TOKEN'))
-print("TWILIO_WHATSAPP_NUMBER:", os.getenv('TWILIO_WHATSAPP_NUMBER'))
+print("TWILIO_SID:", os.getenv('TWILIO_SID'))
+print("TWILIO_TOKEN:", os.getenv('TWILIO_TOKEN'))
+print("TWILIO_PHONE:", os.getenv('TWILIO_PHONE'))
 
 # Cargar la clave API de xAI y Twilio desde el archivo .env
 XAI_API_KEY = os.getenv("XAI_API_KEY")
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-TWILIO_WHATSAPP_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")  # Ejemplo: whatsapp:+15556396032
+TWILIO_SID = os.getenv("TWILIO_SID")
+TWILIO_TOKEN = os.getenv("TWILIO_TOKEN")
+TWILIO_PHONE = os.getenv("TWILIO_PHONE")  # Ejemplo: whatsapp:+14155238886
 
 # Verificar que las claves estén presentes
 if not XAI_API_KEY:
     raise ValueError("No se encontró la clave XAI_API_KEY en el archivo .env.")
-if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN or not TWILIO_WHATSAPP_NUMBER:
-    raise ValueError("Faltan credenciales de Twilio en el archivo .env (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER).")
+if not TWILIO_SID or not TWILIO_TOKEN or not TWILIO_PHONE:
+    raise ValueError("Faltan credenciales de Twilio en el archivo .env (TWILIO_SID, TWILIO_TOKEN, TWILIO_PHONE).")
 
 # Configuración de Flask-Mail
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
@@ -43,45 +43,36 @@ mail = Mail(app)
 def index():
     return render_template('index.html')
 
-# Ruta unificada para manejar ambos formularios de contacto
 @app.route('/contacto', methods=['GET', 'POST'])
 def contacto():
     if request.method == 'POST':
         try:
-            nombre = request.form.get('nombre', 'Usuario del Footer')  # Nombre opcional, con valor predeterminado
+            nombre = request.form.get('nombre', 'Usuario del Footer')
             email = request.form.get('email')
-            mensaje = request.form.get('message')  # Busca 'message', que ahora coincide con ambos formularios
+            mensaje = request.form.get('message')
 
-            # Validación más específica
             if not email:
                 return jsonify({'status': 'error', 'message': 'El campo de correo electrónico es requerido.'}), 400
             if not mensaje:
                 return jsonify({'status': 'error', 'message': 'El campo de mensaje es requerido.'}), 400
 
-            # Crear el correo
             msg = Message(
                 subject=f'Nuevo mensaje de contacto de {nombre}',
-                recipients=['quantumweb.ia@gmail.com'],  # Reemplaza con tu correo real
+                recipients=['quantumweb.ia@gmail.com'],
                 body=f'Nombre: {nombre}\nEmail: {email}\nMensaje: {mensaje}'
             )
-
-            # Enviar el correo
             mail.send(msg)
-
             return jsonify({'status': 'success', 'message': 'Mensaje enviado con éxito. ¡Gracias por contactarnos!'}), 200
         except Exception as e:
             print(f"Error al enviar el correo: {str(e)}")
             return jsonify({'status': 'error', 'message': f'Error al enviar el mensaje: {str(e)}'}), 500
-
     return render_template('contact.html')
 
-# Ruta para el formulario de suscripción en el footer
 @app.route('/subscribe', methods=['POST'])
 def subscribe():
     if request.method == 'POST':
         try:
             email = request.form.get('email')
-
             if not email:
                 return jsonify({'status': 'error', 'message': 'El campo de correo electrónico es requerido.'}), 400
 
@@ -119,7 +110,6 @@ def terms():
 def services():
     return render_template('services.html')
 
-# Ruta para la página del chatbot
 @app.route('/chatbot')
 def chatbot():
     return render_template('chatbot.html')
@@ -144,12 +134,10 @@ def blog_automatizacion_emprendedores():
 def blog_futuro_atencion_cliente():
     return render_template('blog-futuro-atencion-cliente.html')
 
-# Ruta para la página de prueba de partículas
 @app.route('/particulas')
 def particulas():
     return render_template('particulas.html')
 
-# Ruta para manejar solicitudes al API de Grok
 @app.route('/api/grok', methods=['POST'])
 def grok_api():
     data = request.get_json()
@@ -159,14 +147,12 @@ def grok_api():
     if not user_message:
         return jsonify({'error': 'No se proporcionó un mensaje'}), 400
 
-    # Construir el historial de mensajes
     messages = [
         {"role": "system", "content": "Eres QuantumBot, un asistente virtual de Quantum Web. Responde de manera amigable, breve y directa, usando un tono alegre. Limítate a respuestas cortas (máximo 2-3 frases). Si es posible, incluye un emoji o icono relevante al final de tu respuesta."}
     ]
     messages.extend(history)
     messages.append({"role": "user", "content": user_message})
 
-    # Configura la solicitud al API de Grok usando el modelo grok-2-1212
     url = "https://api.x.ai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {XAI_API_KEY}",
@@ -175,11 +161,10 @@ def grok_api():
     payload = {
         "model": "grok-2-1212",
         "messages": messages,
-        "temperature": 0.5,  # Menor para respuestas más predecibles y menos creativas
-        "max_tokens": 50     # Reducimos a 50 tokens para respuestas cortas
+        "temperature": 0.5,
+        "max_tokens": 50
     }
 
-    # Implementar reintentos en caso de error 429 (límite de solicitudes)
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -196,21 +181,17 @@ def grok_api():
         except requests.exceptions.RequestException as e:
             return jsonify({'error': f"Error al conectar con el API de Grok: {str(e)}"}), 500
 
-# Ruta para manejar mensajes de WhatsApp con Twilio
 @app.route('/whatsapp/webhook', methods=['POST'])
 def whatsapp_webhook():
-    # Imprimir los datos crudos recibidos
     raw_data = request.get_data(as_text=True)
     print(f"Raw data received: {raw_data}")
 
-    # Twilio envía datos en formato application/x-www-form-urlencoded
     data = request.form
     print(f"Parsed data: {data}")
 
-    # Extraer el mensaje y el remitente desde los parámetros de Twilio
     try:
-        message = data.get('Body')  # El cuerpo del mensaje
-        sender = data.get('From')   # Número del remitente (ejemplo: whatsapp:+5492216996564)
+        message = data.get('Body')
+        sender = data.get('From')
         if not message or not sender:
             print("Missing message or sender")
             return jsonify({'status': 'error', 'message': 'Missing message or sender'}), 400
@@ -219,18 +200,14 @@ def whatsapp_webhook():
         print(f"Error extracting message: {e}")
         return jsonify({'status': 'error', 'message': 'Invalid message format'}), 400
 
-    # Respuesta estática para probar
     reply = "¡Hola! Soy QuantumBot. Esto es una respuesta de prueba."
 
-    # Configurar el cliente de Twilio
-    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-
-    # Enviar la respuesta usando Twilio
+    client = Client(TWILIO_SID, TWILIO_TOKEN)
     try:
         message_response = client.messages.create(
             body=reply,
-            from_=TWILIO_WHATSAPP_NUMBER,  # Número de Twilio habilitado para WhatsApp
-            to=sender                      # Número del remitente
+            from_=TWILIO_PHONE,
+            to=sender
         )
         print(f"Reply sent successfully: SID {message_response.sid}")
     except TwilioRestException as e:
