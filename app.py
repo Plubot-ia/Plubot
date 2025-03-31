@@ -206,13 +206,14 @@ def whatsapp_webhook():
     try:
         message_response = client.messages.create(
             body=reply,
-            from_=TWILIO_PHONE,
-            to=sender
+            from_=TWILIO_PHONE,  # whatsapp:+14155238886
+            to=sender            # whatsapp:+5492216996564
         )
         print(f"Reply sent successfully: SID {message_response.sid}")
     except TwilioRestException as e:
         print(f"Error sending reply to WhatsApp via Twilio: {str(e)}")
-        return jsonify({'status': 'error', 'message': f'Failed to send reply: {str(e)}'}), 500
+        # Devolvemos 200 para Twilio, incluso si falla el envío
+        return jsonify({'status': 'error', 'message': f'Failed to send reply: {str(e)}'}), 200
 
     return jsonify({'status': 'success'}), 200
 
