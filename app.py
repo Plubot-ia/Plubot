@@ -4,21 +4,28 @@ from dotenv import load_dotenv
 import os
 import requests
 import time
+from twilio.rest import Client  # Importación para Twilio
+from twilio.base.exceptions import TwilioRestException  # Para manejar errores de Twilio
 
 load_dotenv()
 app = Flask(__name__)
 
 # Depuración para verificar que las variables se cargaron
-print("WHATSAPP_ACCESS_TOKEN:", os.getenv('WHATSAPP_ACCESS_TOKEN'))
-print("WHATSAPP_VERIFY_TOKEN:", os.getenv('WHATSAPP_VERIFY_TOKEN'))
-print("WHATSAPP_PHONE_NUMBER_ID:", os.getenv('WHATSAPP_PHONE_NUMBER_ID'))
+print("TWILIO_ACCOUNT_SID:", os.getenv('TWILIO_ACCOUNT_SID'))
+print("TWILIO_AUTH_TOKEN:", os.getenv('TWILIO_AUTH_TOKEN'))
+print("TWILIO_WHATSAPP_NUMBER:", os.getenv('TWILIO_WHATSAPP_NUMBER'))
 
-# Cargar la clave API desde el archivo .env
+# Cargar la clave API de xAI y Twilio desde el archivo .env
 XAI_API_KEY = os.getenv("XAI_API_KEY")
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+TWILIO_WHATSAPP_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")  # Ejemplo: whatsapp:+15556396032
 
-# Verificar que la clave API esté presente
+# Verificar que las claves estén presentes
 if not XAI_API_KEY:
-    raise ValueError("No se encontró la clave API en el archivo .env. Asegúrate de que XAI_API_KEY esté definida.")
+    raise ValueError("No se encontró la clave XAI_API_KEY en el archivo .env.")
+if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN or not TWILIO_WHATSAPP_NUMBER:
+    raise ValueError("Faltan credenciales de Twilio en el archivo .env (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER).")
 
 # Configuración de Flask-Mail
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
@@ -68,7 +75,7 @@ def contacto():
 
     return render_template('contact.html')
 
-# Nueva ruta para el formulario de suscripción en el footer
+# Ruta para el formulario de suscripción en el footer
 @app.route('/subscribe', methods=['POST'])
 def subscribe():
     if request.method == 'POST':
@@ -137,7 +144,7 @@ def blog_automatizacion_emprendedores():
 def blog_futuro_atencion_cliente():
     return render_template('blog-futuro-atencion-cliente.html')
 
-# Nueva ruta para la página de prueba de partículas
+# Ruta para la página de prueba de partículas
 @app.route('/particulas')
 def particulas():
     return render_template('particulas.html')
@@ -188,91 +195,48 @@ def grok_api():
             return jsonify({'error': f"Error al conectar con el API de Grok: {str(e)}"}), 500
         except requests.exceptions.RequestException as e:
             return jsonify({'error': f"Error al conectar con el API de Grok: {str(e)}"}), 500
-        
 
-# Agregar esta ruta al final de tu archivo Flask
-@app.route('/whatsapp/webhook', methods=['GET'])
-def verify_webhook():
-    token = request.args.get('hub.verify_token')
-    challenge = request.args.get('hub.challenge')
-    expected_token = os.getenv('WHATSAPP_VERIFY_TOKEN')
-    print(f"Received token: {token}, Expected token: {expected_token}")  # Depuración
-    if token == expected_token:
-        print("Verification successful!")
-        return challenge, 200
-    print("Verification failed!")
-    return jsonify({'status': 'error', 'message': 'Verification failed'}), 403
-
+# Ruta para manejar mensajes de WhatsApp con Twilio
 @app.route('/whatsapp/webhook', methods=['POST'])
 def whatsapp_webhook():
     # Imprimir los datos crudos recibidos
     raw_data = request.get_data(as_text=True)
     print(f"Raw data received: {raw_data}")
 
-    # Intentar parsear los datos como JSON
-    data = request.get_json(silent=True)
-    if data is None:
-        print("Failed to parse JSON data")
-        return jsonify({'status': 'error', 'message': 'Invalid JSON'}), 400
-
+    # Twilio envía datos en formato application/x-www-form-urlencoded
+    data = request.form
     print(f"Parsed data: {data}")
 
-    # Verificar si es una notificación de suscripción
-    if data.get('object') != 'whatsapp_business_account' or 'entry' not in data:
-        print("Invalid data format")
-        return jsonify({'status': 'error', 'message': 'Invalid data format'}), 400
-
-    entry = data['entry'][0]
-    if 'changes' not in entry:
-        print("No 'changes' field in entry")
-        return jsonify({'status': 'error', 'message': 'No changes in entry'}), 400
-
-    change = entry['changes'][0]
-    if 'value' not in change or change['field'] != 'messages':
-        print("No 'value' field or incorrect field")
-        return jsonify({'status': 'error', 'message': 'No value or incorrect field'}), 400
-
-    value = change['value']
-    if 'messages' not in value:
-        print("No 'messages' field in value")
-        return jsonify({'status': 'error', 'message': 'No messages in value'}), 400
-
-    messages = value['messages']
-    if not messages:
-        print("Messages list is empty")
-        return jsonify({'status': 'error', 'message': 'No messages in list'}), 400
-
+    # Extraer el mensaje y el remitente desde los parámetros de Twilio
     try:
-        message = messages[0]['text']['body']
-        sender = messages[0]['from']
-        print(f"Message: {message}, Sender: {sender}")  # Depuración
-    except (KeyError, IndexError) as e:
+        message = data.get('Body')  # El cuerpo del mensaje
+        sender = data.get('From')   # Número del remitente (ejemplo: whatsapp:+5492216996564)
+        if not message or not sender:
+            print("Missing message or sender")
+            return jsonify({'status': 'error', 'message': 'Missing message or sender'}), 400
+        print(f"Message: {message}, Sender: {sender}")
+    except KeyError as e:
         print(f"Error extracting message: {e}")
         return jsonify({'status': 'error', 'message': 'Invalid message format'}), 400
 
     # Respuesta estática para probar
     reply = "¡Hola! Soy QuantumBot. Esto es una respuesta de prueba."
 
-    whatsapp_api_url = f"https://graph.facebook.com/v20.0/{os.getenv('WHATSAPP_PHONE_NUMBER_ID')}/messages"
-    headers = {
-        "Authorization": f"Bearer {os.getenv('WHATSAPP_ACCESS_TOKEN')}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": sender,
-        "type": "text",
-        "text": {"body": reply}
-    }
-    print(f"Sending reply to WhatsApp: {payload}")  # Depuración
-    try:
-        response = requests.post(whatsapp_api_url, json=payload, headers=headers)
-        response.raise_for_status()  # Lanza una excepción si la solicitud falla
-    except requests.exceptions.RequestException as e:
-        print(f"Error sending reply to WhatsApp: {e}, Response: {response.text}")
-        return jsonify({'status': 'error', 'message': 'Failed to send reply'}), 500
+    # Configurar el cliente de Twilio
+    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
-    print("Reply sent successfully")
+    # Enviar la respuesta usando Twilio
+    try:
+        message_response = client.messages.create(
+            body=reply,
+            from_=TWILIO_WHATSAPP_NUMBER,  # Número de Twilio habilitado para WhatsApp
+            to=sender                      # Número del remitente
+        )
+        print(f"Reply sent successfully: SID {message_response.sid}")
+    except TwilioRestException as e:
+        print(f"Error sending reply to WhatsApp via Twilio: {str(e)}")
+        return jsonify({'status': 'error', 'message': f'Failed to send reply: {str(e)}'}), 500
+
     return jsonify({'status': 'success'}), 200
 
 if __name__ == '__main__':
