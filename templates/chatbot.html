@@ -6,57 +6,60 @@
 {% block content %}
 <section class="chatbot-section">
     <div id="chatbot-particles" class="particles-bg"></div>
-    <div class="chatbot-container">
-        <h1 class="chatbot-title" data-text="Prueba QuantumBot" data-aos="fade-down">Prueba QuantumBot</h1>
-        <p class="chatbot-subtitle" data-aos="fade-up" data-aos-delay="200">Experimenta cómo nuestro chatbot puede transformar tu negocio con una integración perfecta en WhatsApp.</p>
-            
-        <!-- Contenedor del móvil -->
-        <div class="large-mobile-frame">
-            <div class="mobile-device">
-                <div class="mobile-notch"></div>
-                <div class="mobile-screen">
-                    <div class="chatbot-widget active">
-                        <div class="chatbot-header whatsapp-header">
-                            <div class="whatsapp-contact">
-                                <div class="whatsapp-avatar">
-                                    <i class="fab fa-whatsapp"></i>
+    <div class="chatbot-container two-column">
+        <!-- Columna izquierda: Título y Subtítulo -->
+        <div class="chatbot-text-column">
+            <h1 class="chatbot-title" data-text="Prueba QuantumBot" data-aos="fade-down">Prueba QuantumBot</h1>
+            <p class="chatbot-subtitle" data-aos="fade-up" data-aos-delay="200">Experimenta cómo nuestro chatbot puede transformar tu negocio con una integración perfecta en WhatsApp.</p>
+        </div>
+
+        <!-- Columna derecha: Móvil -->
+        <div class="chatbot-mobile-column">
+            <div class="large-mobile-frame">
+                <div class="mobile-device">
+                    <div class="mobile-notch"></div>
+                    <div class="mobile-screen">
+                        <div class="chatbot-widget active">
+                            <div class="chatbot-header whatsapp-header">
+                                <div class="whatsapp-contact">
+                                    <div class="whatsapp-avatar">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </div>
+                                    <div class="whatsapp-info">
+                                        <span class="whatsapp-name">QuantumBot</span>
+                                        <span class="whatsapp-number">+54 9 11 1234-5678</span>
+                                    </div>
                                 </div>
-                                <div class="whatsapp-info">
-                                    <span class="whatsapp-name">QuantumBot</span>
-                                    <span class="whatsapp-number">+54 9 11 1234-5678</span>
+                                <div class="whatsapp-actions">
+                                    <i class="fas fa-phone-alt" aria-label="Llamar"></i>
+                                    <i class="fas fa-ellipsis-v" aria-label="Más opciones"></i>
                                 </div>
                             </div>
-                            <div class="whatsapp-actions">
-                                <i class="fas fa-phone-alt" aria-label="Llamar"></i>
-                                <i class="fas fa-ellipsis-v" aria-label="Más opciones"></i>
+                            <div class="chatbot-body whatsapp-body">
+                                <div class="chatbot-message bot">
+                                    <span class="message-text">¡Hola! Soy QuantumBot, tu asistente virtual. ¿En qué puedo ayudarte hoy? 👋</span>
+                                    <span class="message-meta">
+                                        <span class="message-time">10:00</span>
+                                        <span class="message-status"><i class="fas fa-check-double"></i></span>
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="chatbot-body whatsapp-body">
-                            <!-- Mensaje inicial -->
-                            <div class="chatbot-message bot">
-                                <span class="message-text">¡Hola! Soy QuantumBot, tu asistente virtual. ¿En qué puedo ayudarte hoy? 👋</span>
-                                <span class="message-meta">
-                                    <span class="message-time">10:00</span>
-                                    <span class="message-status"><i class="fas fa-check-double"></i></span>
-                                </span>
+                            <div class="chatbot-input whatsapp-input">
+                                <div class="input-wrapper">
+                                    <i class="fas fa-smile input-icon" aria-label="Añadir emoji"></i>
+                                    <input type="text" placeholder="Escribe un mensaje..." />
+                                </div>
+                                <button><i class="fas fa-paper-plane"></i></button>
                             </div>
-                        </div>
-                        <div class="chatbot-input whatsapp-input">
-                            <div class="input-wrapper">
-                                <i class="fas fa-smile input-icon" aria-label="Añadir emoji"></i>
-                                <input type="text" placeholder="Escribe un mensaje..." />
-                            </div>
-                            <button><i class="fas fa-paper-plane"></i></button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- Texto personalizado debajo del chatbot -->
-    <div class="chatbot-custom-info">
+     <!--<div class="chatbot-custom-info">
         <p>Este es solo un ejemplo. QuantumBot es <strong>100% personalizable</strong> y se adapta a las necesidades únicas de tu negocio.</p>
-    </div>
+    </div>-->
 </section>
 
 <!-- Scripts -->
