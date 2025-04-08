@@ -30,33 +30,32 @@ app = Flask(__name__)
 # Configurar la SECRET_KEY para las sesiones de Flask
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 if not app.config['SECRET_KEY']:
-    raise ValueError("No se encontró SECRET_KEY en las variables de entorno. Asegúrate de que esté definida en el archivo .env.")
+    raise ValueError("No se encontró SECRET_KEY en las variables de entorno.")
 
 # Configuración de logging
-logging.basicConfig(level=logging.INFO, filename='app.log', format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
 logger.addHandler(console_handler)
 
-# Configuración de CORS (actualizado para incluir localhost:5000)
+# Configuración de CORS (ajustado para Render y desarrollo local)
 CORS(app, resources={r"/*": {
-    "origins": ["http://localhost:5000"],
+    "origins": [
+        "https://your-service-name.onrender.com",  # Reemplaza con tu dominio real de Render
+        "http://localhost:5000"  # Para desarrollo local
+    ],
     "methods": ["GET", "POST", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"],
     "supports_credentials": True
 }})
 
-# Configuración de Redis para caching y estado de conversación
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
+# Configuración de Redis usando variable de entorno
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')  # Render proporciona REDIS_URL
+redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 # Configuración de Celery
-celery_app = Celery('tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/1')
-
-# Depuración de variables de entorno
-logger.info("TWILIO_SID: %s", os.getenv('TWILIO_SID'))
-logger.info("TWILIO_TOKEN: %s", os.getenv('TWILIO_TOKEN'))
-logger.info("TWILIO_PHONE: %s", os.getenv('TWILIO_PHONE'))
+celery_app = Celery('tasks', broker=REDIS_URL, backend=REDIS_URL.replace('/0', '/1'))
 
 # Cargar claves desde .env
 XAI_API_KEY = os.getenv("XAI_API_KEY")
@@ -75,8 +74,8 @@ if not DATABASE_URL:
 
 # Configuración de Flask-Mail
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
-app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT'))
-app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS').lower() == 'true'
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'true').lower() == 'true'
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
@@ -86,12 +85,12 @@ mail = Mail(app)
 twilio_client = Client(TWILIO_SID, TWILIO_TOKEN)
 
 # Configuración de JWT
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')  # Cambia esto por una clave segura
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')  # Usa una clave segura en producción
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 jwt = JWTManager(app)
 
 # Configuración de la base de datos
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL.replace('postgres://', 'postgresql://'))  # Render usa postgresql://
 Base = declarative_base()
 
 # Modelo de usuario para la base de datos
@@ -114,7 +113,7 @@ class Chatbot(Base):
     pdf_url = Column(String)
     pdf_content = Column(Text)
     image_url = Column(String)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)  # Relación con el usuario creador
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
 
 class Conversation(Base):
     __tablename__ = 'conversations'
@@ -212,21 +211,18 @@ def summarize_history(history):
     return " ".join([conv.message for conv in history])
 
 def call_grok(messages, max_tokens=150):
-    # Limitar el historial a las últimas 3 interacciones
-    if len(messages) > 4:  # 1 mensaje del sistema + 3 interacciones
+    if len(messages) > 4:
         messages = [messages[0]] + messages[-3:]
     
     cache_key = json.dumps(messages)
     cached = redis_client.get(cache_key)
     if cached:
         logger.info("Respuesta obtenida desde caché")
-        return cached.decode('utf-8')
+        return cached
 
     url = "https://api.x.ai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {XAI_API_KEY}", "Content-Type": "application/json"}
-    logger.info(f"Authorization header: {headers['Authorization']}")
     payload = {"model": "grok-2-1212", "messages": messages, "temperature": 0.5, "max_tokens": max_tokens}
-    logger.info(f"Calling Grok API with messages: {messages}")
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=10)
         response.raise_for_status()
@@ -250,10 +246,8 @@ def process_pdf_async(chatbot_id, pdf_url):
         logger.info(f"PDF procesado para chatbot {chatbot_id}")
 
 def validate_whatsapp_number(number):
-    """Valida si el número de WhatsApp es usable con Twilio."""
     if not number.startswith('+'):
         number = '+' + number
-    
     try:
         phone_numbers = twilio_client.api.accounts(TWILIO_SID).incoming_phone_numbers.list()
         for phone in phone_numbers:
@@ -277,7 +271,7 @@ def register():
                 if existing_user:
                     flash('El email ya está registrado', 'error')
                     return redirect(url_for('register'))
-                user = User(email=data.email, password=data.password)  # En producción, hashear la contraseña
+                user = User(email=data.email, password=data.password)
                 session.add(user)
                 session.commit()
                 flash('Usuario registrado con éxito. Por favor, inicia sesión.', 'success')
@@ -303,7 +297,7 @@ def login():
                     return redirect(url_for('login'))
                 access_token = create_access_token(identity=user.id)
                 response = redirect(url_for('index'))
-                response.set_cookie('access_token', access_token, httponly=True, secure=False, samesite='Lax')  # Ajustado para desarrollo
+                response.set_cookie('access_token', access_token, httponly=True, secure=True, samesite='Lax')
                 flash('Inicio de sesión exitoso', 'success')
                 return response
         except ValidationError as e:
@@ -475,7 +469,7 @@ def create_page():
             if bot_data['whatsapp_number']:
                 WhatsAppNumberModel.validate_whatsapp_number(bot_data['whatsapp_number'])
                 if not validate_whatsapp_number(bot_data['whatsapp_number']):
-                    return jsonify({'status': 'error', 'message': 'El número de WhatsApp no está registrado en Twilio. Compra o registra el número primero.'}), 400
+                    return jsonify({'status': 'error', 'message': 'El número de WhatsApp no está registrado en Twilio.'}), 400
             
             user_id = get_jwt_identity()
             with get_session() as session:
@@ -495,7 +489,7 @@ def create_page():
 
 def create_chatbot(name, tone, purpose, whatsapp_number=None, business_info=None, pdf_url=None, image_url=None, flows=None, session=None, user_id=None):
     logger.info(f"Creando chatbot con nombre: {name}, tono: {tone}, propósito: {purpose}")
-    system_message = f"Eres un chatbot {tone} llamado '{name}'. Tu propósito es {purpose}. Usa un tono {tone} y gramática correcta. Responde directamente como '{name}'."
+    system_message = f"Eres un chatbot {tone} llamado '{name}'. Tu propósito es {purpose}. Usa un tono {tone} y gramática correcta."
     if business_info:
         system_message += f"\nNegocio: {business_info}"
     if pdf_url:
@@ -534,7 +528,6 @@ def create_bot():
         return jsonify({'message': 'Preflight OK'}), 200
     if request.method == 'GET':
         logger.info(f"GET recibido en /create-bot desde: {request.referrer}")
-        logger.info(f"Headers: {request.headers}")
         return jsonify({'message': 'GET no permitido, usa POST', 'referrer': request.referrer}), 405
     
     user_id = get_jwt_identity()
@@ -555,10 +548,10 @@ def create_bot():
             if whatsapp_number:
                 WhatsAppNumberModel.validate_whatsapp_number(whatsapp_number)
                 if not validate_whatsapp_number(whatsapp_number):
-                    return jsonify({'status': 'error', 'message': 'El número de WhatsApp no está registrado en Twilio. Compra o registra el número primero.'}), 400
+                    return jsonify({'status': 'error', 'message': 'El número de WhatsApp no está registrado en Twilio.'}), 400
                 existing_bot = session.query(Chatbot).filter_by(whatsapp_number=whatsapp_number).first()
                 if existing_bot:
-                    return jsonify({'status': 'error', 'message': f'El número {whatsapp_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}). Usa otro número o elimina el chatbot existente.'}), 400
+                    return jsonify({'status': 'error', 'message': f'El número {whatsapp_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}).'}), 400
 
             response = create_chatbot(bot_name, tone, purpose, whatsapp_number, business_info, pdf_url, image_url, flows, session=session, user_id=user_id)
             logger.info(f"Respuesta enviada: {response}")
@@ -593,7 +586,7 @@ def connect_whatsapp():
 
             existing_bot = session.query(Chatbot).filter_by(whatsapp_number=phone_number).first()
             if existing_bot and existing_bot.id != chatbot_id:
-                return jsonify({'status': 'error', 'message': f'El número {phone_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}). Usa otro número o elimina el chatbot existente.'}), 400
+                return jsonify({'status': 'error', 'message': f'El número {phone_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}).'}), 400
 
             try:
                 message = twilio_client.messages.create(
@@ -684,7 +677,7 @@ def update_bot():
                     return jsonify({'status': 'error', 'message': 'Número de WhatsApp inválido o no disponible'}), 400
                 existing_bot = session.query(Chatbot).filter_by(whatsapp_number=whatsapp_number).first()
                 if existing_bot and existing_bot.id != chatbot_id:
-                    return jsonify({'status': 'error', 'message': f'El número {whatsapp_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}). Usa otro número o elimina el chatbot existente.'}), 400
+                    return jsonify({'status': 'error', 'message': f'El número {whatsapp_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}).'}), 400
 
             pdf_content = chatbot.pdf_content if pdf_url == chatbot.pdf_url else None
             if pdf_url and pdf_url != chatbot.pdf_url:
@@ -875,7 +868,7 @@ def whatsapp():
                 chatbot.whatsapp_number = to_number
                 session.commit()
                 resp = MessagingResponse()
-                resp.message(f"¡Número verificado! Tu chatbot '{chatbot.name}' ya está conectado a WhatsApp. Prueba enviando un mensaje.")
+                resp.message(f"¡Número verificado! Tu chatbot '{chatbot.name}' ya está conectado a WhatsApp.")
                 logger.info(f"Número {sender} verificado para chatbot {chatbot.id}")
                 return str(resp)
             else:
@@ -986,10 +979,5 @@ def whatsapp():
     return str(resp)
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    import socket
-    hostname = socket.gethostname()
-    ip_address = socket.gethostbyname(hostname)
-    print(f" * Running on http://{ip_address}:{port} (Press CTRL+C to quit)")
-    logger.info(f"Server started on http://{ip_address}:{port}")
-    app.run(debug=False, host='0.0.0.0', port=port)
+    port = int(os.getenv('PORT', 5000))  # Render asigna PORT
+    app.run(host='0.0.0.0', port=port, debug=False)

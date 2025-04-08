@@ -1,5 +1,5 @@
 aiohappyeyeballs==2.4.6
-aiohttp==3.8.6
+aiohttp==3.10.10  # Actualizado para compatibilidad
 aiohttp-retry==2.9.1
 aiosignal==1.3.2
 alembic==1.15.1
@@ -61,7 +61,7 @@ python-dotenv==1.0.0
 python-telegram-bot==20.6
 pytz==2025.1
 redis==5.2.1
-requests==2.12.1
+requests==2.32.3  # Actualizado a la última versión compatible con Python 3.11
 six==1.17.0
 sniffio==1.3.1
 soupsieve==2.6
