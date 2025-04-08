@@ -189,72 +189,24 @@ if (typeof particlesJS !== 'undefined') {
     }
 }
 
-// === Animaciones GSAP ===
-if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
-    gsap.registerPlugin(ScrollTrigger);
-
-    // Animaciones para la sección hero
-    const heroSection = document.querySelector('.quantum-hero, .services-hero, .about-hero, .case-studies-hero');
-    if (heroSection) {
-        const title = heroSection.querySelector('h1');
-        const subtitle = heroSection.querySelector('p');
-        const button = heroSection.querySelector('a.quantum-btn');
-
-        if (title) {
-            gsap.set(title, { opacity: 0, scale: 0.5 });
-            gsap.to(title, {
-                opacity: 1,
-                scale: 1,
-                duration: 2,
-                ease: "back.out(1.7)",
-                delay: 0.5,
-                onComplete: () => console.log("Animación del título completada")
-            });
-        }
-
-        if (subtitle) {
-            gsap.set(subtitle, { opacity: 0, y: 50 });
-            gsap.to(subtitle, {
-                opacity: 1,
-                y: 0,
-                duration: 1.5,
-                ease: "power2.out",
-                delay: 1
-            });
-        }
-
-        if (button) {
-            gsap.set(button, { opacity: 0, y: 50 });
-            gsap.to(button, {
-                opacity: 1,
-                y: 0,
-                duration: 1.5,
-                ease: "power2.out",
-                delay: 1.2
-            });
-        }
-    }
-
-    // Animación para las tarjetas
-    const quantumCards = document.querySelectorAll('.quantum-card');
-    if (quantumCards.length > 0) {
-        gsap.from(quantumCards, {
-            scrollTrigger: {
-                trigger: ".scroll-section",
-                start: "top 80%",
-                end: "bottom 20%",
-                toggleActions: "play none none reverse"
-            },
-            duration: 1,
-            opacity: 0,
-            y: 100,
-            ease: "power2.out",
-            stagger: 0.2,
-            onComplete: () => console.log("Animación de las tarjetas completada")
-        });
-    }
-
-    console.log("GSAP inicializado");
-} else {
-    console.error("GSAP o ScrollTrigger no cargados");
+// Al final de quantum-three.js
+if (document.querySelector('.chatbot-section')) {
+    console.log("Configurando efectos para la página de creación");
+    particlesJS('particles-js', {
+        particles: {
+            number: { value: 100, density: { enable: true, value_area: 1000 } },
+            color: { value: '#00e0ff' },
+            shape: { type: 'circle' },
+            opacity: { value: 0.6, random: true },
+            size: { value: 2.5, random: true },
+            line_linked: { enable: true, distance: 120, color: '#00e0ff', opacity: 0.3, width: 1 },
+            move: { enable: true, speed: 4, direction: 'none', random: true }
+        },
+        interactivity: {
+            detect_on: 'window',
+            events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' }, resize: true },
+            modes: { repulse: { distance: 100, duration: 0.4 }, push: { particles_nb: 3 } }
+        },
+        retina_detect: true
+    });
 }

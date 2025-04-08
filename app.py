@@ -1,31 +1,77 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_mail import Mail, Message
+from flask_cors import CORS
 from dotenv import load_dotenv
+from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
+from twilio.twiml.messaging_response import MessagingResponse
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
+from pydantic import BaseModel, Field, ValidationError
+import re
 import os
 import requests
 import time
-from twilio.rest import Client
-from twilio.base.exceptions import TwilioRestException
+import PyPDF2
+import json
+import logging
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.sql import func
+from requests.exceptions import HTTPError, Timeout
+import redis
+from celery import Celery
+from contextlib import contextmanager
+from datetime import timedelta
 
+# Configuración inicial
 load_dotenv()
 app = Flask(__name__)
 
-# Depuración para verificar que las variables se cargaron
-print("TWILIO_SID:", os.getenv('TWILIO_SID'))
-print("TWILIO_TOKEN:", os.getenv('TWILIO_TOKEN'))
-print("TWILIO_PHONE:", os.getenv('TWILIO_PHONE'))
+# Configurar la SECRET_KEY para las sesiones de Flask
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+if not app.config['SECRET_KEY']:
+    raise ValueError("No se encontró SECRET_KEY en las variables de entorno. Asegúrate de que esté definida en el archivo .env.")
 
-# Cargar la clave API de xAI y Twilio desde el archivo .env
+# Configuración de logging
+logging.basicConfig(level=logging.INFO, filename='app.log', format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+logger.addHandler(console_handler)
+
+# Configuración de CORS (actualizado para incluir localhost:5000)
+CORS(app, resources={r"/*": {
+    "origins": ["http://localhost:5000"],
+    "methods": ["GET", "POST", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization"],
+    "supports_credentials": True
+}})
+
+# Configuración de Redis para caching y estado de conversación
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
+
+# Configuración de Celery
+celery_app = Celery('tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/1')
+
+# Depuración de variables de entorno
+logger.info("TWILIO_SID: %s", os.getenv('TWILIO_SID'))
+logger.info("TWILIO_TOKEN: %s", os.getenv('TWILIO_TOKEN'))
+logger.info("TWILIO_PHONE: %s", os.getenv('TWILIO_PHONE'))
+
+# Cargar claves desde .env
 XAI_API_KEY = os.getenv("XAI_API_KEY")
 TWILIO_SID = os.getenv("TWILIO_SID")
 TWILIO_TOKEN = os.getenv("TWILIO_TOKEN")
-TWILIO_PHONE = os.getenv("TWILIO_PHONE")  # Ejemplo: whatsapp:+14155238886
+TWILIO_PHONE = os.getenv("TWILIO_PHONE")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Verificar que las claves estén presentes
+# Verificar claves
 if not XAI_API_KEY:
-    raise ValueError("No se encontró la clave XAI_API_KEY en el archivo .env.")
-if not TWILIO_SID or not TWILIO_TOKEN or not TWILIO_PHONE:
-    raise ValueError("Faltan credenciales de Twilio en el archivo .env (TWILIO_SID, TWILIO_TOKEN, TWILIO_PHONE).")
+    raise ValueError("No se encontró XAI_API_KEY en .env.")
+if not all([TWILIO_SID, TWILIO_TOKEN, TWILIO_PHONE]):
+    raise ValueError("Faltan credenciales de Twilio en .env.")
+if not DATABASE_URL:
+    raise ValueError("Falta DATABASE_URL en .env.")
 
 # Configuración de Flask-Mail
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
@@ -34,14 +80,86 @@ app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS').lower() == 'true'
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
-
-# Inicializar Flask-Mail
 mail = Mail(app)
 
-# Diccionario para rastrear el estado de la conversación por usuario
-conversation_state = {}
+# Configuración de Twilio
+twilio_client = Client(TWILIO_SID, TWILIO_TOKEN)
 
-# Contexto completo y reducido para el bot
+# Configuración de JWT
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')  # Cambia esto por una clave segura
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+jwt = JWTManager(app)
+
+# Configuración de la base de datos
+engine = create_engine(DATABASE_URL)
+Base = declarative_base()
+
+# Modelo de usuario para la base de datos
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)  # En producción, usa hash (por ejemplo, bcrypt)
+    role = Column(String, default='user')
+
+class Chatbot(Base):
+    __tablename__ = 'chatbots'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    tone = Column(String, nullable=False)
+    purpose = Column(String, nullable=False)
+    initial_message = Column(Text, nullable=False)
+    whatsapp_number = Column(String, unique=True)
+    business_info = Column(Text)
+    pdf_url = Column(String)
+    pdf_content = Column(Text)
+    image_url = Column(String)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)  # Relación con el usuario creador
+
+class Conversation(Base):
+    __tablename__ = 'conversations'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    chatbot_id = Column(Integer, ForeignKey('chatbots.id'), nullable=False)
+    user_id = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    role = Column(String, nullable=False)
+    timestamp = Column(DateTime, server_default=func.now())
+
+class Flow(Base):
+    __tablename__ = 'flows'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    chatbot_id = Column(Integer, ForeignKey('chatbots.id'), nullable=False)
+    user_message = Column(Text, nullable=False)
+    bot_response = Column(Text, nullable=False)
+    position = Column(Integer, nullable=False)
+    intent = Column(String)
+
+Base.metadata.create_all(engine)
+Session = sessionmaker(bind=engine)
+
+# Manejador de sesiones por solicitud
+@contextmanager
+def get_session():
+    session = Session()
+    try:
+        yield session
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
+
+# Funciones para manejar el estado de conversación en Redis
+def get_conversation_state(sender):
+    state = redis_client.get(f"conversation_state:{sender}")
+    if state:
+        return json.loads(state)
+    return {"step": "greet", "data": {"business_type": None, "needs": [], "specifics": {}, "contacted": False}}
+
+def set_conversation_state(sender, state):
+    redis_client.setex(f"conversation_state:{sender}", 3600, json.dumps(state))
+
+# Contexto de Quantum Web
 QUANTUM_WEB_CONTEXT_FULL = """
 Quantum Web es una empresa dedicada a la creación e implementación de chatbots inteligentes optimizados para WhatsApp, que trabajan 24/7. Nos especializamos en soluciones de IA para pequeños negocios, grandes empresas, tiendas online, hoteles, academias, clínicas, restaurantes, y más. 
 
@@ -58,20 +176,155 @@ QUANTUM_WEB_CONTEXT_SHORT = """
 Eres QuantumBot de Quantum Web. Responde con amabilidad y empatía, usa un tono alegre y respuestas cortas (2-3 frases max). Incluye emojis cuando sea apropiado.
 """
 
-# Función para llamar a Grok con max_tokens dinámico
+# Modelos Pydantic para validación de datos
+class LoginModel(BaseModel):
+    email: str = Field(..., min_length=5)
+    password: str = Field(..., min_length=6)
+
+class RegisterModel(BaseModel):
+    email: str = Field(..., min_length=5)
+    password: str = Field(..., min_length=6)
+
+class WhatsAppNumberModel(BaseModel):
+    whatsapp_number: str
+
+    @classmethod
+    def validate_whatsapp_number(cls, value):
+        if not re.match(r'^\+\d{10,15}$', value):
+            raise ValueError('El número de WhatsApp debe tener el formato +1234567890')
+        return value
+
+# Funciones auxiliares
+def extract_text_from_pdf(file_stream):
+    try:
+        reader = PyPDF2.PdfReader(file_stream)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() or ""
+        return text
+    except Exception as e:
+        logger.error(f"Error al extraer texto del PDF: {str(e)}")
+        return ""
+
+def summarize_history(history):
+    if len(history) > 5:
+        return "Resumen: " + " ".join([conv.message[:50] for conv in history[-5:]])
+    return " ".join([conv.message for conv in history])
+
 def call_grok(messages, max_tokens=150):
+    # Limitar el historial a las últimas 3 interacciones
+    if len(messages) > 4:  # 1 mensaje del sistema + 3 interacciones
+        messages = [messages[0]] + messages[-3:]
+    
+    cache_key = json.dumps(messages)
+    cached = redis_client.get(cache_key)
+    if cached:
+        logger.info("Respuesta obtenida desde caché")
+        return cached.decode('utf-8')
+
     url = "https://api.x.ai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {XAI_API_KEY}", "Content-Type": "application/json"}
+    logger.info(f"Authorization header: {headers['Authorization']}")
     payload = {"model": "grok-2-1212", "messages": messages, "temperature": 0.5, "max_tokens": max_tokens}
+    logger.info(f"Calling Grok API with messages: {messages}")
     try:
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
         response.raise_for_status()
-        return response.json()['choices'][0]['message']['content']
-    except requests.exceptions.RequestException as e:
-        print(f"Error connecting to Grok API: {str(e)}")
+        result = response.json()['choices'][0]['message']['content']
+        redis_client.setex(cache_key, 3600, result)
+        logger.info(f"Grok response: {result}")
+        return result
+    except (HTTPError, Timeout) as e:
+        logger.error(f"Error al conectar con Grok: {str(e)}")
         return "¡Ups! Algo salió mal, intenta de nuevo. 😅"
 
-# Rutas básicas
+@celery_app.task
+def process_pdf_async(chatbot_id, pdf_url):
+    with get_session() as session:
+        response = requests.get(pdf_url)
+        pdf_content = extract_text_from_pdf(response.content)
+        chatbot = session.query(Chatbot).filter_by(id=chatbot_id).first()
+        if chatbot:
+            chatbot.pdf_content = pdf_content
+            session.commit()
+        logger.info(f"PDF procesado para chatbot {chatbot_id}")
+
+def validate_whatsapp_number(number):
+    """Valida si el número de WhatsApp es usable con Twilio."""
+    if not number.startswith('+'):
+        number = '+' + number
+    
+    try:
+        phone_numbers = twilio_client.api.accounts(TWILIO_SID).incoming_phone_numbers.list()
+        for phone in phone_numbers:
+            if phone.phone_number == number:
+                logger.info(f"Número {number} encontrado en tu cuenta Twilio.")
+                return True
+        logger.warning(f"Número {number} no está registrado en tu cuenta Twilio.")
+        return False
+    except TwilioRestException as e:
+        logger.error(f"Error al validar número de WhatsApp con Twilio: {str(e)}")
+        return False
+
+# Rutas de autenticación
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        try:
+            data = RegisterModel(**request.form)
+            with get_session() as session:
+                existing_user = session.query(User).filter_by(email=data.email).first()
+                if existing_user:
+                    flash('El email ya está registrado', 'error')
+                    return redirect(url_for('register'))
+                user = User(email=data.email, password=data.password)  # En producción, hashear la contraseña
+                session.add(user)
+                session.commit()
+                flash('Usuario registrado con éxito. Por favor, inicia sesión.', 'success')
+                return redirect(url_for('login'))
+        except ValidationError as e:
+            flash(str(e), 'error')
+            return redirect(url_for('register'))
+        except Exception as e:
+            logger.error(f"Error en /register: {str(e)}")
+            flash(str(e), 'error')
+            return redirect(url_for('register'))
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        try:
+            data = LoginModel(**request.form)
+            with get_session() as session:
+                user = session.query(User).filter_by(email=data.email, password=data.password).first()
+                if not user:
+                    flash('Credenciales inválidas', 'error')
+                    return redirect(url_for('login'))
+                access_token = create_access_token(identity=user.id)
+                response = redirect(url_for('index'))
+                response.set_cookie('access_token', access_token, httponly=True, secure=False, samesite='Lax')  # Ajustado para desarrollo
+                flash('Inicio de sesión exitoso', 'success')
+                return response
+        except ValidationError as e:
+            flash(str(e), 'error')
+            return redirect(url_for('login'))
+        except Exception as e:
+            logger.error(f"Error en /login: {str(e)}")
+            flash(str(e), 'error')
+            return redirect(url_for('login'))
+    return render_template('login.html')
+
+# Rutas principales
+@app.route('/favicon.ico')
+def favicon():
+    return app.send_static_file('img/favicon.ico')
+
+@app.route('/apple-touch-icon-precomposed.png')
+@app.route('/apple-touch-icon.png')
+def apple_touch_icon():
+    return app.send_static_file('img/favicon.ico')
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -83,20 +336,19 @@ def contacto():
             nombre = request.form.get('nombre', 'Usuario del Footer')
             email = request.form.get('email')
             mensaje = request.form.get('message')
-            if not email:
-                return jsonify({'status': 'error', 'message': 'El campo de correo electrónico es requerido.'}), 400
-            if not mensaje:
-                return jsonify({'status': 'error', 'message': 'El campo de mensaje es requerido.'}), 400
+            if not email or not mensaje:
+                return jsonify({'status': 'error', 'message': 'Email y mensaje son requeridos.'}), 400
             msg = Message(
                 subject=f'Nuevo mensaje de contacto de {nombre}',
                 recipients=['quantumweb.ia@gmail.com'],
                 body=f'Nombre: {nombre}\nEmail: {email}\nMensaje: {mensaje}'
             )
             mail.send(msg)
-            return jsonify({'status': 'success', 'message': 'Mensaje enviado con éxito. ¡Gracias por contactarnos!'}), 200
+            logger.info(f"Correo de contacto enviado por {email}")
+            return jsonify({'status': 'success', 'message': 'Mensaje enviado con éxito. ¡Gracias!'}), 200
         except Exception as e:
-            print(f"Error al enviar el correo: {str(e)}")
-            return jsonify({'status': 'error', 'message': f'Error al enviar el mensaje: {str(e)}'}), 500
+            logger.error(f"Error al enviar correo: {str(e)}")
+            return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
     return render_template('contact.html')
 
 @app.route('/subscribe', methods=['POST'])
@@ -105,11 +357,11 @@ def subscribe():
         try:
             email = request.form.get('email')
             if not email:
-                return jsonify({'status': 'error', 'message': 'El campo de correo electrónico es requerido.'}), 400
+                return jsonify({'status': 'error', 'message': 'Email requerido.'}), 400
             msg_to_subscriber = Message(
                 subject='¡Gracias por suscribirte a Quantum Web!',
                 recipients=[email],
-                body=f'Hola,\n\nGracias por suscribirte a nuestro boletín. ¡Pronto recibirás actualizaciones y noticias de Quantum Web!\n\nSaludos,\nEl equipo de Quantum Web'
+                body='Hola,\n\nGracias por suscribirte. ¡Pronto recibirás noticias de Quantum Web!\n\nSaludos,\nEl equipo de Quantum Web'
             )
             msg_to_admin = Message(
                 subject='Nueva suscripción al boletín',
@@ -118,10 +370,11 @@ def subscribe():
             )
             mail.send(msg_to_subscriber)
             mail.send(msg_to_admin)
-            return jsonify({'status': 'success', 'message': '¡Gracias por suscribirte! Revisa tu correo para confirmar.'}), 200
+            logger.info(f"Nueva suscripción: {email}")
+            return jsonify({'status': 'success', 'message': '¡Suscripción exitosa! Revisa tu correo.'}), 200
         except Exception as e:
-            print(f"Error al procesar la suscripción: {str(e)}")
-            return jsonify({'status': 'error', 'message': 'Error al procesar tu suscripción. Intenta de nuevo.'}), 500
+            logger.error(f"Error al procesar suscripción: {str(e)}")
+            return jsonify({'status': 'error', 'message': 'Error al suscribirte. Intenta de nuevo.'}), 500
     return jsonify({'status': 'error', 'message': 'Método no permitido'}), 405
 
 @app.route('/about')
@@ -169,173 +422,574 @@ def particulas():
     return render_template('particulas.html')
 
 @app.route('/api/grok', methods=['POST'])
+@jwt_required()
 def grok_api():
     data = request.get_json()
     user_message = data.get('message', '')
     history = data.get('history', [])
     if not user_message:
-        return jsonify({'error': 'No se proporcionó un mensaje'}), 400
+        return jsonify({'error': 'No se proporcionó mensaje'}), 400
     messages = [
-        {"role": "system", "content": "Eres QuantumBot, un asistente virtual de Quantum Web. Responde de manera amigable, breve y directa, usando un tono alegre. Limítate a respuestas cortas (máximo 2-3 frases). Si es posible, incluye un emoji o icono relevante al final de tu respuesta."}
-    ]
-    messages.extend(history)
-    messages.append({"role": "user", "content": user_message})
-    url = "https://api.x.ai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {XAI_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": "grok-2-1212",
-        "messages": messages,
-        "temperature": 0.5,
-        "max_tokens": 50
-    }
+        {"role": "system", "content": "Eres QuantumBot de Quantum Web. Responde amigable, breve y con tono alegre (máx. 2-3 frases). Usa emojis si aplica."}
+    ] + history + [{"role": "user", "content": user_message}]
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = requests.post(url, json=payload, headers=headers)
+            response = requests.post("https://api.x.ai/v1/chat/completions", json={
+                "model": "grok-2-1212", "messages": messages, "temperature": 0.5, "max_tokens": 50
+            }, headers={"Authorization": f"Bearer {XAI_API_KEY}", "Content-Type": "application/json"}, timeout=10)
             response.raise_for_status()
             grok_response = response.json()
             message = grok_response['choices'][0]['message']['content']
+            logger.info(f"Respuesta de Grok en /api/grok: {message}")
             return jsonify({'response': message})
-        except requests.exceptions.HTTPError as e:
+        except HTTPError as e:
             if e.response.status_code == 429 and attempt < max_retries - 1:
                 time.sleep(2 ** attempt)
                 continue
-            return jsonify({'error': f"Error al conectar con el API de Grok: {str(e)}"}), 500
-        except requests.exceptions.RequestException as e:
-            return jsonify({'error': f"Error al conectar con el API de Grok: {str(e)}"}), 500
+            logger.error(f"Error en /api/grok: {str(e)}")
+            return jsonify({'error': f"Error al conectar con Grok: {str(e)}"}), 500
+        except Exception as e:
+            logger.error(f"Error en /api/grok: {str(e)}")
+            return jsonify({'error': f"Error: {str(e)}"}), 500
 
-@app.route('/whatsapp/webhook', methods=['POST'])
-def whatsapp_webhook():
-    raw_data = request.get_data(as_text=True)
-    print(f"Raw data received: {raw_data}")
+# Rutas del creador de chatbots
+@app.route('/create', methods=['GET', 'POST'])
+@jwt_required()
+def create_page():
+    if request.method == 'POST':
+        try:
+            data = request.get_json() or request.form
+            bot_data = {
+                'name': data.get('name'),
+                'tone': data.get('tone', 'amigable'),
+                'purpose': data.get('purpose', 'ayudar a los clientes'),
+                'whatsapp_number': data.get('whatsapp_number', None),
+                'business_info': data.get('business_info', None),
+                'pdf_url': data.get('pdf_url', None),
+                'image_url': data.get('image_url', None),
+                'flows': data.get('flows', [])
+            }
+            if not bot_data['name']:
+                return jsonify({'status': 'error', 'message': 'El nombre es obligatorio'}), 400
+            if bot_data['whatsapp_number']:
+                WhatsAppNumberModel.validate_whatsapp_number(bot_data['whatsapp_number'])
+                if not validate_whatsapp_number(bot_data['whatsapp_number']):
+                    return jsonify({'status': 'error', 'message': 'El número de WhatsApp no está registrado en Twilio. Compra o registra el número primero.'}), 400
+            
+            user_id = get_jwt_identity()
+            with get_session() as session:
+                response = create_chatbot(**bot_data, session=session, user_id=user_id)
+                logger.info(f"Chatbot creado en /create: {response}")
+                return jsonify({'message': response})
+        except ValidationError as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 400
+        except Exception as e:
+            logger.error(f"Error al guardar bot en /create: {str(e)}")
+            return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
+    response = send_file('templates/create.html')
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
-    data = request.form
-    print(f"Parsed data: {data}")
+def create_chatbot(name, tone, purpose, whatsapp_number=None, business_info=None, pdf_url=None, image_url=None, flows=None, session=None, user_id=None):
+    logger.info(f"Creando chatbot con nombre: {name}, tono: {tone}, propósito: {purpose}")
+    system_message = f"Eres un chatbot {tone} llamado '{name}'. Tu propósito es {purpose}. Usa un tono {tone} y gramática correcta. Responde directamente como '{name}'."
+    if business_info:
+        system_message += f"\nNegocio: {business_info}"
+    if pdf_url:
+        system_message += "\nContenido del PDF será añadido tras procesar."
+    messages = [
+        {"role": "system", "content": system_message},
+        {"role": "user", "content": "Dame un mensaje de bienvenida."}
+    ]
+    initial_message = call_grok(messages, max_tokens=100)
 
-    try:
-        message = data.get('Body')
-        sender = data.get('From')
-        if not message or not sender:
-            print("Missing message or sender")
-            return jsonify({'status': 'error', 'message': 'Missing message or sender'}), 400
-        print(f"Message: {message}, Sender: {sender}")
-    except KeyError as e:
-        print(f"Error extracting message: {e}")
-        return jsonify({'status': 'error', 'message': 'Invalid message format'}), 400
+    chatbot = Chatbot(
+        name=name, tone=tone, purpose=purpose, initial_message=initial_message,
+        whatsapp_number=whatsapp_number, business_info=business_info, pdf_url=pdf_url, 
+        image_url=image_url, user_id=user_id
+    )
+    session.add(chatbot)
+    session.commit()
+    chatbot_id = chatbot.id
 
-    # Inicializar estado de conversación si no existe
-    if sender not in conversation_state:
-        conversation_state[sender] = {
-            "step": "greet",
-            "data": {"business_type": None, "needs": [], "specifics": {}, "contacted": False}
-        }
+    if pdf_url:
+        process_pdf_async.delay(chatbot_id, pdf_url)
 
-    state = conversation_state[sender]
+    if flows:
+        for index, flow in enumerate(flows):
+            if flow.get('userMessage') and flow.get('botResponse'):
+                intent = flow.get('intent', 'general')
+                flow_entry = Flow(chatbot_id=chatbot_id, user_message=flow['userMessage'], bot_response=flow['botResponse'], position=index, intent=intent)
+                session.add(flow_entry)
+    session.commit()
+    return f"Chatbot '{name}' creado con éxito. ID: {chatbot_id}. Mensaje inicial: {initial_message}"
 
-    # Determinar si la respuesta requiere más tokens
-    info_keywords = ["saber más", "información", "qué son", "cómo funcionan", "detalles"]
-    price_keywords = ["precio", "coste", "cuánto cuesta", "valor", "tarifa"]
-    needs_max_tokens = 300 if any(keyword in message.lower() for keyword in info_keywords + price_keywords) else 150
+@app.route('/create-bot', methods=['OPTIONS', 'POST', 'GET'])
+@jwt_required()
+def create_bot():
+    if request.method == 'OPTIONS':
+        return jsonify({'message': 'Preflight OK'}), 200
+    if request.method == 'GET':
+        logger.info(f"GET recibido en /create-bot desde: {request.referrer}")
+        logger.info(f"Headers: {request.headers}")
+        return jsonify({'message': 'GET no permitido, usa POST', 'referrer': request.referrer}), 405
+    
+    user_id = get_jwt_identity()
+    with get_session() as session:
+        try:
+            logger.info("Solicitud POST recibida en /create-bot")
+            data = request.get_json()
+            logger.info(f"Datos recibidos: {data}")
+            bot_name = data.get('name', 'Sin nombre')
+            tone = data.get('tone', 'amigable')
+            purpose = data.get('purpose', 'asistir a los usuarios')
+            whatsapp_number = data.get('whatsapp_number', None)
+            business_info = data.get('business_info', None)
+            pdf_url = data.get('pdf_url', None)
+            image_url = data.get('image_url', None)
+            flows = data.get('flows', [])
 
-    # Lógica de conversación basada en el estado
-    if state["step"] == "greet":
-        if message.lower().startswith(("hola", "buenos", "buenas", "hey")):
-            reply = "¡Hola! Soy QuantumBot de Quantum Web, un placer conocerte. ¿En qué puedo ayudarte hoy? 😊"
-            state["step"] = "awaiting_response"
-        else:
-            if any(keyword in message.lower() for keyword in price_keywords):
-                reply = "¡Hola! Para darte el mejor precio, necesitamos saber más sobre tu negocio, ya que no es lo mismo un pequeño negocio que uno grande. ¿Qué tipo de negocio tienes? 😊"
-            else:
-                reply = "¡Hola! Soy QuantumBot de Quantum Web, estoy aquí para ayudarte. ¿Qué tipo de negocio tienes? 😊"
-            state["step"] = "ask_business_type"
-    elif state["step"] == "awaiting_response":
-        if any(keyword in message.lower() for keyword in price_keywords):
-            reply = "¡Entendido! Para ofrecerte el mejor precio disponible, necesitamos saber más sobre tu negocio, ya que no es lo mismo un pequeño negocio que uno grande. ¿Qué tipo de negocio tienes? 😊"
-            state["step"] = "ask_business_type"
-        else:
+            if whatsapp_number:
+                WhatsAppNumberModel.validate_whatsapp_number(whatsapp_number)
+                if not validate_whatsapp_number(whatsapp_number):
+                    return jsonify({'status': 'error', 'message': 'El número de WhatsApp no está registrado en Twilio. Compra o registra el número primero.'}), 400
+                existing_bot = session.query(Chatbot).filter_by(whatsapp_number=whatsapp_number).first()
+                if existing_bot:
+                    return jsonify({'status': 'error', 'message': f'El número {whatsapp_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}). Usa otro número o elimina el chatbot existente.'}), 400
+
+            response = create_chatbot(bot_name, tone, purpose, whatsapp_number, business_info, pdf_url, image_url, flows, session=session, user_id=user_id)
+            logger.info(f"Respuesta enviada: {response}")
+            return jsonify({'message': response}), 200
+        except ValidationError as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 400
+        except Exception as e:
+            logger.error(f"Error en /create-bot: {str(e)}")
+            return jsonify({'message': f"Error: {str(e)}"}), 500
+
+@app.route('/connect-whatsapp', methods=['OPTIONS', 'POST'])
+@jwt_required()
+def connect_whatsapp():
+    if request.method == 'OPTIONS':
+        return jsonify({'message': 'Preflight OK'}), 200
+    
+    user_id = get_jwt_identity()
+    with get_session() as session:
+        try:
+            logger.info("Solicitud recibida en /connect-whatsapp")
+            data = request.get_json()
+            logger.info(f"Datos recibidos: {data}")
+            chatbot_id = data.get('chatbot_id')
+            phone_number = data.get('phone_number')
+
+            if not chatbot_id or not phone_number:
+                return jsonify({'status': 'error', 'message': 'Faltan chatbot_id o phone_number'}), 400
+
+            chatbot = session.query(Chatbot).filter_by(id=chatbot_id, user_id=user_id).first()
+            if not chatbot:
+                return jsonify({'status': 'error', 'message': 'Chatbot no encontrado o no tienes permiso'}), 404
+
+            existing_bot = session.query(Chatbot).filter_by(whatsapp_number=phone_number).first()
+            if existing_bot and existing_bot.id != chatbot_id:
+                return jsonify({'status': 'error', 'message': f'El número {phone_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}). Usa otro número o elimina el chatbot existente.'}), 400
+
+            try:
+                message = twilio_client.messages.create(
+                    body="Hola, soy Quantum Web. Responde con 'VERIFICAR' para conectar tu número a tu chatbot.",
+                    from_=f'whatsapp:{TWILIO_PHONE}',
+                    to=f'whatsapp:{phone_number}'
+                )
+                logger.info(f"Mensaje de verificación enviado a {phone_number}: {message.sid}")
+            except TwilioRestException as e:
+                logger.error(f"Error al enviar mensaje de verificación: {str(e)}")
+                return jsonify({'status': 'error', 'message': f'Error al enviar mensaje de verificación: {str(e)}'}), 500
+
+            chatbot.whatsapp_number = phone_number
+            session.commit()
+
+            return jsonify({'status': 'success', 'message': f'Se envió un mensaje de verificación a {phone_number}. Responde con "VERIFICAR" para completar el proceso.'}), 200
+        except Exception as e:
+            logger.error(f"Error en /connect-whatsapp: {str(e)}")
+            return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
+
+@app.route('/delete-bot', methods=['OPTIONS', 'POST'])
+@jwt_required()
+def delete_bot():
+    if request.method == 'OPTIONS':
+        return jsonify({'message': 'Preflight OK'}), 200
+    
+    user_id = get_jwt_identity()
+    with get_session() as session:
+        try:
+            logger.info("Solicitud recibida en /delete-bot")
+            data = request.get_json()
+            logger.info(f"Datos recibidos: {data}")
+            chatbot_id = data.get('chatbot_id')
+            if not chatbot_id:
+                logger.error("Falta chatbot_id")
+                return jsonify({'message': 'Falta chatbot_id'}), 400
+            chatbot_id = int(chatbot_id)
+            if chatbot_id <= 0:
+                raise ValueError("ID debe ser positivo")
+            chatbot = session.query(Chatbot).filter_by(id=chatbot_id, user_id=user_id).first()
+            if not chatbot:
+                logger.error(f"Chatbot {chatbot_id} no encontrado o no tienes permiso")
+                return jsonify({'message': f'Chatbot {chatbot_id} no encontrado o no tienes permiso'}), 404
+            session.query(Conversation).filter_by(chatbot_id=chatbot_id).delete()
+            session.query(Flow).filter_by(chatbot_id=chatbot_id).delete()
+            session.delete(chatbot)
+            session.commit()
+            logger.info(f"Chatbot {chatbot_id} eliminado")
+            return jsonify({'message': f'Chatbot {chatbot_id} eliminado con éxito'}), 200
+        except Exception as e:
+            logger.error(f"Error en /delete-bot: {str(e)}")
+            return jsonify({'message': f"Error: {str(e)}"}), 500
+
+@app.route('/update-bot', methods=['OPTIONS', 'POST'])
+@jwt_required()
+def update_bot():
+    if request.method == 'OPTIONS':
+        return jsonify({'message': 'Preflight OK'}), 200
+    
+    user_id = get_jwt_identity()
+    with get_session() as session:
+        try:
+            logger.info("Solicitud recibida en /update-bot")
+            data = request.get_json()
+            logger.info(f"Datos recibidos: {data}")
+            chatbot_id = data.get('chatbot_id')
+            name = data.get('name')
+            tone = data.get('tone')
+            purpose = data.get('purpose')
+            whatsapp_number = data.get('whatsapp_number')
+            business_info = data.get('business_info')
+            pdf_url = data.get('pdf_url')
+            image_url = data.get('image_url')
+            flows = data.get('flows', [])
+
+            if not all([chatbot_id, name, tone, purpose]):
+                logger.error("Faltan campos obligatorios")
+                return jsonify({'message': 'Faltan campos obligatorios'}), 400
+
+            chatbot = session.query(Chatbot).filter_by(id=chatbot_id, user_id=user_id).first()
+            if not chatbot:
+                logger.error(f"Chatbot {chatbot_id} no encontrado o no tienes permiso")
+                return jsonify({'message': 'Chatbot no encontrado o no tienes permiso'}), 404
+
+            if whatsapp_number and whatsapp_number != chatbot.whatsapp_number:
+                WhatsAppNumberModel.validate_whatsapp_number(whatsapp_number)
+                if not validate_whatsapp_number(whatsapp_number):
+                    return jsonify({'status': 'error', 'message': 'Número de WhatsApp inválido o no disponible'}), 400
+                existing_bot = session.query(Chatbot).filter_by(whatsapp_number=whatsapp_number).first()
+                if existing_bot and existing_bot.id != chatbot_id:
+                    return jsonify({'status': 'error', 'message': f'El número {whatsapp_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}). Usa otro número o elimina el chatbot existente.'}), 400
+
+            pdf_content = chatbot.pdf_content if pdf_url == chatbot.pdf_url else None
+            if pdf_url and pdf_url != chatbot.pdf_url:
+                process_pdf_async.delay(chatbot_id, pdf_url)
+
+            system_message = f"Eres un chatbot {tone} llamado '{name}'. Tu propósito es {purpose}. Usa un tono {tone} y gramática correcta."
+            if business_info:
+                system_message += f"\nNegocio: {business_info}"
+            if pdf_content:
+                system_message += f"\nContenido del PDF: {pdf_content}"
             messages = [
-                {"role": "system", "content": QUANTUM_WEB_CONTEXT_FULL + "\n\nInstrucciones: Interpreta la respuesta del usuario y responde naturalmente antes de preguntar por el tipo de negocio. Si pide info general (ej. 'saber más'), da una respuesta clara, completa y útil sin truncar."},
-                {"role": "user", "content": message}
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": "Dame un mensaje de bienvenida."}
             ]
-            reply = call_grok(messages, max_tokens=needs_max_tokens)
-            state["step"] = "ask_business_type"
-    elif state["step"] == "ask_business_type":
-        state["data"]["business_type"] = message
-        reply = "¡Entendido! ¿Qué necesitas que haga tu chatbot (por ejemplo, ventas, reservas, soporte)? 😊"
-        state["step"] = "ask_needs"
-    elif state["step"] == "ask_needs":
-        state["data"]["needs"].append(message.lower())
-        reply = "¡Perfecto, lo tengo! ¿Algo más que quieras que haga tu chatbot? Si terminaste, di 'listo'. 😊"
-        state["step"] = "more_needs"
-    elif state["step"] == "more_needs":
-        if message.lower() == "listo":
-            # Determinar la pregunta específica según las necesidades
-            needs = state["data"]["needs"]
-            if "ventas" in " ".join(needs):
-                reply = "¡Genial! ¿Cuántos productos te gustaría incluir en el catálogo de tu chatbot? 😊"
-                state["step"] = "ask_sales_details"
-            elif "soporte" in " ".join(needs):
-                reply = "¡Entendido! ¿Cuántos clientes gestionas aproximadamente por día? 😊"
-                state["step"] = "ask_support_details"
-            elif "reservas" in " ".join(needs):
-                reply = "¡Perfecto! ¿Cuántas reservas esperas manejar por día? 😊"
-                state["step"] = "ask_reservations_details"
+            initial_message = call_grok(messages, max_tokens=100)
+
+            chatbot.name = name
+            chatbot.tone = tone
+            chatbot.purpose = purpose
+            chatbot.whatsapp_number = whatsapp_number
+            chatbot.business_info = business_info
+            chatbot.pdf_url = pdf_url
+            chatbot.image_url = image_url
+            chatbot.initial_message = initial_message
+
+            session.query(Flow).filter_by(chatbot_id=chatbot_id).delete()
+            for index, flow in enumerate(flows):
+                if flow.get('userMessage') and flow.get('botResponse'):
+                    intent = flow.get('intent', 'general')
+                    session.add(Flow(chatbot_id=chatbot_id, user_message=flow['userMessage'], bot_response=flow['botResponse'], position=index, intent=intent))
+            
+            session.commit()
+            logger.info(f"Chatbot {chatbot_id} actualizado")
+            return jsonify({'message': f"Chatbot '{name}' actualizado con éxito"}), 200
+        except ValidationError as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 400
+        except Exception as e:
+            logger.error(f"Error en /update-bot: {str(e)}")
+            return jsonify({'message': f"Error: {str(e)}"}), 500
+
+@app.route('/list-bots', methods=['OPTIONS', 'GET'])
+@jwt_required()
+def list_bots():
+    if request.method == 'OPTIONS':
+        return jsonify({'message': 'Preflight OK'}), 200
+    
+    user_id = get_jwt_identity()
+    with get_session() as session:
+        try:
+            logger.info("Solicitud recibida en /list-bots")
+            chatbots = session.query(Chatbot).filter_by(user_id=user_id).all()
+            chatbots_list = [
+                {
+                    'id': bot.id, 'name': bot.name, 'tone': bot.tone, 'purpose': bot.purpose,
+                    'initial_message': bot.initial_message, 'whatsapp_number': bot.whatsapp_number,
+                    'business_info': bot.business_info, 'pdf_url': bot.pdf_url, 'image_url': bot.image_url,
+                    'flows': [{'userMessage': flow.user_message, 'botResponse': flow.bot_response, 'intent': flow.intent} 
+                              for flow in session.query(Flow).filter_by(chatbot_id=bot.id).order_by(Flow.position).all()]
+                } for bot in chatbots
+            ]
+            logger.info(f"Chatbots enviados: {len(chatbots_list)}")
+            return jsonify({'chatbots': chatbots_list}), 200
+        except Exception as e:
+            logger.error(f"Error en /list-bots: {str(e)}")
+            return jsonify({'message': f"Error: {str(e)}"}), 500
+
+@app.route('/conversation-history', methods=['OPTIONS', 'POST'])
+@jwt_required()
+def conversation_history():
+    if request.method == 'OPTIONS':
+        return jsonify({'message': 'Preflight OK'}), 200
+    
+    user_id = get_jwt_identity()
+    with get_session() as session:
+        try:
+            logger.info("Solicitud recibida en /conversation-history")
+            data = request.get_json()
+            logger.info(f"Datos recibidos: {data}")
+            chatbot_id = data.get('chatbot_id')
+            user_id_from_data = data.get('user_id', 'web_user')
+            if not chatbot_id:
+                return jsonify({'message': 'Falta chatbot_id'}), 400
+            chatbot = session.query(Chatbot).filter_by(id=chatbot_id, user_id=user_id).first()
+            if not chatbot:
+                return jsonify({'message': 'Chatbot no encontrado o no tienes permiso'}), 404
+            history = session.query(Conversation).filter_by(chatbot_id=chatbot_id, user_id=user_id_from_data).order_by(Conversation.timestamp).all()
+            history_list = [{'role': conv.role, 'message': conv.message} for conv in history]
+            logger.info(f"Historial enviado para chatbot {chatbot_id}")
+            return jsonify({'history': history_list}), 200
+        except Exception as e:
+            logger.error(f"Error en /conversation-history: {str(e)}")
+            return jsonify({'message': f"Error: {str(e)}"}), 500
+
+@app.route('/chat', methods=['OPTIONS', 'POST'])
+@jwt_required()
+def chat():
+    if request.method == 'OPTIONS':
+        return jsonify({'message': 'Preflight OK'}), 200
+    
+    user_id = get_jwt_identity()
+    with get_session() as session:
+        try:
+            logger.info("Solicitud recibida en /chat")
+            data = request.get_json()
+            logger.info(f"Datos recibidos: {data}")
+            chatbot_id = data.get('chatbot_id')
+            user_id_from_data = data.get('user_id', 'web_user')
+            message = data.get('message')
+            if not chatbot_id or not message:
+                return jsonify({'message': 'Faltan chatbot_id o message'}), 400
+
+            chatbot = session.query(Chatbot).filter_by(id=chatbot_id, user_id=user_id).first()
+            if not chatbot:
+                return jsonify({'message': 'Chatbot no encontrado o no tienes permiso'}), 404
+            
+            flows = session.query(Flow).filter_by(chatbot_id=chatbot_id).order_by(Flow.position).all()
+            response = next((flow.bot_response for flow in flows if flow.user_message.lower() in message.lower()), None)
+            
+            if not response:
+                history = session.query(Conversation).filter_by(chatbot_id=chatbot_id, user_id=user_id_from_data).order_by(Conversation.timestamp).all()
+                system_message = f"Eres un chatbot {chatbot.tone} llamado '{chatbot.name}'. Tu propósito es {chatbot.purpose}. Usa un tono {chatbot.tone} y gramática correcta."
+                if chatbot.business_info:
+                    system_message += f"\nNegocio: {chatbot.business_info}"
+                if chatbot.pdf_content:
+                    system_message += f"\nContenido del PDF: {chatbot.pdf_content}"
+                messages = [{"role": "system", "content": system_message}]
+                if history:
+                    messages.extend([{"role": conv.role, "content": conv.message} for conv in history[-5:]])
+                messages.append({"role": "user", "content": message})
+                max_tokens = 150 if len(message) < 100 else 300
+                response = call_grok(messages, max_tokens=max_tokens)
+                if chatbot.image_url and "logo" in message.lower():
+                    response += f"\nLogo: {chatbot.image_url}"
+
+            session.add(Conversation(chatbot_id=chatbot_id, user_id=user_id_from_data, message=message, role="user"))
+            session.add(Conversation(chatbot_id=chatbot_id, user_id=user_id_from_data, message=response, role="assistant"))
+            session.commit()
+            logger.info(f"Respuesta enviada: {response}")
+            return jsonify({'response': response}), 200
+        except Exception as e:
+            logger.error(f"Error en /chat: {str(e)}")
+            return jsonify({'message': f"Error: {str(e)}"}), 500
+
+@app.route('/upload-file', methods=['POST'])
+@jwt_required()
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'message': 'No se proporcionó archivo'}), 400
+    file = request.files['file']
+    file_type = request.form.get('type')
+    if file_type not in ['pdf', 'image']:
+        return jsonify({'message': 'Tipo de archivo no válido.'}), 400
+    
+    file.seek(0, os.SEEK_END)
+    if file.tell() > 5 * 1024 * 1024:
+        return jsonify({'message': 'Archivo demasiado grande (máx. 5MB).'}), 400
+    file.seek(0)
+
+    if file_type == 'pdf':
+        pdf_content = extract_text_from_pdf(file)
+        logger.info("PDF subido y procesado")
+        return jsonify({'file_content': pdf_content}), 200
+    else:
+        image_url = f"/static/uploads/{file.filename}"
+        file.save(os.path.join('static/uploads', file.filename))
+        logger.info(f"Imagen subida: {image_url}")
+        return jsonify({'file_url': image_url}), 200
+
+@app.route('/whatsapp', methods=['POST'])
+def whatsapp():
+    logger.info(f"Solicitud recibida en /whatsapp: {request.values}")
+    incoming_msg = request.values.get('Body', '').strip()
+    sender = request.values.get('From', 'unknown')
+    to_number = request.values.get('To', 'unknown')
+    logger.info(f"Mensaje recibido de {sender} para {to_number}: {incoming_msg}")
+
+    if not incoming_msg:
+        resp = MessagingResponse()
+        resp.message("No se recibió mensaje válido. Envía algo.")
+        return str(resp)
+
+    with get_session() as session:
+        chatbot = session.query(Chatbot).filter_by(whatsapp_number=to_number).first()
+        
+        if not chatbot:
+            chatbot = session.query(Chatbot).filter_by(whatsapp_number=sender).first()
+            if chatbot and incoming_msg.upper() == "VERIFICAR":
+                chatbot.whatsapp_number = to_number
+                session.commit()
+                resp = MessagingResponse()
+                resp.message(f"¡Número verificado! Tu chatbot '{chatbot.name}' ya está conectado a WhatsApp. Prueba enviando un mensaje.")
+                logger.info(f"Número {sender} verificado para chatbot {chatbot.id}")
+                return str(resp)
             else:
-                reply = "¡Genial, ya está todo listo! Muchas gracias por tu interés en Quantum Web, te contactaremos en un máximo de 24 horas con más información. 😊"
-                state["step"] = "done"
-                state["data"]["contacted"] = True
+                state = get_conversation_state(sender)
+                info_keywords = ["saber más", "información", "qué son", "cómo funcionan", "detalles"]
+                price_keywords = ["precio", "coste", "cuánto cuesta", "valor", "tarifa"]
+                needs_max_tokens = 300 if any(k in incoming_msg.lower() for k in info_keywords + price_keywords) else 150
+
+                if state["step"] == "greet":
+                    if incoming_msg.lower().startswith(("hola", "buenos", "buenas", "hey")):
+                        response = "¡Hola! Soy QuantumBot de Quantum Web, un placer conocerte. ¿En qué puedo ayudarte hoy? 😊"
+                        state["step"] = "awaiting_response"
+                    else:
+                        if any(k in incoming_msg.lower() for k in price_keywords):
+                            response = "¡Hola! Para darte el mejor precio, dime más sobre tu negocio. ¿Qué tipo de negocio tienes? 😊"
+                        else:
+                            response = "¡Hola! Soy QuantumBot de Quantum Web. ¿Qué tipo de negocio tienes? 😊"
+                        state["step"] = "ask_business_type"
+                elif state["step"] == "awaiting_response":
+                    if any(k in incoming_msg.lower() for k in price_keywords):
+                        response = "¡Entendido! Para un precio exacto, dime qué tipo de negocio tienes. 😊"
+                        state["step"] = "ask_business_type"
+                    else:
+                        messages = [{"role": "system", "content": QUANTUM_WEB_CONTEXT_FULL + "\nInterpreta y responde antes de preguntar por el negocio."}, {"role": "user", "content": incoming_msg}]
+                        response = call_grok(messages, max_tokens=needs_max_tokens)
+                        state["step"] = "ask_business_type"
+                elif state["step"] == "ask_business_type":
+                    state["data"]["business_type"] = incoming_msg
+                    response = "¡Entendido! ¿Qué necesitas que haga tu chatbot (ventas, reservas, soporte)? 😊"
+                    state["step"] = "ask_needs"
+                elif state["step"] == "ask_needs":
+                    state["data"]["needs"].append(incoming_msg.lower())
+                    response = "¡Perfecto! ¿Algo más que quieras que haga? Di 'listo' si terminaste. 😊"
+                    state["step"] = "more_needs"
+                elif state["step"] == "more_needs":
+                    if incoming_msg.lower() == "listo":
+                        needs = state["data"]["needs"]
+                        if "ventas" in " ".join(needs):
+                            response = "¡Genial! ¿Cuántos productos incluirías en el catálogo? 😊"
+                            state["step"] = "ask_sales_details"
+                        elif "soporte" in " ".join(needs):
+                            response = "¡Entendido! ¿Cuántos clientes gestionas por día? 😊"
+                            state["step"] = "ask_support_details"
+                        elif "reservas" in " ".join(needs):
+                            response = "¡Perfecto! ¿Cuántas reservas esperas por día? 😊"
+                            state["step"] = "ask_reservations_details"
+                        else:
+                            response = "¡Listo! Te contactaremos en 24 horas con más info. ¡Gracias! 😊"
+                            state["step"] = "done"
+                            state["data"]["contacted"] = True
+                    else:
+                        state["data"]["needs"].append(incoming_msg.lower())
+                        response = "¡Anotado! ¿Algo más? Di 'listo' si terminaste. 😊"
+                elif state["step"] == "ask_sales_details":
+                    state["data"]["specifics"]["products"] = incoming_msg
+                    response = "¡Gracias! Te contactaremos en 24 horas con más info y precios personalizados. 😊"
+                    state["step"] = "done"
+                    state["data"]["contacted"] = True
+                elif state["step"] == "ask_support_details":
+                    state["data"]["specifics"]["daily_clients"] = incoming_msg
+                    response = "¡Gracias! Te contactaremos en 24 horas con más info y precios personalizados. 😊"
+                    state["step"] = "done"
+                    state["data"]["contacted"] = True
+                elif state["step"] == "ask_reservations_details":
+                    state["data"]["specifics"]["daily_reservations"] = incoming_msg
+                    response = "¡Gracias! Te contactaremos en 24 horas con más info y precios personalizados. 😊"
+                    state["step"] = "done"
+                    state["data"]["contacted"] = True
+                elif state["step"] == "done":
+                    messages = [{"role": "system", "content": QUANTUM_WEB_CONTEXT_SHORT}, {"role": "user", "content": incoming_msg}]
+                    if any(k in incoming_msg.lower() for k in price_keywords):
+                        response = "¡Entendido! Para un precio exacto, dime qué tipo de negocio tienes. 😊"
+                        state["step"] = "ask_business_type"
+                    else:
+                        response = call_grok(messages, max_tokens=needs_max_tokens)
+
+                set_conversation_state(sender, state)
         else:
-            state["data"]["needs"].append(message.lower())
-            reply = "¡Anotado! ¿Algo más? Si terminaste, di 'listo'. 😊"
-    elif state["step"] == "ask_sales_details":
-        state["data"]["specifics"]["products"] = message
-        reply = "¡Gracias por la info! Muchas gracias por tu interés en Quantum Web, te contactaremos en un máximo de 24 horas con más información sobre tu solución y precios personalizados. 😊"
-        state["step"] = "done"
-        state["data"]["contacted"] = True
-    elif state["step"] == "ask_support_details":
-        state["data"]["specifics"]["daily_clients"] = message
-        reply = "¡Gracias por la info! Muchas gracias por tu interés en Quantum Web, te contactaremos en un máximo de 24 horas con más información sobre tu solución y precios personalizados. 😊"
-        state["step"] = "done"
-        state["data"]["contacted"] = True
-    elif state["step"] == "ask_reservations_details":
-        state["data"]["specifics"]["daily_reservations"] = message
-        reply = "¡Gracias por la info! Muchas gracias por tu interés en Quantum Web, te contactaremos en un máximo de 24 horas con más información sobre tu solución y precios personalizados. 😊"
-        state["step"] = "done"
-        state["data"]["contacted"] = True
-    elif state["step"] == "done":
-        messages = [
-            {"role": "system", "content": QUANTUM_WEB_CONTEXT_SHORT + "\n\nInstrucciones: Responde siempre con frases completas, sin truncar, ajustándote al límite de tokens. Si pregunta por precios, indica que necesitamos más info sobre su negocio."},
-            {"role": "user", "content": message}
-        ]
-        if any(keyword in message.lower() for keyword in price_keywords):
-            reply = "¡Entendido! Para darte un precio exacto, necesitamos saber más sobre tu negocio, ya que varía según si es pequeño o grande. ¿Qué tipo de negocio tienes? 😊"
-            state["step"] = "ask_business_type"
-        else:
-            reply = call_grok(messages, max_tokens=needs_max_tokens)
+            chatbot_id, name, tone, purpose, business_info, pdf_content, image_url = chatbot.id, chatbot.name, chatbot.tone, chatbot.purpose, chatbot.business_info, chatbot.pdf_content, chatbot.image_url
+            flows = session.query(Flow).filter_by(chatbot_id=chatbot_id).order_by(Flow.position).all()
+            response = next((flow.bot_response for flow in flows if flow.user_message.lower() in incoming_msg.lower()), None)
+            if not response:
+                history = session.query(Conversation).filter_by(chatbot_id=chatbot_id, user_id=sender).order_by(Conversation.timestamp).all()
+                system_message = f"Eres un chatbot {tone} llamado '{name}'. Tu propósito es {purpose}. Usa un tono {tone} y gramática correcta."
+                if business_info:
+                    system_message += f"\nNegocio: {business_info}"
+                if pdf_content:
+                    system_message += f"\nContenido del PDF: {pdf_content}"
+                messages = [{"role": "system", "content": system_message}]
+                if history:
+                    messages.extend([{"role": conv.role, "content": conv.message} for conv in history[-5:]])
+                messages.append({"role": "user", "content": incoming_msg})
+                max_tokens = 150 if len(incoming_msg) < 100 else 300
+                response = call_grok(messages, max_tokens=max_tokens)
+                if image_url and "logo" in incoming_msg.lower():
+                    response += f"\nLogo: {image_url}"
 
-    # Enviar la respuesta usando Twilio
-    client = Client(TWILIO_SID, TWILIO_TOKEN)
-    try:
-        message_response = client.messages.create(
-            body=reply,
-            from_=TWILIO_PHONE,
-            to=sender
-        )
-        print(f"Reply sent successfully: SID {message_response.sid}")
-    except TwilioRestException as e:
-        print(f"Error sending reply to WhatsApp via Twilio: {str(e)}")
-        return jsonify({'status': 'error', 'message': f'Failed to send reply: {str(e)}'}), 200
+            session.add(Conversation(chatbot_id=chatbot_id, user_id=sender, message=incoming_msg, role="user"))
+            session.add(Conversation(chatbot_id=chatbot_id, user_id=sender, message=response, role="assistant"))
+            session.commit()
 
-    # Limpiar estado si la conversación terminó
-    if state["step"] == "done":
-        print(f"Conversation data for {sender}: {state['data']}")
-        del conversation_state[sender]
-
-    return jsonify({'status': 'success'}), 200
+    resp = MessagingResponse()
+    resp.message(response)
+    logger.info(f"Respuesta enviada a {sender}: {response}")
+    if state and state.get("step") == "done":
+        logger.info(f"Datos de conversación para {sender}: {state['data']}")
+        redis_client.delete(f"conversation_state:{sender}")
+    return str(resp)
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
+    import socket
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    print(f" * Running on http://{ip_address}:{port} (Press CTRL+C to quit)")
+    logger.info(f"Server started on http://{ip_address}:{port}")
     app.run(debug=False, host='0.0.0.0', port=port)

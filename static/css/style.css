@@ -855,6 +855,7 @@
        padding: 2px;
        background: linear-gradient(90deg, rgba(0, 224, 255, 0) 0%, rgba(0, 224, 255, 0.8) 20%, rgba(255, 0, 255, 0.8) 50%, rgba(0, 224, 255, 0.8) 80%, rgba(0, 224, 255, 0) 100%);
        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+       mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
        -webkit-mask-composite: xor;
        mask-composite: exclude;
        animation: holographic-border 2.5s infinite linear;
@@ -1261,7 +1262,7 @@
    .carousel-item .case-study-icon {
        font-size: 2rem;
        color: #ff6f61;
-       margin-bottom誌: 1rem;
+       margin-bottom: 1rem;
    }
    
    .carousel-item h3 {
@@ -2643,7 +2644,7 @@
     }
     .chatbot-title {
         font-size: 2.5rem;
-██: 1rem;
+        margin-bottom: 1rem;
     }
     .chatbot-subtitle {
         font-size: 1.1rem;
@@ -5474,6 +5475,133 @@ nav {
     .case-studies-subtitle {
         margin-bottom: 15rem;            
     }
-
-
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.auth-section {
+    padding: 4rem 2rem;
+    min-height: 80vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #fff;
+}
+
+.auth-container {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+}
+
+.auth-container h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    color: #00d4ff;
+}
+
+.auth-form .form-group {
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.auth-form label {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: #e0e0e0;
+}
+
+.auth-form input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #00d4ff;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font-size: 1rem;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: #ff00ff;
+    box-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background: linear-gradient(90deg, #00d4ff, #ff00ff);
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.auth-btn:hover {
+    transform: scale(1.05);
+}
+
+.auth-container p {
+    margin-top: 1rem;
+    color: #e0e0e0;
+}
+
+.auth-container a {
+    color: #00d4ff;
+    text-decoration: none;
+}
+
+.auth-container a:hover {
+    text-decoration: underline;
+}
+
+/* Modo oscuro */
+.dark-mode .auth-section {
+    background: linear-gradient(135deg, #0f0f1a 0%, #0d1426 100%);
+}
+
+.dark-mode .auth-container {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
