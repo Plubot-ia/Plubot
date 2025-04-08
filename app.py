@@ -14,6 +14,7 @@ import time
 import PyPDF2
 import json
 import logging
+import bcrypt  # Añadido para hashear contraseñas
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
@@ -40,9 +41,10 @@ console_handler.setLevel(logging.INFO)
 logger.addHandler(console_handler)
 
 # Configuración de CORS (ajustado para Render y desarrollo local)
+# Reemplaza 'your-service-name' con el nombre real de tu servicio en Render
 CORS(app, resources={r"/*": {
     "origins": [
-        "https://your-service-name.onrender.com",  # Reemplaza con tu dominio real de Render
+        "https://your-service-name.onrender.com",  # Ejemplo: https://quantum-web.onrender.com
         "http://localhost:5000"  # Para desarrollo local
     ],
     "methods": ["GET", "POST", "OPTIONS"],
@@ -66,11 +68,11 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Verificar claves
 if not XAI_API_KEY:
-    raise ValueError("No se encontró XAI_API_KEY en .env.")
+    raise ValueError("No se encontró XAI_API_KEY en las variables de entorno.")
 if not all([TWILIO_SID, TWILIO_TOKEN, TWILIO_PHONE]):
-    raise ValueError("Faltan credenciales de Twilio en .env.")
+    raise ValueError("Faltan credenciales de Twilio en las variables de entorno.")
 if not DATABASE_URL:
-    raise ValueError("Falta DATABASE_URL en .env.")
+    raise ValueError("Falta DATABASE_URL en las variables de entorno.")
 
 # Configuración de Flask-Mail
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
@@ -93,12 +95,12 @@ jwt = JWTManager(app)
 engine = create_engine(DATABASE_URL.replace('postgres://', 'postgresql://'))  # Render usa postgresql://
 Base = declarative_base()
 
-# Modelo de usuario para la base de datos
+# Modelo de usuario para la base de datos con contraseñas hasheadas
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String, unique=True, nullable=False)
-    password = Column(String, nullable=False)  # En producción, usa hash (por ejemplo, bcrypt)
+    password = Column(String, nullable=False)  # Almacena hash de la contraseña
     role = Column(String, default='user')
 
 class Chatbot(Base):
@@ -260,7 +262,7 @@ def validate_whatsapp_number(number):
         logger.error(f"Error al validar número de WhatsApp con Twilio: {str(e)}")
         return False
 
-# Rutas de autenticación
+# Rutas de autenticación con hash de contraseñas
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -271,7 +273,9 @@ def register():
                 if existing_user:
                     flash('El email ya está registrado', 'error')
                     return redirect(url_for('register'))
-                user = User(email=data.email, password=data.password)
+                # Hashear la contraseña antes de almacenarla
+                hashed_password = bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt())
+                user = User(email=data.email, password=hashed_password.decode('utf-8'))
                 session.add(user)
                 session.commit()
                 flash('Usuario registrado con éxito. Por favor, inicia sesión.', 'success')
@@ -291,8 +295,8 @@ def login():
         try:
             data = LoginModel(**request.form)
             with get_session() as session:
-                user = session.query(User).filter_by(email=data.email, password=data.password).first()
-                if not user:
+                user = session.query(User).filter_by(email=data.email).first()
+                if not user or not bcrypt.checkpw(data.password.encode('utf-8'), user.password.encode('utf-8')):
                     flash('Credenciales inválidas', 'error')
                     return redirect(url_for('login'))
                 access_token = create_access_token(identity=user.id)
@@ -841,8 +845,11 @@ def upload_file():
         logger.info("PDF subido y procesado")
         return jsonify({'file_content': pdf_content}), 200
     else:
+        # Nota: Render tiene almacenamiento efímero. Considera usar S3 o Render Disks para persistencia.
         image_url = f"/static/uploads/{file.filename}"
-        file.save(os.path.join('static/uploads', file.filename))
+        upload_dir = os.path.join('static', 'uploads')
+        os.makedirs(upload_dir, exist_ok=True)  # Crea el directorio si no existe
+        file.save(os.path.join(upload_dir, file.filename))
         logger.info(f"Imagen subida: {image_url}")
         return jsonify({'file_url': image_url}), 200
 
@@ -973,7 +980,7 @@ def whatsapp():
     resp = MessagingResponse()
     resp.message(response)
     logger.info(f"Respuesta enviada a {sender}: {response}")
-    if state and state.get("step") == "done":
+    if 'state' in locals() and state.get("step") == "done":
         logger.info(f"Datos de conversación para {sender}: {state['data']}")
         redis_client.delete(f"conversation_state:{sender}")
     return str(resp)
