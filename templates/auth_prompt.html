@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Acceso Requerido - Plubot{% endblock %}
+{% block content %}
+<section class="auth-section">
+    <div id="particles-js" class="particles-bg"></div>
+    <div id="three-canvas" class="three-canvas"></div>
+    <div class="auth-container">
+        <h1>Acceso Requerido</h1>
+        <p class="auth-message">
+            Para crear tu propio chatbot, por favor inicia sesión o regístrate.
+        </p>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="form-message {{ category }} visible">
+                        <span class="message-content">{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <div class="form-buttons">
+            <a href="{{ url_for('login') }}" class="auth-btn auth-btn-login">
+                Iniciar Sesión
+            </a>
+            <a href="{{ url_for('register') }}" class="auth-btn auth-btn-register">
+                Registrarse
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/quantum-three.js') }}"></script>
+{% endblock %}

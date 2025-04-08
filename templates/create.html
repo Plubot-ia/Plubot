@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crea tu QuantumBot</title>
+    <title>Crea tu Plubot</title>
     <!-- Importar las fuentes desde Google Fonts -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Roboto+Mono:wght@400;500&family=Orbitron:wght@400;700&display=swap">
     <!-- Font Awesome para los íconos -->
@@ -597,7 +597,7 @@
         }
 
         .chatbot-item {
-            padding: 1rem;
+            padding:-1rem;
             margin-bottom: 0.5rem;
             background: rgba(30, 30, 30, 0.95);
             border-radius: 4px;
@@ -798,9 +798,9 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Función para extraer el token de las cookies
         const getTokenFromCookie = () => {
             const cookies = document.cookie.split('; ');
+            console.log("Cookies disponibles:", document.cookie); // Depuración
             const tokenRow = cookies.find(row => row.startsWith('access_token='));
             const token = tokenRow ? tokenRow.split('=')[1] : null;
             console.log("Token extraído de cookies:", token); // Depuración
@@ -808,7 +808,7 @@
         };
 
         const ChatbotApp = () => {
-            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [isAuthenticated, setIsAuthenticated] = useState(null); // null como estado inicial
             const [name, setName] = useState('');
             const [tone, setTone] = useState('amigable');
             const [purpose, setPurpose] = useState('');
@@ -826,21 +826,27 @@
             const [chatbotToDelete, setChatbotToDelete] = useState(null);
             const [uploadProgress, setUploadProgress] = useState(0);
 
-            // Verificar autenticación al cargar la página
+            // Verificar autenticación al cargar
             useEffect(() => {
                 console.log("Verificando autenticación...");
                 const token = getTokenFromCookie();
                 if (token) {
+                    console.log("Token encontrado, cargando chatbots...");
                     setIsAuthenticated(true);
                     loadChatbots(token);
                 } else {
-                    console.warn("No se encontró el token en las cookies. Requiere inicio de sesión.");
+                    console.warn("No se encontró token. Redirigiendo a login...");
+                    setIsAuthenticated(false);
+                    setTimeout(() => {
+                        window.location.href = '/login'; // Redirigir a login
+                    }, 2000); // Retraso para mostrar el mensaje
                 }
             }, []);
 
             // Cargar lista de chatbots
             const loadChatbots = async (token) => {
                 try {
+                    console.log("Enviando solicitud a /list-bots con token:", token);
                     const response = await fetch('http://localhost:5000/list-bots', {
                         method: 'GET',
                         headers: {
@@ -851,14 +857,19 @@
                     });
                     if (!response.ok) {
                         const errorData = await response.json();
+                        console.error("Error en /list-bots:", errorData);
                         throw new Error(`Error al cargar los chatbots: ${response.status} - ${errorData.message || response.statusText}`);
                     }
                     const data = await response.json();
                     console.log("Chatbots cargados:", data.chatbots);
                     setChatbots(data.chatbots);
                 } catch (error) {
-                    console.error('Error al cargar los chatbots:', error);
+                    console.error('Error al cargar chatbots:', error);
                     setResponseMessage(`Error: ${error.message}`);
+                    setIsAuthenticated(false);
+                    setTimeout(() => {
+                        window.location.href = '/login'; // Redirigir si falla la autenticación
+                    }, 2000);
                 }
             };
 
@@ -868,7 +879,10 @@
                 setMessages([{ role: 'bot', content: chatbot.initial_message }]);
                 const token = getTokenFromCookie();
                 if (!token) {
-                    setResponseMessage('Error: No se encontró el token de autenticación.');
+                    setResponseMessage('Error: No se encontró el token de autenticación. Redirigiendo a login...');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
                     return;
                 }
                 try {
@@ -890,9 +904,11 @@
                         setMessages(prev => [...prev, ...historyMessages]);
                     } else {
                         console.error('Error al cargar historial:', data.message);
+                        setResponseMessage(`Error al cargar historial: ${data.message}`);
                     }
                 } catch (error) {
                     console.error('Error al cargar historial:', error);
+                    setResponseMessage('Error al cargar el historial de conversación.');
                 }
             };
 
@@ -901,7 +917,10 @@
                 if (!inputMessage || !selectedChatbot) return;
                 const token = getTokenFromCookie();
                 if (!token) {
-                    setResponseMessage('Error: No se encontró el token de autenticación.');
+                    setResponseMessage('Error: No se encontró el token de autenticación. Redirigiendo a login...');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
                     return;
                 }
                 const newMessage = { role: 'user', content: inputMessage };
@@ -938,7 +957,10 @@
                 e.preventDefault();
                 const token = getTokenFromCookie();
                 if (!token) {
-                    setResponseMessage('Error: No se encontró el token de autenticación.');
+                    setResponseMessage('Error: No se encontró el token de autenticación. Redirigiendo a login...');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
                     return;
                 }
                 const botData = {
@@ -987,8 +1009,11 @@
                 if (!chatbotToDelete) return;
                 const token = getTokenFromCookie();
                 if (!token) {
-                    setResponseMessage('Error: No se encontró el token de autenticación.');
+                    setResponseMessage('Error: No se encontró el token de autenticación. Redirigiendo a login...');
                     setShowDeleteModal(false);
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
                     return;
                 }
                 try {
@@ -1026,7 +1051,10 @@
                 if (!file) return;
                 const token = getTokenFromCookie();
                 if (!token) {
-                    setResponseMessage('Error: No se encontró el token de autenticación.');
+                    setResponseMessage('Error: No se encontró el token de autenticación. Redirigiendo a login...');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
                     return;
                 }
                 const formData = new FormData();
@@ -1090,16 +1118,29 @@
                 setFlows(flows.filter((_, i) => i !== index));
             };
 
-            // Renderizado condicional si no está autenticado
+            // Renderizado condicional
+            if (isAuthenticated === null) {
+                return (
+                    <section className="chatbot-section">
+                        <div className="chatbot-container">
+                            <div className="chatbot-text-column">
+                                <h1 className="chatbot-title">Crea tu Plubot</h1>
+                                <p className="auth-message">Verificando autenticación...</p>
+                            </div>
+                        </div>
+                    </section>
+                );
+            }
+
             if (!isAuthenticated) {
                 return (
                     <section className="chatbot-section">
                         <div className="chatbot-container">
                             <div className="chatbot-text-column">
-                                <h1 className="chatbot-title">Crea tu QuantumBot</h1>
+                                <h1 className="chatbot-title">Crea tu Plubot</h1>
                                 <p className="auth-message">
-                                    Debes iniciar sesión para crear y gestionar tus chatbots. <br />
-                                    <a href="/login">Inicia sesión aquí</a> o <a href="/register">regístrate</a>.
+                                    Redirigiendo a la página de inicio de sesión... <br />
+                                    Si no eres redirigido, <a href="/login">haz clic aquí</a> para iniciar sesión o <a href="/register">regístrate</a>.
                                 </p>
                             </div>
                         </div>
@@ -1111,7 +1152,7 @@
                 <section className="chatbot-section">
                     <div className="chatbot-container">
                         <div className="chatbot-text-column">
-                            <h1 className="chatbot-title">Crea tu QuantumBot</h1>
+                            <h1 className="chatbot-title">Crea tu Plubot</h1>
                             <div className="bot-config">
                                 <h2>Configura tu Chatbot</h2>
                                 <form onSubmit={handleSubmit}>
@@ -1280,7 +1321,7 @@
                                                         </div>
                                                         <div className="whatsapp-info">
                                                             <span className="whatsapp-name">{selectedChatbot.name}</span>
-                                                            <span className="whatsapp-number">{selectedChatbot.whatsapp_number || 'QuantumBot'}</span>
+                                                            <span className="whatsapp-number">{selectedChatbot.whatsapp_number || 'Plubot'}</span>
                                                         </div>
                                                     </div>
                                                     <div className="whatsapp-actions">

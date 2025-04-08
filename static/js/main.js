@@ -1,134 +1,132 @@
     document.addEventListener('DOMContentLoaded', () => {
         console.log("main.js cargado");
 
-    // === Formulario de Contacto (página contact.html) ===
-    const contactForm = document.getElementById('contact-form');
-    const formMessage = document.getElementById('form-message');
-    const formMessageText = document.getElementById('form-message-text');
-    const submitBtn = document.querySelector('.contact-btn');
-    const btnText = submitBtn?.querySelector('.btn-text');
-    const btnLoader = submitBtn?.querySelector('.btn-loader');
+    // En main.js, sección "Formulario de Contacto"
+const contactForm = document.getElementById('contact-form');
+const formMessage = document.getElementById('form-message');
+const formMessageText = document.getElementById('form-message-text');
+const submitBtn = document.querySelector('.contact-btn');
+const btnText = submitBtn?.querySelector('.btn-text');
+const btnLoader = submitBtn?.querySelector('.btn-loader');
 
-    if (contactForm && formMessage && formMessageText && submitBtn && btnText && btnLoader) {
-        contactForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            btnText.classList.add('hidden');
-            btnLoader.classList.remove('hidden');
-            submitBtn.disabled = true;
+if (contactForm && formMessage && formMessageText && submitBtn && btnText && btnLoader) {
+    contactForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        btnText.classList.add('hidden');
+        btnLoader.classList.remove('hidden');
+        submitBtn.disabled = true;
 
-            const formData = new FormData(contactForm);
+        const formData = new FormData(contactForm);
 
-            try {
-                const response = await fetch(contactForm.action, {
-                    method: 'POST',
-                    body: formData
-                });
+        try {
+            const response = await fetch(contactForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
 
-                const data = await response.json();
-
-                formMessageText.textContent = data.message;
-                formMessage.classList.remove('hidden', 'success', 'error');
-                formMessage.classList.add(data.status || (response.ok ? 'success' : 'error'));
-                formMessage.style.opacity = '1';
-                formMessage.style.display = 'block';
-
-                if (response.ok) {
-                    contactForm.reset();
-                }
-
-                setTimeout(() => {
-                    formMessage.classList.add('hidden');
-                    formMessage.style.opacity = '0';
-                    formMessage.style.display = 'none';
-                }, 5000);
-            } catch (error) {
-                formMessageText.textContent = 'Error al enviar el mensaje. Intenta de nuevo.';
-                formMessage.classList.remove('hidden', 'success', 'error');
-                formMessage.classList.add('error');
-                formMessage.style.opacity = '1';
-                formMessage.style.display = 'block';
-
-                setTimeout(() => {
-                    formMessage.classList.add('hidden');
-                    formMessage.style.opacity = '0';
-                    formMessage.style.display = 'none';
-                }, 5000);
-
-                console.error('Error en el envío del formulario:', error);
-            } finally {
-                btnText.classList.remove('hidden');
-                btnLoader.classList.add('hidden');
-                submitBtn.disabled = false;
+            if (!response.ok) {
+                throw new Error(`Error del servidor: ${response.statusText}`);
             }
-        });
-    }
+
+            const data = await response.json();
+
+            formMessageText.textContent = data.message;
+            formMessage.classList.remove('hidden', 'success', 'error');
+            formMessage.classList.add(data.success ? 'success' : 'error'); // Cambiado de data.status a data.success
+            formMessage.style.opacity = '1';
+            formMessage.style.display = 'block';
+
+            if (data.success) {
+                contactForm.reset();
+            }
+
+            setTimeout(() => {
+                formMessage.classList.add('hidden');
+                formMessage.style.opacity = '0';
+                formMessage.style.display = 'none';
+            }, 5000);
+        } catch (error) {
+            console.error('Error en el envío del formulario:', error);
+            formMessageText.textContent = 'Error al enviar el mensaje. Intenta de nuevo.';
+            formMessage.classList.remove('hidden', 'success', 'error');
+            formMessage.classList.add('error');
+            formMessage.style.opacity = '1';
+            formMessage.style.display = 'block';
+
+            setTimeout(() => {
+                formMessage.classList.add('hidden');
+                formMessage.style.opacity = '0';
+                formMessage.style.display = 'none';
+            }, 5000);
+        } finally {
+            btnText.classList.remove('hidden');
+            btnLoader.classList.add('hidden');
+            submitBtn.disabled = false;
+        }
+    });
+}
 
 
 // === Formulario de Suscripción en el Footer ===
 const footerForm = document.getElementById('footer-subscribe-form');
-const footerMessage = document.getElementById('footer-form-message');
-const footerMessageText = document.getElementById('footer-form-message-text');
-const footerSubmitBtn = footerForm?.querySelector('.subscribe-btn');
-const footerBtnText = footerSubmitBtn?.querySelector('.btn-text');
-const footerBtnLoader = footerSubmitBtn?.querySelector('.btn-loader');
+if (footerForm) {
+    const footerMessage = document.getElementById('footer-form-message');
+    const footerMessageText = document.getElementById('footer-form-message-text');
+    const footerSubmitBtn = footerForm.querySelector('.subscribe-btn');
+    const footerBtnText = footerSubmitBtn?.querySelector('.btn-text');
+    const footerBtnLoader = footerSubmitBtn?.querySelector('.btn-loader');
 
-if (footerForm && footerMessage && footerMessageText && footerSubmitBtn && footerBtnText && footerBtnLoader) {
-    footerForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); // Evita la redirección
+    if (footerMessage && footerMessageText && footerSubmitBtn && footerBtnText && footerBtnLoader) {
+        footerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            footerSubmitBtn.disabled = true;
+            footerBtnText.classList.add('hidden');
+            footerBtnLoader.classList.remove('hidden');
 
-        // Mostrar loader
-        footerSubmitBtn.disabled = true;
-        footerBtnText.classList.add('hidden');
-        footerBtnLoader.classList.remove('hidden');
+            const formData = new FormData(footerForm);
 
-        const formData = new FormData(footerForm);
+            try {
+                const response = await fetch(footerForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Accept': 'application/json' }
+                });
 
-        try {
-            const response = await fetch(footerForm.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Accept': 'application/json'
+                if (!response.ok) {
+                    throw new Error(`Error del servidor: ${response.statusText}`);
                 }
-            });
 
-            const result = await response.json();
+                const result = await response.json();
 
-            // Mostrar mensaje
-            footerMessageText.textContent = result.message;
-            footerMessage.classList.remove('hidden');
-            footerMessage.classList.add(result.status);
+                footerMessageText.textContent = result.message;
+                footerMessage.classList.remove('hidden');
+                footerMessage.classList.add(result.success ? 'success' : 'error'); // Cambiado de result.status a result.success
 
-            // Ocultar mensaje después de 3 segundos
-            setTimeout(() => {
-                footerMessage.classList.add('hidden');
-                footerMessage.classList.remove('success', 'error');
-            }, 3000);
+                setTimeout(() => {
+                    footerMessage.classList.add('hidden');
+                    footerMessage.classList.remove('success', 'error');
+                }, 3000);
 
-            // Resetear formulario si fue exitoso
-            if (result.status === 'success') {
-                footerForm.reset();
+                if (result.success) {
+                    footerForm.reset();
+                }
+            } catch (error) {
+                console.error('Error al enviar el formulario de suscripción:', error);
+                footerMessageText.textContent = 'Error al procesar tu suscripción. Intenta de nuevo.';
+                footerMessage.classList.remove('hidden');
+                footerMessage.classList.add('error');
+                setTimeout(() => {
+                    footerMessage.classList.add('hidden');
+                    footerMessage.classList.remove('success', 'error');
+                }, 3000);
+            } finally {
+                footerSubmitBtn.disabled = false;
+                footerBtnText.classList.remove('hidden');
+                footerBtnLoader.classList.add('hidden');
             }
-        } catch (error) {
-            console.error('Error al enviar el formulario de suscripción:', error);
-            footerMessageText.textContent = 'Error al procesar tu suscripción. Intenta de nuevo.';
-            footerMessage.classList.remove('hidden');
-            footerMessage.classList.add('error');
-            setTimeout(() => {
-                footerMessage.classList.add('hidden');
-                footerMessage.classList.remove('success', 'error');
-            }, 3000);
-        } finally {
-            // Ocultar loader
-            footerSubmitBtn.disabled = false;
-            footerBtnText.classList.remove('hidden');
-            footerBtnLoader.classList.add('hidden');
-        }
-    });
-} else {
-    console.error('Elementos del formulario de suscripción no encontrados:', {
-        footerForm, footerMessage, footerMessageText, footerSubmitBtn, footerBtnText, footerBtnLoader
-    });
+        });
+    }
 }
 
 

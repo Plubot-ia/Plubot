@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from twilio.twiml.messaging_response import MessagingResponse
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity, verify_jwt_in_request
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from pydantic import BaseModel, Field, ValidationError
 import re
 import os
@@ -14,7 +15,7 @@ import time
 import PyPDF2
 import json
 import logging
-import bcrypt  # Añadido para hashear contraseñas
+import bcrypt
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
@@ -40,20 +41,19 @@ console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
 logger.addHandler(console_handler)
 
-# Configuración de CORS (ajustado para Render y desarrollo local)
-# Reemplaza 'your-service-name' con el nombre real de tu servicio en Render
+# Configuración de CORS
 CORS(app, resources={r"/*": {
     "origins": [
-        "https://your-service-name.onrender.com",  # Ejemplo: https://quantum-web.onrender.com
-        "http://localhost:5000"  # Para desarrollo local
+        "https://your-service-name.onrender.com",
+        "http://localhost:5000"
     ],
     "methods": ["GET", "POST", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"],
     "supports_credentials": True
 }})
 
-# Configuración de Redis usando variable de entorno
-REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')  # Render proporciona REDIS_URL
+# Configuración de Redis
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 # Configuración de Celery
@@ -76,8 +76,8 @@ if not DATABASE_URL:
 
 # Configuración de Flask-Mail
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
-app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'true').lower() == 'true'
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT'))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS') == 'True'
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
@@ -87,20 +87,25 @@ mail = Mail(app)
 twilio_client = Client(TWILIO_SID, TWILIO_TOKEN)
 
 # Configuración de JWT
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')  # Usa una clave segura en producción
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 jwt = JWTManager(app)
 
+# Configuración de Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
 # Configuración de la base de datos
-engine = create_engine(DATABASE_URL.replace('postgres://', 'postgresql://'))  # Render usa postgresql://
+engine = create_engine(DATABASE_URL.replace('postgres://', 'postgresql://'))
 Base = declarative_base()
 
 # Modelo de usuario para la base de datos con contraseñas hasheadas
-class User(Base):
+class User(Base, UserMixin):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String, unique=True, nullable=False)
-    password = Column(String, nullable=False)  # Almacena hash de la contraseña
+    password = Column(String, nullable=False)
     role = Column(String, default='user')
 
 class Chatbot(Base):
@@ -149,6 +154,33 @@ def get_session():
         raise e
     finally:
         session.close()
+
+# Callback para cargar un usuario desde la base de datos
+@login_manager.user_loader
+def load_user(user_id):
+    with get_session() as session:
+        logger.info(f"Cargando usuario con ID: {user_id}")
+        user = session.query(User).get(int(user_id))
+        if user:
+            logger.info(f"Usuario encontrado: {user.email}")
+        else:
+            logger.info("Usuario no encontrado")
+        return user
+
+# Integrar Flask-JWT-Extended con Flask-Login
+@jwt.user_identity_loader
+def user_identity_lookup(user):
+    return user.id
+
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    identity = jwt_data["sub"]
+    with get_session() as session:
+        user = session.query(User).get(int(identity))
+        if user:
+            # Iniciar sesión con Flask-Login para que current_user esté disponible
+            login_user(user, remember=True)
+        return user
 
 # Funciones para manejar el estado de conversación en Redis
 def get_conversation_state(sender):
@@ -273,7 +305,6 @@ def register():
                 if existing_user:
                     flash('El email ya está registrado', 'error')
                     return redirect(url_for('register'))
-                # Hashear la contraseña antes de almacenarla
                 hashed_password = bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt())
                 user = User(email=data.email, password=hashed_password.decode('utf-8'))
                 session.add(user)
@@ -299,9 +330,10 @@ def login():
                 if not user or not bcrypt.checkpw(data.password.encode('utf-8'), user.password.encode('utf-8')):
                     flash('Credenciales inválidas', 'error')
                     return redirect(url_for('login'))
-                access_token = create_access_token(identity=user.id)
-                response = redirect(url_for('index'))
-                response.set_cookie('access_token', access_token, httponly=True, secure=True, samesite='Lax')
+                login_user(user, remember=True)
+                access_token = create_access_token(identity=user)
+                response = redirect(url_for('create_page'))  # Redirige a create_page después de login
+                response.set_cookie('access_token', access_token, httponly=True, secure=False, samesite='Lax', max_age=3600)
                 flash('Inicio de sesión exitoso', 'success')
                 return response
         except ValidationError as e:
@@ -312,6 +344,112 @@ def login():
             flash(str(e), 'error')
             return redirect(url_for('login'))
     return render_template('login.html')
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    flash('Has cerrado sesión.', 'success')
+    return redirect(url_for('index'))
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        with get_session() as session:
+            user = session.query(User).filter_by(email=email).first()
+            if user:
+                try:
+                    token = create_access_token(identity=user.id, expires_delta=timedelta(hours=1))
+                    reset_link = url_for('reset_password', token=token, _external=True)
+                    msg = Message(
+                        subject="Restablecer tu contraseña",
+                        recipients=[email],
+                        body=f"Hola,\n\nPara restablecer tu contraseña, haz clic en el siguiente enlace: {reset_link}\n\nSi no solicitaste esto, ignora este correo.\n\nSaludos,\nEl equipo de Plubot"
+                    )
+                    mail.send(msg)
+                    flash('Se ha enviado un enlace de restablecimiento a tu correo.', 'success')
+                except Exception as e:
+                    logger.error(f"Error al enviar correo de restablecimiento: {str(e)}")
+                    flash(f'Error al enviar el enlace de restablecimiento: {str(e)}', 'error')
+            else:
+                flash('No se encontró un usuario con ese correo.', 'error')
+        return redirect(url_for('login'))
+    return render_template('forgot_password.html')
+
+@app.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+
+        if not bcrypt.checkpw(current_password.encode('utf-8'), current_user.password.encode('utf-8')):
+            flash('La contraseña actual es incorrecta.', 'error')
+            return redirect(url_for('change_password'))
+
+        if new_password != confirm_password:
+            flash('Las contraseñas nuevas no coinciden.', 'error')
+            return redirect(url_for('change_password'))
+
+        with get_session() as session:
+            user = session.query(User).filter_by(id=current_user.id).first()
+            user.password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            session.commit()
+
+            try:
+                msg = Message(
+                    subject="Tu contraseña ha sido cambiada",
+                    recipients=[current_user.email],
+                    body="Hola,\n\nTu contraseña ha sido cambiada exitosamente.\n\nSi no realizaste este cambio, por favor contáctanos de inmediato.\n\nSaludos,\nEl equipo de Plubot"
+                )
+                mail.send(msg)
+                flash('Contraseña cambiada con éxito.', 'success')
+            except Exception as e:
+                logger.error(f"Error al enviar correo de confirmación de cambio de contraseña: {str(e)}")
+                flash(f'Contraseña cambiada, pero hubo un error al enviar la notificación: {str(e)}', 'warning')
+        return redirect(url_for('index'))
+    return render_template('change_password.html')
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        verify_jwt_in_request()
+        user_id = get_jwt_identity()
+    except Exception as e:
+        flash('El enlace de restablecimiento es inválido o ha expirado.', 'error')
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+
+        if new_password != confirm_password:
+            flash('Las contraseñas no coinciden.', 'error')
+            return redirect(url_for('reset_password', token=token))
+
+        with get_session() as session:
+            user = session.query(User).filter_by(id=user_id).first()
+            if not user:
+                flash('Usuario no encontrado.', 'error')
+                return redirect(url_for('login'))
+            user.password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            session.commit()
+
+            try:
+                msg = Message(
+                    subject="Tu contraseña ha sido restablecida",
+                    recipients=[user.email],
+                    body="Hola,\n\nTu contraseña ha sido restablecida exitosamente.\n\nSi no realizaste este cambio, por favor contáctanos de inmediato.\n\nSaludos,\nEl equipo de Plubot"
+                )
+                mail.send(msg)
+                flash('Contraseña restablecida con éxito. Por favor inicia sesión.', 'success')
+            except Exception as e:
+                logger.error(f"Error al enviar correo de confirmación de restablecimiento: {str(e)}")
+                flash(f'Contraseña restablecida, pero hubo un error al enviar la notificación: {str(e)}', 'warning')
+        return redirect(url_for('login'))
+    return render_template('reset_password.html', token=token)
 
 # Rutas principales
 @app.route('/favicon.ico')
@@ -330,50 +468,56 @@ def index():
 @app.route('/contacto', methods=['GET', 'POST'])
 def contacto():
     if request.method == 'POST':
+        name = request.form.get('nombre')
+        email = request.form.get('email')
+        message_content = request.form.get('message')
+
+        logger.info(f"Recibido formulario: nombre={name}, email={email}, mensaje={message_content}")
+
         try:
-            nombre = request.form.get('nombre', 'Usuario del Footer')
-            email = request.form.get('email')
-            mensaje = request.form.get('message')
-            if not email or not mensaje:
-                return jsonify({'status': 'error', 'message': 'Email y mensaje son requeridos.'}), 400
             msg = Message(
-                subject=f'Nuevo mensaje de contacto de {nombre}',
-                recipients=['quantumweb.ia@gmail.com'],
-                body=f'Nombre: {nombre}\nEmail: {email}\nMensaje: {mensaje}'
+                subject=f"Nuevo mensaje de contacto de {name}",
+                recipients=['info@plubot.com'],
+                body=f"Nombre: {name}\nCorreo: {email}\nMensaje: {message_content}"
             )
             mail.send(msg)
-            logger.info(f"Correo de contacto enviado por {email}")
-            return jsonify({'status': 'success', 'message': 'Mensaje enviado con éxito. ¡Gracias!'}), 200
+            logger.info("Correo enviado a info@plubot.com")
+
+            confirmation_msg = Message(
+                subject="Gracias por contactarnos",
+                recipients=[email],
+                body=f"Hola {name},\n\nGracias por tu mensaje. Nos pondremos en contacto contigo pronto.\n\nSaludos,\nEl equipo de Plubot"
+            )
+            mail.send(confirmation_msg)
+            logger.info(f"Correo de confirmación enviado a {email}")
+
+            return jsonify({'success': True, 'message': 'Mensaje enviado con éxito'}), 200
         except Exception as e:
             logger.error(f"Error al enviar correo: {str(e)}")
-            return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
+            return jsonify({'success': False, 'message': f'Error al enviar el mensaje: {str(e)}'}), 500
     return render_template('contact.html')
 
 @app.route('/subscribe', methods=['POST'])
 def subscribe():
-    if request.method == 'POST':
-        try:
-            email = request.form.get('email')
-            if not email:
-                return jsonify({'status': 'error', 'message': 'Email requerido.'}), 400
-            msg_to_subscriber = Message(
-                subject='¡Gracias por suscribirte a Quantum Web!',
-                recipients=[email],
-                body='Hola,\n\nGracias por suscribirte. ¡Pronto recibirás noticias de Quantum Web!\n\nSaludos,\nEl equipo de Quantum Web'
-            )
-            msg_to_admin = Message(
-                subject='Nueva suscripción al boletín',
-                recipients=['quantumweb.ia@gmail.com'],
-                body=f'Nuevo suscriptor:\nEmail: {email}'
-            )
-            mail.send(msg_to_subscriber)
-            mail.send(msg_to_admin)
-            logger.info(f"Nueva suscripción: {email}")
-            return jsonify({'status': 'success', 'message': '¡Suscripción exitosa! Revisa tu correo.'}), 200
-        except Exception as e:
-            logger.error(f"Error al procesar suscripción: {str(e)}")
-            return jsonify({'status': 'error', 'message': 'Error al suscribirte. Intenta de nuevo.'}), 500
-    return jsonify({'status': 'error', 'message': 'Método no permitido'}), 405
+    email = request.form.get('email')
+    try:
+        msg = Message(
+            subject="Bienvenido a nuestro boletín",
+            recipients=[email],
+            body="Gracias por suscribirte al boletín de Plubot. Recibirás nuestras últimas noticias y actualizaciones.\n\nSaludos,\nEl equipo de Plubot"
+        )
+        mail.send(msg)
+        logger.info(f"Correo de suscripción enviado a {email}")
+        return jsonify({'success': True, 'message': 'Suscripción exitosa'}), 200
+    except Exception as e:
+        logger.error(f"Error al enviar correo de suscripción: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error al suscribirte: {str(e)}'}), 500
+    
+@app.route('/create-prompt')
+def create_prompt():
+    if current_user.is_authenticated:
+        return redirect(url_for('create_page'))
+    return render_template('auth_prompt.html')   
 
 @app.route('/about')
 def about():
@@ -420,7 +564,6 @@ def particulas():
     return render_template('particulas.html')
 
 @app.route('/api/grok', methods=['POST'])
-@jwt_required()
 def grok_api():
     data = request.get_json()
     user_message = data.get('message', '')
@@ -428,7 +571,7 @@ def grok_api():
     if not user_message:
         return jsonify({'error': 'No se proporcionó mensaje'}), 400
     messages = [
-        {"role": "system", "content": "Eres QuantumBot de Quantum Web. Responde amigable, breve y con tono alegre (máx. 2-3 frases). Usa emojis si aplica."}
+        {"role": "system", "content": "Eres Plubot de Plubot Web. Responde amigable, breve y con tono alegre (máx. 2-3 frases). Usa emojis si aplica."}
     ] + history + [{"role": "user", "content": user_message}]
     max_retries = 3
     for attempt in range(max_retries):
@@ -453,7 +596,7 @@ def grok_api():
 
 # Rutas del creador de chatbots
 @app.route('/create', methods=['GET', 'POST'])
-@jwt_required()
+@login_required
 def create_page():
     if request.method == 'POST':
         try:
@@ -475,7 +618,7 @@ def create_page():
                 if not validate_whatsapp_number(bot_data['whatsapp_number']):
                     return jsonify({'status': 'error', 'message': 'El número de WhatsApp no está registrado en Twilio.'}), 400
             
-            user_id = get_jwt_identity()
+            user_id = current_user.id
             with get_session() as session:
                 response = create_chatbot(**bot_data, session=session, user_id=user_id)
                 logger.info(f"Chatbot creado en /create: {response}")
@@ -845,10 +988,9 @@ def upload_file():
         logger.info("PDF subido y procesado")
         return jsonify({'file_content': pdf_content}), 200
     else:
-        # Nota: Render tiene almacenamiento efímero. Considera usar S3 o Render Disks para persistencia.
         image_url = f"/static/uploads/{file.filename}"
         upload_dir = os.path.join('static', 'uploads')
-        os.makedirs(upload_dir, exist_ok=True)  # Crea el directorio si no existe
+        os.makedirs(upload_dir, exist_ok=True)
         file.save(os.path.join(upload_dir, file.filename))
         logger.info(f"Imagen subida: {image_url}")
         return jsonify({'file_url': image_url}), 200
@@ -986,5 +1128,5 @@ def whatsapp():
     return str(resp)
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))  # Render asigna PORT
+    port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)

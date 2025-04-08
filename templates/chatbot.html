@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Quantum | Prueba Chatbot{% endblock %}
+{% block title %}Plubot | Prueba Chatbot{% endblock %}
 
-{% block meta_description %}Prueba QuantumBot, nuestro chatbot inteligente integrado con WhatsApp. Automatiza tu negocio y mejora la experiencia de tus clientes con IA conversacional.{% endblock %}
+{% block meta_description %}Prueba Plubot, nuestro chatbot inteligente integrado con WhatsApp. Automatiza tu negocio y mejora la experiencia de tus clientes con IA conversacional.{% endblock %}
 
 {% block content %}
 <section class="chatbot-section">
@@ -9,7 +9,7 @@
     <div class="chatbot-container two-column">
         <!-- Columna izquierda: Título y Subtítulo -->
         <div class="chatbot-text-column">
-            <h1 class="chatbot-title" data-text="Prueba QuantumBot" data-aos="fade-down">Prueba QuantumBot</h1>
+            <h1 class="chatbot-title" data-text="Prueba Plubot" data-aos="fade-down">Prueba Plubot</h1>
             <p class="chatbot-subtitle" data-aos="fade-up" data-aos-delay="200">Experimenta cómo nuestro chatbot puede transformar tu negocio con una integración perfecta en WhatsApp.</p>
         </div>
 
@@ -26,7 +26,7 @@
                                         <i class="fab fa-whatsapp"></i>
                                     </div>
                                     <div class="whatsapp-info">
-                                        <span class="whatsapp-name">QuantumBot</span>
+                                        <span class="whatsapp-name">Plubot</span>
                                         <span class="whatsapp-number">+54 9 11 1234-5678</span>
                                     </div>
                                 </div>
@@ -37,7 +37,7 @@
                             </div>
                             <div class="chatbot-body whatsapp-body">
                                 <div class="chatbot-message bot">
-                                    <span class="message-text">¡Hola! Soy QuantumBot, tu asistente virtual. ¿En qué puedo ayudarte hoy? 👋</span>
+                                    <span class="message-text">¡Hola! Soy Plubot, tu asistente virtual. ¿En qué puedo ayudarte hoy? 👋</span>
                                     <span class="message-meta">
                                         <span class="message-time">10:00</span>
                                         <span class="message-status"><i class="fas fa-check-double"></i></span>
@@ -58,7 +58,7 @@
         </div>
     </div>
      <!--<div class="chatbot-custom-info">
-        <p>Este es solo un ejemplo. QuantumBot es <strong>100% personalizable</strong> y se adapta a las necesidades únicas de tu negocio.</p>
+        <p>Este es solo un ejemplo. Plubot es <strong>100% personalizable</strong> y se adapta a las necesidades únicas de tu negocio.</p>
     </div>-->
 </section>
 
@@ -148,8 +148,15 @@
 
     // === Chatbot ===
     let messageHistory = [
-        {"role": "system", "content": "Eres QuantumBot, un asistente virtual de Quantum Web. Responde de manera amigable, breve y directa, usando un tono alegre. Limítate a respuestas cortas (máximo 2-3 frases). Si es posible, incluye un emoji o icono relevante al final de tu respuesta."}
+        {"role": "system", "content": "Eres Plubot, un asistente virtual de Plubot Web. Responde de manera amigable, breve y directa, usando un tono alegre. Limítate a respuestas cortas (máximo 2-3 frases). Si es posible, incluye un emoji o icono relevante al final de tu respuesta."}
     ];
+
+    // Función para obtener el token de las cookies (si el backend lo requiere)
+    const getTokenFromCookie = () => {
+        const cookies = document.cookie.split('; ');
+        const tokenRow = cookies.find(row => row.startsWith('access_token='));
+        return tokenRow ? tokenRow.split('=')[1] : null;
+    };
 
     const chatbotWidget = document.querySelector('.chatbot-widget');
     if (chatbotWidget) {
@@ -158,7 +165,6 @@
         const chatbotBody = document.querySelector('.chatbot-body');
 
         if (chatbotInput && chatbotSend && chatbotBody) {
-            // Evento para enviar mensaje
             chatbotSend.addEventListener('click', sendMessage);
             chatbotInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') sendMessage();
@@ -166,85 +172,86 @@
 
             async function sendMessage() {
                 const message = chatbotInput.value.trim();
-                if (message) {
-                    const userMessage = document.createElement('div');
-                    userMessage.classList.add('chatbot-message', 'user');
-                    userMessage.innerHTML = `
-                        <span class="message-text">${message}</span>
+                if (!message) return;
+
+                // Mostrar mensaje del usuario
+                const userMessage = document.createElement('div');
+                userMessage.classList.add('chatbot-message', 'user');
+                userMessage.innerHTML = `
+                    <span class="message-text">${message}</span>
+                    <span class="message-meta">
+                        <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span class="message-status"><i class="fas fa-check-double"></i></span>
+                    </span>
+                `;
+                chatbotBody.appendChild(userMessage);
+                chatbotInput.value = '';
+
+                // Mostrar "Escribiendo..."
+                const typingMessage = document.createElement('div');
+                typingMessage.classList.add('chatbot-message', 'bot');
+                typingMessage.innerHTML = `
+                    <span class="message-text">Escribiendo... ⏳</span>
+                    <span class="message-meta">
+                        <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </span>
+                `;
+                chatbotBody.appendChild(typingMessage);
+                chatbotBody.scrollTop = chatbotBody.scrollHeight;
+
+                messageHistory.push({"role": "user", "content": message});
+
+                try {
+                    const token = getTokenFromCookie();
+                    const headers = {
+                        'Content-Type': 'application/json'
+                    };
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+
+                    const response = await fetch('/api/grok', {
+                        method: 'POST',
+                        headers: headers,
+                        credentials: 'include', // Para enviar cookies si es necesario
+                        body: JSON.stringify({ message, history: messageHistory })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Error del servidor: ${response.status} - ${await response.text()}`);
+                    }
+
+                    const data = await response.json();
+                    typingMessage.remove();
+
+                    const botMessage = document.createElement('div');
+                    botMessage.classList.add('chatbot-message', 'bot');
+                    botMessage.innerHTML = `
+                        <span class="message-text">${data.response || 'No se recibió respuesta'}</span>
                         <span class="message-meta">
                             <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             <span class="message-status"><i class="fas fa-check-double"></i></span>
                         </span>
                     `;
-                    chatbotBody.appendChild(userMessage);
-                    chatbotInput.value = '';
-
-                    const typingMessage = document.createElement('div');
-                    typingMessage.classList.add('chatbot-message', 'bot');
-                    typingMessage.innerHTML = `
-                        <span class="message-text">Escribiendo... ⏳</span>
+                    chatbotBody.appendChild(botMessage);
+                    messageHistory.push({"role": "assistant", "content": data.response});
+                } catch (error) {
+                    typingMessage.remove();
+                    const errorMessage = document.createElement('div');
+                    errorMessage.classList.add('chatbot-message', 'bot', 'error');
+                    errorMessage.innerHTML = `
+                        <span class="message-text">Ups, algo falló: ${error.message}. Intenta de nuevo. 😓</span>
                         <span class="message-meta">
                             <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </span>
                     `;
-                    chatbotBody.appendChild(typingMessage);
-                    chatbotBody.scrollTop = chatbotBody.scrollHeight;
-
-                    messageHistory.push({"role": "user", "content": message});
-
-                    try {
-                        const response = await fetch('/api/grok', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ message, history: messageHistory })
-                        });
-
-                        const data = await response.json();
-                        typingMessage.remove();
-
-                        if (data.error) {
-                            const errorMessage = document.createElement('div');
-                            errorMessage.classList.add('chatbot-message', 'bot', 'error');
-                            errorMessage.innerHTML = `
-                                <span class="message-text">Lo siento, algo salió mal. Intenta de nuevo. 😓</span>
-                                <span class="message-meta">
-                                    <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                </span>
-                            `;
-                            chatbotBody.appendChild(errorMessage);
-                        } else {
-                            const botMessage = document.createElement('div');
-                            botMessage.classList.add('chatbot-message', 'bot');
-                            botMessage.innerHTML = `
-                                <span class="message-text">${data.response}</span>
-                                <span class="message-meta">
-                                    <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                    <span class="message-status"><i class="fas fa-check-double"></i></span>
-                                </span>
-                            `;
-                            chatbotBody.appendChild(botMessage);
-                            messageHistory.push({"role": "assistant", "content": data.response});
-                        }
-                    } catch (error) {
-                        typingMessage.remove();
-                        const errorMessage = document.createElement('div');
-                        errorMessage.classList.add('chatbot-message', 'bot', 'error');
-                        errorMessage.innerHTML = `
-                            <span class="message-text">No pude conectar con el servidor. Intenta de nuevo. 😓</span>
-                            <span class="message-meta">
-                                <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            </span>
-                        `;
-                        chatbotBody.appendChild(errorMessage);
-                    }
-
-                    chatbotBody.scrollTop = chatbotBody.scrollHeight;
+                    chatbotBody.appendChild(errorMessage);
                 }
+
+                chatbotBody.scrollTop = chatbotBody.scrollHeight;
             }
         } else {
-            console.error('Uno o más elementos del chatbot no se encontraron en el DOM.');
+            console.error('Elementos del chatbot no encontrados en el DOM.');
         }
     }
 </script>

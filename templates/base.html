@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="{% block meta_description %}Quantum Web: Chatbots inteligentes para WhatsApp con IA. Automatiza tu negocio, aumenta tus ventas y optimiza tu tiempo.{% endblock %}">
+    <meta name="description" content="{% block meta_description %}Plubot: Chatbots inteligentes para WhatsApp con IA. Automatiza tu negocio, aumenta tus ventas y optimiza tu tiempo.{% endblock %}">
     <meta name="keywords" content="chatbots, WhatsApp, inteligencia artificial, automatización, negocios, aumentar ventas">
-    <meta name="author" content="Quantum Web">
-    <title>{% block title %}Quantum Web{% endblock %}</title>
+    <meta name="author" content="Plubot">
+    <title>{% block title %}Plubot Web{% endblock %}</title>
     <!-- Agregar el favicon -->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -34,9 +34,9 @@
     <header>
         <nav class="navbar" role="navigation">
             <div class="logo">
-                <a href="{{ url_for('index') }}" aria-label="Ir a la página de inicio de Quantum Web">
-                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Quantum Web Logo" class="logo-image">
-                    <span class="logo-text">Quantum</span>
+                <a href="{{ url_for('index') }}" aria-label="Ir a la página de inicio de Plubot">
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Plubot Logo" class="logo-image">
+                    <span class="logo-text">Plubot</span>
                 </a>
             </div>
             <button class="hamburger menu-toggle" aria-label="Abrir o cerrar el menú de navegación">
@@ -67,7 +67,7 @@
     <footer class="quantum-footer">
         <div class="footer-container">
             <div class="footer-brand">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Quantum Web Logo" class="footer-logo">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Plubot Logo" class="footer-logo">
                 <p class="footer-tagline">
                     <span>Inteligencia Artificial</span><br>
                     <span>Potenciando tu Mundo.</span>
@@ -80,11 +80,13 @@
                         <li><a href="{{ url_for('index') }}">Inicio</a></li>
                         <li><a href="{{ url_for('services') }}">Servicios</a></li>
                         <li><a href="{{ url_for('chatbot') }}">Chatbot IA</a></li>
-                    </ul>
-                    <ul class="footer-links-column">
                         <li><a href="{{ url_for('case_studies') }}">Potencial IA</a></li>
                         <li><a href="{{ url_for('about') }}">Sobre Nosotros</a></li>
+                    </ul>
+                    <ul class="footer-links-column">                                             
                         <li><a href="{{ url_for('contacto') }}">Contacto</a></li>
+                        <li><a href="{{ url_for('register') }}">Registrarse</a></li>
+                        <li><a href="{{ url_for('login') }}">Iniciar Sesión</a></li>
                         <li><a href="{{ url_for('blog') }}">Blog</a></li>
                     </ul>
                 </div>
@@ -92,10 +94,10 @@
             <div class="footer-social">
                 <h3>Síguenos</h3>
                 <ul class="social-icons">
-                    <li><a href="https://instagram.com/quantumweb" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a></li>
-                    <li><a href="https://facebook.com/quantumweb" target="_blank" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a></li>
-                    <li><a href="https://threads.net/quantumweb" target="_blank" aria-label="Threads"><i class="fab fa-threads"></i></a></li>
-                    <li><a href="https://x.com/quantumweb" target="_blank" aria-label="X"><i class="fab fa-x-twitter"></i></a></li>
+                    <li><a href="https://instagram.com/plubot" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a></li>
+                    <li><a href="https://facebook.com/plubot" target="_blank" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a></li>
+                    <li><a href="https://threads.net/plubot" target="_blank" aria-label="Threads"><i class="fab fa-threads"></i></a></li>
+                    <li><a href="https://x.com/plubot" target="_blank" aria-label="X"><i class="fab fa-x-twitter"></i></a></li>
                 </ul>
             </div>
             <div class="footer-legal">
@@ -135,14 +137,14 @@
             </form>
         </div>
         <div class="footer-bottom">
-            <p>© 2025 Quantum Web. Todos los derechos reservados.</p>
+            <p>© 2025 Plubot Web. Todos los derechos reservados.</p>
         </div>
     </footer>
     {% endblock %}
 
     <!-- Botón de WhatsApp -->
     <div class="whatsapp-btn-wrapper">
-        <a href="https://wa.me/+14155238886?text=Hola,%20quiero%20hablar%20con%20QuantumBot" class="whatsapp-btn" target="_blank" aria-label="Contactar por WhatsApp">
+        <a href="https://wa.me/+14155238886?text=Hola,%20quiero%20hablar%20con%20Plubot" class="whatsapp-btn" target="_blank" aria-label="Contactar por WhatsApp">
             <i class="fab fa-whatsapp"></i>
             <span class="whatsapp-tooltip">Chatea con Nosotros</span>
         </a>
@@ -156,9 +158,9 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
     <script src="{{ url_for('static', filename='js/particles.min.js') }}"></script>
     
-    {% if request.endpoint in ['index', 'services', 'about', 'case_studies', 'contacto', 'chatbot'] %}
-        <script src="{{ url_for('static', filename='js/quantum-three.js') }}"></script>
-        <script src="{{ url_for('static', filename='js/contact.js') }}"></script>
+    {% if request.endpoint in ['index', 'services', 'about', 'case_studies', 'contacto', 'chatbot', 'register', 'login', 'auth_prompt', 'forgot_password', 'reset_password'] %}
+    <script src="{{ url_for('static', filename='js/quantum-three.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/contact.js') }}"></script>
     {% endif %}
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
