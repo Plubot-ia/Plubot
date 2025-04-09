@@ -23,6 +23,7 @@ import redis
 from celery import Celery
 from contextlib import contextmanager
 from datetime import timedelta
+import uuid
 
 # Configuración inicial
 load_dotenv()
@@ -82,12 +83,12 @@ mail = Mail(app)
 twilio_client = Client(TWILIO_SID, TWILIO_TOKEN)
 
 # Configuración de JWT
-app.config["JWT_SECRET_KEY"] = "super-secret"
+app.config["JWT_SECRET_KEY"] = "super-secret"  # Cambia en producción
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token"
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
-app.config['JWT_COOKIE_SECURE'] = False  # Cambia a True en Render (HTTPS)
+app.config['JWT_COOKIE_SECURE'] = os.getenv('FLASK_ENV', 'development') != 'development'  # True en Render
 app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
 app.config["JWT_ACCESS_COOKIE_PATH"] = "/"
 jwt = JWTManager(app)
@@ -251,11 +252,9 @@ def register():
                 session.add(user)
                 session.commit()
 
-                # Generar token de verificación
                 verification_token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=24))
                 verification_link = url_for('verify_email', token=verification_token, _external=True)
 
-                # Enviar correo de verificación
                 try:
                     msg = Message(
                         subject="Verifica tu correo - Plubot",
@@ -725,7 +724,7 @@ def connect_whatsapp():
 
             try:
                 message = twilio_client.messages.create(
-                    body="Hola, soy Quantum Web. Responde con 'VERIFICAR' para conectar tu número a tu chatbot.",
+                    body="Hola, soy Plubot. Responde con 'VERIFICAR' para conectar tu número a tu chatbot.",
                     from_=f'whatsapp:{TWILIO_PHONE}',
                     to=f'whatsapp:{phone_number}'
                 )
@@ -958,23 +957,25 @@ def upload_file():
     file_type = request.form.get('type')
     if file_type not in ['pdf', 'image']:
         return jsonify({'message': 'Tipo de archivo no válido.'}), 400
-    
+
     file.seek(0, os.SEEK_END)
     if file.tell() > 5 * 1024 * 1024:
         return jsonify({'message': 'Archivo demasiado grande (máx. 5MB).'}), 400
     file.seek(0)
 
+    filename = f"{uuid.uuid4()}_{file.filename}"
+    upload_dir = os.path.join('static', 'uploads')
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, filename)
+    file.save(file_path)
+
+    file_url = f"/static/uploads/{filename}"
     if file_type == 'pdf':
-        pdf_content = extract_text_from_pdf(file)
         logger.info("PDF subido y procesado")
-        return jsonify({'file_content': pdf_content}), 200
     else:
-        image_url = f"/static/uploads/{file.filename}"
-        upload_dir = os.path.join('static', 'uploads')
-        os.makedirs(upload_dir, exist_ok=True)
-        file.save(os.path.join(upload_dir, file.filename))
-        logger.info(f"Imagen subida: {image_url}")
-        return jsonify({'file_url': image_url}), 200
+        logger.info(f"Imagen subida: {file_url}")
+
+    return jsonify({'file_url': file_url}), 200
 
 @app.route('/whatsapp', methods=['POST'])
 def whatsapp():
@@ -1009,13 +1010,13 @@ def whatsapp():
 
                 if state["step"] == "greet":
                     if incoming_msg.lower().startswith(("hola", "buenos", "buenas", "hey")):
-                        response = "¡Hola! Soy QuantumBot de Quantum Web, un placer conocerte. ¿En qué puedo ayudarte hoy? 😊"
+                        response = "¡Hola! Soy Plubot, un placer conocerte. ¿En qué puedo ayudarte hoy? 😊"
                         state["step"] = "awaiting_response"
                     else:
                         if any(k in incoming_msg.lower() for k in price_keywords):
                             response = "¡Hola! Para darte el mejor precio, dime más sobre tu negocio. ¿Qué tipo de negocio tienes? 😊"
                         else:
-                            response = "¡Hola! Soy QuantumBot de Quantum Web. ¿Qué tipo de negocio tienes? 😊"
+                            response = "¡Hola! Soy Plubot. ¿Qué tipo de negocio tienes? 😊"
                         state["step"] = "ask_business_type"
                 elif state["step"] == "awaiting_response":
                     if any(k in incoming_msg.lower() for k in price_keywords):
@@ -1118,7 +1119,7 @@ def set_conversation_state(sender, state):
     redis_client.setex(f"conversation_state:{sender}", 3600, json.dumps(state))
 
 QUANTUM_WEB_CONTEXT_FULL = """
-Quantum Web es una empresa dedicada a la creación e implementación de chatbots inteligentes optimizados para WhatsApp, que trabajan 24/7. Nos especializamos en soluciones de IA para pequeños negocios, grandes empresas, tiendas online, hoteles, academias, clínicas, restaurantes, y más. 
+Plubot es una empresa dedicada a la creación e implementación de chatbots inteligentes optimizados para WhatsApp, que trabajan 24/7. Nos especializamos en soluciones de IA para pequeños negocios, grandes empresas, tiendas online, hoteles, academias, clínicas, restaurantes, y más. 
 
 Ofrecemos:
 - Chatbots para WhatsApp: Respuestas automáticas 24/7, integración con catálogos, seguimiento de clientes.
@@ -1130,9 +1131,9 @@ Nuestra misión es responder con amabilidad y empatía, escuchar al cliente, y o
 """
 
 QUANTUM_WEB_CONTEXT_SHORT = """
-Eres QuantumBot de Quantum Web. Responde con amabilidad y empatía, usa un tono alegre y respuestas cortas (2-3 frases max). Incluye emojis cuando sea apropiado.
+Eres Plubot. Responde con amabilidad y empatía, usa un tono alegre y respuestas cortas (2-3 frases max). Incluye emojis cuando sea apropiado, invita cuando puedas al usuario para que cree su propio bot.
 """
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)  # Debug False para producción

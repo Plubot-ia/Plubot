@@ -1,0 +1,757 @@
+/* ==========================================================================
+   Estilos Globales
+   ========================================================================== */
+   * {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    position: relative;
+}
+
+a {
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+/* Botón Volver */
+.back-btn {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: transparent;
+    color: #00e0ff;
+    border: 1px solid #00e0ff;
+    padding: 0.4rem 1rem;
+    border-radius: 25px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 3;
+    box-shadow: 0 0 8px rgba(0, 224, 255, 0.3);
+}
+
+.back-btn:hover {
+    background: #00e0ff;
+    color: #0a0a0a;
+    box-shadow: 0 0 15px rgba(0, 224, 255, 0.6);
+}
+
+/* ==========================================================================
+   Botones y Formularios
+   ========================================================================== */
+.quantum-btn {
+    background: transparent;
+    color: #00e0ff;
+    padding: 0.5rem 1.2rem;
+    border: 1px solid #00e0ff;
+    border-radius: 25px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 0 8px rgba(0, 224, 255, 0.3);
+}
+
+.quantum-btn:hover {
+    background: #00e0ff;
+    color: #0a0a0a;
+    box-shadow: 0 0 15px rgba(0, 224, 255, 0.6);
+}
+
+.quantum-btn.magenta {
+    border-color: #ff00ff;
+    color: #ff00ff;
+    box-shadow: 0 0 8px rgba(255, 0, 255, 0.3);
+}
+
+.quantum-btn.magenta:hover {
+    background: #ff00ff;
+    color: #0a0a0a;
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
+}
+
+.delete-btn {
+    border-color: #ff4444;
+    color: #ff4444;
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.3);
+}
+
+.delete-btn:hover {
+    background: #ff4444;
+    color: #0a0a0a;
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.6);
+}
+
+.contact-input, .contact-select, .contact-textarea {
+    width: 100%;
+    padding: 0.6rem;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #e0e0e0;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.85rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    z-index: 2;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.contact-textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.contact-input:focus, .contact-select:focus, .contact-textarea:focus {
+    outline: none;
+    border-color: #00e0ff;
+    box-shadow: 0 0 5px rgba(0, 224, 255, 0.4);
+}
+
+.contact-input::placeholder, .contact-select::placeholder, .contact-textarea::placeholder {
+    color: #888;
+    font-style: italic;
+    opacity: 1;
+}
+
+.file-upload {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.file-upload label {
+    font-size: 0.9rem;
+    color: #d0d0d0;
+}
+
+.file-upload input[type="file"] {
+    padding: 0.3rem;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #e0e0e0;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.85rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 5px;
+    background: #333;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: #00e0ff;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* ==========================================================================
+   Chatbot Section
+   ========================================================================== */
+.chatbot-section {
+    position: relative;
+    padding: 3rem 1.5rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    z-index: 2;
+}
+
+.chatbot-container {
+    position: relative;
+    z-index: 3;
+    text-align: center;
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+}
+
+.chatbot-text-column {
+    flex: 1;
+    text-align: left;
+    max-width: 55%;
+    z-index: 3;
+}
+
+.chatbot-mobile-column {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    max-width: 45%;
+    z-index: 3;
+}
+
+.chatbot-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3rem;
+    color: #00e0ff;
+    position: relative;
+    margin-bottom: 1rem;
+    margin-top: 40px;
+    letter-spacing: 0.12em;
+    z-index: 3;
+    text-shadow: 0 0 8px rgba(0, 224, 255, 0.7);
+}
+
+.chatbot-subtitle {
+    font-size: 1rem;
+    color: #d0d0d0;
+    margin-bottom: 1.5rem;
+    max-width: 500px;
+    z-index: 3;
+}
+
+#particles-js {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+.large-mobile-frame {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1000px;
+    width: 100%;
+    max-width: 320px;
+}
+
+.mobile-device {
+    position: relative;
+    width: 100%;
+    height: 560px;
+    background: #000;
+    border: 3px solid #222;
+    border-radius: 35px;
+    box-shadow: 0 0 12px rgba(0, 224, 255, 0.4), 0 0 25px rgba(0, 224, 255, 0.2);
+    overflow: hidden;
+    transform: rotateX(5deg) rotateY(3deg);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.mobile-device:hover {
+    transform: rotateX(0deg) rotateY(0deg);
+    box-shadow: 0 0 20px rgba(0, 224, 255, 0.6), 0 0 40px rgba(0, 224, 255, 0.4);
+}
+
+.mobile-notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 18px;
+    background: #000;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.mobile-screen {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+}
+
+.chatbot-widget {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #0a0a0a;
+}
+
+.whatsapp-header {
+    padding: 0.4rem 0.8rem;
+    background: #075e54;
+    color: #fff;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+}
+
+.whatsapp-contact {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.whatsapp-avatar {
+    width: 28px;
+    height: 28px;
+    background: #25d366;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.whatsapp-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.whatsapp-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.whatsapp-number {
+    font-size: 0.65rem;
+    color: #ddd;
+}
+
+.whatsapp-actions {
+    display: flex;
+    gap: 0.8rem;
+}
+
+.whatsapp-actions i {
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.whatsapp-body {
+    flex: 1;
+    padding: 0.8rem;
+    background: #e5ddd5;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.chatbot-message {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    max-width: 75%;
+    position: relative;
+    color: #333;
+}
+
+.chatbot-message.bot {
+    background: #fff;
+    border-radius: 8px 8px 8px 0;
+    align-self: flex-start;
+}
+
+.chatbot-message.user {
+    background: #dcf8c6;
+    border-radius: 8px 8px 0 8px;
+    align-self: flex-end;
+}
+
+.message-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.6rem;
+    color: #888;
+    margin-top: 0.1rem;
+    position: absolute;
+    bottom: -0.8rem;
+    right: 0.4rem;
+}
+
+.message-time {
+    font-size: 0.6rem;
+}
+
+.message-status i {
+    font-size: 0.6rem;
+    color: #34b7f1;
+}
+
+.whatsapp-input {
+    padding: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #fff;
+    border-top: 1px solid #ccc;
+}
+
+.whatsapp-input .input-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #f0f0f0;
+    border-radius: 18px;
+    padding: 0.2rem 0.4rem;
+}
+
+.whatsapp-input .input-icon {
+    color: #888;
+    margin-right: 0.4rem;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.whatsapp-input input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 0.85rem;
+    color: #333;
+    outline: none;
+}
+
+.whatsapp-input button {
+    background: #25d366;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.whatsapp-input button:hover {
+    background: #20b859;
+}
+
+.whatsapp-input button i {
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   Bot Config Section
+   ========================================================================== */
+.bot-config {
+    background: rgba(18, 18, 18, 0.95);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 224, 255, 0.2);
+    box-shadow: 0 0 12px rgba(0, 224, 255, 0.15);
+    width: 100%;
+    z-index: 3;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.bot-config h2 {
+    font-size: 1.4rem;
+    color: #ffffff;
+    margin-bottom: 1rem;
+    text-align: center;
+    letter-spacing: 0.05em;
+}
+
+.bot-config h3 {
+    font-size: 1.1rem;
+    color: #ffffff;
+    margin: 1.5rem 0 0.5rem;
+    text-align: center;
+    letter-spacing: 0.05em;
+}
+
+.bot-config form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-grid > * {
+    width: 100%;
+    max-width: 100%;
+}
+
+.flow-item {
+    padding: 0.8rem;
+    background: rgba(30, 30, 30, 0.95);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.2s ease;
+}
+
+.flow-item:hover {
+    transform: translateY(-2px);
+}
+
+.flow-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.form-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.response-message {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    text-align: center;
+    background: rgba(0, 224, 255, 0.05);
+    color: #00e0ff;
+    border: 1px solid rgba(0, 224, 255, 0.2);
+    box-shadow: 0 0 8px rgba(0, 224, 255, 0.15);
+}
+
+/* ==========================================================================
+   Chatbot List
+   ========================================================================== */
+.chatbot-list {
+    margin-top: 2rem;
+    z-index: 3;
+}
+
+.chatbot-list h2 {
+    font-size: 1.4rem;
+    color: #ffffff;
+    margin-bottom: 1rem;
+    text-align: center;
+    letter-spacing: 0.05em;
+}
+
+.chatbot-item {
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    background: rgba(30, 30, 30, 0.95);
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chatbot-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 12px rgba(0, 224, 255, 0.2);
+}
+
+.chatbot-item-details {
+    color: #e0e0e0;
+    font-size: 0.85rem;
+}
+
+.chatbot-item-details strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.chatbot-item-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* ==========================================================================
+   Modal de Confirmación
+   ========================================================================== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: #1a1a1a;
+    padding: 2rem;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h2 {
+    font-family: 'Orbitron', sans-serif;
+    color: #00e0ff;
+    margin-bottom: 1rem;
+}
+
+.modal-content p {
+    color: #e0e0e0;
+    margin-bottom: 2rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.confirm-btn,
+.cancel-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.confirm-btn {
+    background: #00e0ff;
+}
+
+.confirm-btn:hover {
+    background: #00aaff;
+}
+
+.cancel-btn {
+    background: #ff4444;
+}
+
+.cancel-btn:hover {
+    background: #cc0000;
+}
+
+/* ==========================================================================
+   Mensaje de Autenticación
+   ========================================================================== */
+.auth-message {
+    text-align: center;
+    color: #e0e0e0;
+    margin-bottom: 1.5rem;
+}
+
+.auth-message a {
+    color: #00e0ff;
+    text-decoration: none;
+}
+
+.auth-message a:hover {
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Animaciones
+   ========================================================================== */
+@keyframes neon-glow {
+    from {
+        text-shadow: 0 0 8px rgba(0, 224, 255, 0.4), 0 0 15px rgba(0, 224, 255, 0.2);
+    }
+    to {
+        text-shadow: 0 0 15px rgba(0, 224, 255, 0.7), 0 0 30px rgba(0, 224, 255, 0.4);
+    }
+}
+
+/* ==========================================================================
+   Media Queries para Responsividad
+   ========================================================================== */
+@media (max-width: 1024px) {
+    .chatbot-section {
+        padding: 2.5rem 1.5rem;
+    }
+    .chatbot-container {
+        flex-direction: column;
+        max-width: 600px;
+        gap: 1.5rem;
+    }
+    .chatbot-text-column {
+        max-width: 100%;
+        text-align: center;
+    }
+    .chatbot-mobile-column {
+        max-width: 100%;
+        justify-content: center;
+    }
+    .chatbot-title {
+        font-size: 2.5rem;
+    }
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .chatbot-title {
+        font-size: 2rem;
+    }
+    .mobile-device {
+        height: 500px;
+        max-width: 280px;
+    }
+    .chatbot-subtitle {
+        font-size: 0.9rem;
+    }
+    .bot-config {
+        padding: 1rem;
+    }
+    .bot-config h2 {
+        font-size: 1.2rem;
+    }
+    .chatbot-list h2 {
+        font-size: 1.2rem;
+    }
+    .chatbot-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    .chatbot-item-buttons {
+        width: 100%;
+        justify-content: center;
+    }
+}
