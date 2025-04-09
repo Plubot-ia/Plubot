@@ -15,7 +15,7 @@ import PyPDF2
 import json
 import logging
 import bcrypt
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 from requests.exceptions import HTTPError, Timeout
@@ -23,9 +23,6 @@ import redis
 from celery import Celery
 from contextlib import contextmanager
 from datetime import timedelta
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime, Boolean  # Agrega Boolean aquí
-from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.sql import func
 
 # Configuración inicial
 load_dotenv()
@@ -44,7 +41,7 @@ logger.addHandler(console_handler)
 
 # Configuración de CORS
 CORS(app, resources={r"/*": {
-    "origins": ["http://localhost:5000", "http://192.168.0.213:5000", "https://www.plubot.com"],  # Actualizado para Render
+    "origins": ["http://localhost:5000", "http://192.168.0.213:5000", "https://www.plubot.com"],
     "methods": ["GET", "POST", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"],
     "supports_credentials": True
@@ -105,7 +102,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
     role = Column(String, default='user')
-    is_verified = Column(Boolean, default=False)  # Nuevo campo
+    is_verified = Column(Boolean, default=False)
 
 class Chatbot(Base):
     __tablename__ = 'chatbots'
@@ -303,10 +300,10 @@ def verify_email(token):
         flash('El enlace de verificación es inválido o ha expirado.', 'error')
         return redirect(url_for('register'))
 
-@app.route('/php-login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        logger.info(f"POST en /php-login con datos: {request.form}")
+        logger.info(f"POST en /login con datos: {request.form}")
         try:
             data = LoginModel(**request.form)
             logger.info(f"Datos validados: {data.email}")
@@ -333,11 +330,11 @@ def login():
                 flash('Inicio de sesión exitoso', 'success')
                 return response
         except ValidationError as e:
-            logger.error(f"Error de validación en /php-login: {str(e)}")
+            logger.error(f"Error de validación en /login: {str(e)}")
             flash(str(e), 'error')
             return redirect(url_for('login'))
         except Exception as e:
-            logger.exception(f"Error en /php-login: {str(e)}")
+            logger.exception(f"Error en /login: {str(e)}")
             flash(f"Error en inicio de sesión: {str(e)}", 'error')
             return redirect(url_for('login'))
     return render_template('login.html')
@@ -356,7 +353,7 @@ def forgot_password():
             user = session.query(User).filter_by(email=email).first()
             if user:
                 try:
-                    token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=1))  # Asegurar str(user.id)
+                    token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=1))
                     reset_link = url_for('reset_password', token=token, _external=True)
                     msg = Message(
                         subject="Restablecer tu contraseña",
@@ -412,8 +409,8 @@ def change_password():
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
-        decoded_token = decode_token(token)  # Decodificar el token manualmente
-        user_id = decoded_token['sub']  # 'sub' contiene el identity (user_id)
+        decoded_token = decode_token(token)
+        user_id = decoded_token['sub']
     except Exception as e:
         flash('El enlace de restablecimiento es inválido o ha expirado.', 'error')
         return redirect(url_for('forgot_password'))
@@ -623,7 +620,7 @@ def create_page():
             return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
     
     logger.info("Renderizando create.html")
-    return send_file('templates/create.html')
+    return render_template('create.html')
 
 def create_chatbot(name, tone, purpose, whatsapp_number=None, business_info=None, pdf_url=None, image_url=None, flows=None, session=None, user_id=None):
     logger.info(f"Creando chatbot con nombre: {name}, tono: {tone}, propósito: {purpose}")
@@ -860,8 +857,20 @@ def update_bot():
 @jwt_required()
 def list_bots():
     user_id = get_jwt_identity()
-    print(f"[DEBUG] Usuario autenticado: {user_id}")
-    return jsonify({"msg": "OK", "user_id": user_id})
+    logger.info(f"[DEBUG] Usuario autenticado: {user_id}")
+    with get_session() as session:
+        chatbots = session.query(Chatbot).filter_by(user_id=user_id).all()
+        chatbots_data = [
+            {
+                'id': bot.id,
+                'name': bot.name,
+                'tone': bot.tone,
+                'purpose': bot.purpose,
+                'whatsapp_number': bot.whatsapp_number,
+                'initial_message': bot.initial_message
+            } for bot in chatbots
+        ]
+        return jsonify({'chatbots': chatbots_data})
 
 @app.route('/conversation-history', methods=['OPTIONS', 'POST'])
 @jwt_required()
