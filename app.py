@@ -191,31 +191,41 @@ def call_grok(messages, max_tokens=150):
         messages = [messages[0]] + messages[-3:]
     
     cache_key = json.dumps(messages)
-    cached = redis_client.get(cache_key)
-    if cached:
-        logger.info("Respuesta obtenida desde caché")
-        return cached
+    try:
+        cached = redis_client.get(cache_key)
+        if cached:
+            logger.info("Respuesta obtenida desde caché")
+            return cached
+    except Exception as e:
+        logger.error(f"Error al conectar con Redis en cache: {str(e)}")
+        # Continúa sin caché si falla Redis
 
     url = "https://api.x.ai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {XAI_API_KEY}", "Content-Type": "application/json"}
     payload = {"model": "grok-2-1212", "messages": messages, "temperature": 0.5, "max_tokens": max_tokens}
     try:
-        logger.info(f"Enviando solicitud a xAI: {json.dumps(payload)}")
-        response = requests.post(url, json=payload, headers=headers, timeout=20)  # Aumentamos a 20 segundos
+        logger.info(f"Enviando solicitud a xAI con payload: {json.dumps(payload)}")
+        response = requests.post(url, json=payload, headers=headers, timeout=30)  # Aumentamos a 30 segundos
         response.raise_for_status()
         result = response.json()['choices'][0]['message']['content']
-        redis_client.setex(cache_key, 3600, result)
+        try:
+            redis_client.setex(cache_key, 3600, result)
+        except Exception as e:
+            logger.error(f"Error al guardar en Redis: {str(e)}")
         logger.info(f"Grok response: {result}")
         return result
-    except (HTTPError, Timeout) as e:
-        logger.error(f"Error al conectar con Grok (HTTP/Timeout): {str(e)}")
-        return "¡Ups! Algo salió mal, intenta de nuevo. 😅"
     except requests.exceptions.ConnectionError as e:
-        logger.error(f"Error de conexión con Grok: {str(e)}")
-        return "¡Vaya! Parece que el servidor de IA no responde, intenta de nuevo en un momento."
+        logger.error(f"Error de conexión con xAI: {str(e)}")
+        return "¡Vaya! La conexión con la IA falló, intenta de nuevo en un momento."
+    except requests.exceptions.Timeout as e:
+        logger.error(f"Timeout al conectar con xAI: {str(e)}")
+        return "¡Ups! La IA tardó demasiado, intenta de nuevo."
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"Error HTTP con xAI: {str(e)}")
+        return "¡Oops! Error con la IA, intenta de nuevo."
     except Exception as e:
-        logger.error(f"Error inesperado en Grok: {str(e)}")
-        return "¡Oops! Error inesperado, por favor intenta de nuevo."
+        logger.error(f"Error inesperado en call_grok: {str(e)}")
+        return "¡Error inesperado! Por favor, intenta de nuevo."
 
 @celery_app.task
 def process_pdf_async(chatbot_id, pdf_url):
