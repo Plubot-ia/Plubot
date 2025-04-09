@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from twilio.twiml.messaging_response import MessagingResponse
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity, set_access_cookies, unset_jwt_cookies
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity, set_access_cookies, unset_jwt_cookies, decode_token
 from pydantic import BaseModel, Field, ValidationError
 import re
 import os
@@ -23,7 +23,9 @@ import redis
 from celery import Celery
 from contextlib import contextmanager
 from datetime import timedelta
-from flask_jwt_extended import create_access_token, set_access_cookies
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime, Boolean  # Agrega Boolean aquí
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.sql import func
 
 # Configuración inicial
 load_dotenv()
@@ -42,7 +44,7 @@ logger.addHandler(console_handler)
 
 # Configuración de CORS
 CORS(app, resources={r"/*": {
-    "origins": ["http://localhost:5000", "http://192.168.0.213:5000"],  # Añade tu IP local
+    "origins": ["http://localhost:5000", "http://192.168.0.213:5000", "https://www.plubot.com"],  # Actualizado para Render
     "methods": ["GET", "POST", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"],
     "supports_credentials": True
@@ -88,7 +90,7 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token"
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
-app.config['JWT_COOKIE_SECURE'] = False  # Cambia a True en producción con HTTPS
+app.config['JWT_COOKIE_SECURE'] = False  # Cambia a True en Render (HTTPS)
 app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
 app.config["JWT_ACCESS_COOKIE_PATH"] = "/"
 jwt = JWTManager(app)
@@ -103,6 +105,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
     role = Column(String, default='user')
+    is_verified = Column(Boolean, default=False)  # Nuevo campo
 
 class Chatbot(Base):
     __tablename__ = 'chatbots'
@@ -246,11 +249,28 @@ def register():
                 if existing_user:
                     flash('El email ya está registrado', 'error')
                     return redirect(url_for('register'))
-                hashed_password = bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt())
-                user = User(email=data.email, password=hashed_password.decode('utf-8'))
+                hashed_password = bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                user = User(email=data.email, password=hashed_password, is_verified=False)
                 session.add(user)
                 session.commit()
-                flash('Usuario registrado con éxito. Por favor, inicia sesión.', 'success')
+
+                # Generar token de verificación
+                verification_token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=24))
+                verification_link = url_for('verify_email', token=verification_token, _external=True)
+
+                # Enviar correo de verificación
+                try:
+                    msg = Message(
+                        subject="Verifica tu correo - Plubot",
+                        recipients=[data.email],
+                        body=f"Hola,\n\nPor favor verifica tu correo haciendo clic en este enlace: {verification_link}\n\nEste enlace expira en 24 horas.\n\nSaludos,\nEl equipo de Plubot"
+                    )
+                    mail.send(msg)
+                    flash('Revisa tu correo para verificar tu cuenta.', 'success')
+                except Exception as e:
+                    logger.error(f"Error al enviar correo de verificación: {str(e)}")
+                    flash('Usuario creado, pero hubo un error al enviar el correo de verificación. Contacta al soporte.', 'warning')
+
                 return redirect(url_for('login'))
         except ValidationError as e:
             flash(str(e), 'error')
@@ -261,36 +281,66 @@ def register():
             return redirect(url_for('register'))
     return render_template('register.html')
 
+@app.route('/verify_email/<token>', methods=['GET'])
+def verify_email(token):
+    try:
+        decoded_token = decode_token(token)
+        user_id = decoded_token['sub']
+        with get_session() as session:
+            user = session.query(User).filter_by(id=user_id).first()
+            if not user:
+                flash('Usuario no encontrado.', 'error')
+                return redirect(url_for('login'))
+            if user.is_verified:
+                flash('Tu correo ya está verificado. Inicia sesión.', 'info')
+                return redirect(url_for('login'))
+            user.is_verified = True
+            session.commit()
+            flash('Correo verificado con éxito. Ahora puedes iniciar sesión.', 'success')
+            return redirect(url_for('login'))
+    except Exception as e:
+        logger.error(f"Error al verificar correo: {str(e)}")
+        flash('El enlace de verificación es inválido o ha expirado.', 'error')
+        return redirect(url_for('register'))
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/php-login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        logger.info(f"POST en /login con datos: {request.form}")
+        logger.info(f"POST en /php-login con datos: {request.form}")
         try:
             data = LoginModel(**request.form)
             logger.info(f"Datos validados: {data.email}")
             with get_session() as session:
                 user = session.query(User).filter_by(email=data.email).first()
-                if not user or not bcrypt.checkpw(data.password.encode('utf-8'), user.password.encode('utf-8')):
-                    logger.warning("Credenciales inválidas")
+                if not user:
+                    logger.warning("Usuario no encontrado")
                     flash('Credenciales inválidas', 'error')
-                    return jsonify({"error": "Token inválido o no enviado"}), 401
-
+                    return redirect(url_for('login'))
+                
+                if not bcrypt.checkpw(data.password.encode('utf-8'), user.password.encode('utf-8')):
+                    logger.warning("Contraseña incorrecta")
+                    flash('Credenciales inválidas', 'error')
+                    return redirect(url_for('login'))
+                
+                if not user.is_verified:
+                    logger.warning("Correo no verificado")
+                    flash('Por favor verifica tu correo antes de iniciar sesión.', 'error')
+                    return redirect(url_for('login'))
 
                 access_token = create_access_token(identity=str(user.id))
                 response = redirect(url_for('create_page'))
                 set_access_cookies(response, access_token)
+                flash('Inicio de sesión exitoso', 'success')
                 return response
-
-
+        except ValidationError as e:
+            logger.error(f"Error de validación en /php-login: {str(e)}")
+            flash(str(e), 'error')
+            return redirect(url_for('login'))
         except Exception as e:
-            logger.exception("Error en /login")
+            logger.exception(f"Error en /php-login: {str(e)}")
             flash(f"Error en inicio de sesión: {str(e)}", 'error')
-            return jsonify({"error": "Token inválido o no enviado"}), 401
-
-
+            return redirect(url_for('login'))
     return render_template('login.html')
-
 
 @app.route("/logout", methods=["POST"])
 def logout():
@@ -306,7 +356,7 @@ def forgot_password():
             user = session.query(User).filter_by(email=email).first()
             if user:
                 try:
-                    token = create_access_token(identity=user.id, expires_delta=timedelta(hours=1))
+                    token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=1))  # Asegurar str(user.id)
                     reset_link = url_for('reset_password', token=token, _external=True)
                     msg = Message(
                         subject="Restablecer tu contraseña",
@@ -362,7 +412,8 @@ def change_password():
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
-        user_id = get_jwt_identity()
+        decoded_token = decode_token(token)  # Decodificar el token manualmente
+        user_id = decoded_token['sub']  # 'sub' contiene el identity (user_id)
     except Exception as e:
         flash('El enlace de restablecimiento es inválido o ha expirado.', 'error')
         return redirect(url_for('forgot_password'))
@@ -811,7 +862,6 @@ def list_bots():
     user_id = get_jwt_identity()
     print(f"[DEBUG] Usuario autenticado: {user_id}")
     return jsonify({"msg": "OK", "user_id": user_id})
-
 
 @app.route('/conversation-history', methods=['OPTIONS', 'POST'])
 @jwt_required()
