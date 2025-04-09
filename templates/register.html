@@ -1,11 +1,10 @@
 {% extends "base.html" %}
-
 {% block title %}Registro - Plubot{% endblock %}
-
 {% block content %}
 <section class="auth-section">
+    <div id="particles-js"></div>
     <div class="auth-container">
-        <h1>Regístrate en Plubot Web</h1>
+        <h1>Regístrate</h1>
         <form id="register-form" action="{{ url_for('register') }}" method="POST" class="auth-form">
             <div class="form-group">
                 <label for="email">Correo Electrónico</label>
@@ -20,4 +19,26 @@
         <p>¿Ya tienes una cuenta? <a href="{{ url_for('login') }}">Inicia sesión aquí</a>.</p>
     </div>
 </section>
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+<script>
+    particlesJS('particles-js', {
+        particles: {
+            number: { value: 80, density: { enable: true, value_area: 800 } },
+            color: { value: '#00e0ff' },
+            shape: { type: 'circle' },
+            opacity: { value: 0.5, random: true },
+            size: { value: 3, random: true },
+            line_linked: { enable: true, distance: 150, color: '#00e0ff', opacity: 0.4, width: 1 },
+            move: { enable: true, speed: 2, direction: 'none', random: false, straight: false, out_mode: 'out', bounce: false }
+        },
+        interactivity: {
+            detect_on: 'canvas',
+            events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' }, resize: true },
+            modes: { repulse: { distance: 100, duration: 0.4 }, push: { particles_nb: 4 } }
+        },
+        retina_detect: true
+    });
+</script>
+{% endblock %}
 {% endblock %}

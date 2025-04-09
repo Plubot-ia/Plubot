@@ -1,12 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, Response
 from flask_mail import Mail, Message
 from flask_cors import CORS
 from dotenv import load_dotenv
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from twilio.twiml.messaging_response import MessagingResponse
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity, verify_jwt_in_request
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity, set_access_cookies, unset_jwt_cookies
 from pydantic import BaseModel, Field, ValidationError
 import re
 import os
@@ -24,12 +23,12 @@ import redis
 from celery import Celery
 from contextlib import contextmanager
 from datetime import timedelta
+from flask_jwt_extended import create_access_token, set_access_cookies
 
 # Configuración inicial
 load_dotenv()
 app = Flask(__name__)
 
-# Configurar la SECRET_KEY para las sesiones de Flask
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 if not app.config['SECRET_KEY']:
     raise ValueError("No se encontró SECRET_KEY en las variables de entorno.")
@@ -43,10 +42,7 @@ logger.addHandler(console_handler)
 
 # Configuración de CORS
 CORS(app, resources={r"/*": {
-    "origins": [
-        "https://your-service-name.onrender.com",
-        "http://localhost:5000"
-    ],
+    "origins": ["http://localhost:5000", "http://192.168.0.213:5000"],  # Añade tu IP local
     "methods": ["GET", "POST", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"],
     "supports_credentials": True
@@ -87,21 +83,21 @@ mail = Mail(app)
 twilio_client = Client(TWILIO_SID, TWILIO_TOKEN)
 
 # Configuración de JWT
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')
+app.config["JWT_SECRET_KEY"] = "super-secret"
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+app.config['JWT_TOKEN_LOCATION'] = ['cookies']
+app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token"
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+app.config['JWT_COOKIE_SECURE'] = False  # Cambia a True en producción con HTTPS
+app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
+app.config["JWT_ACCESS_COOKIE_PATH"] = "/"
 jwt = JWTManager(app)
-
-# Configuración de Flask-Login
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
 
 # Configuración de la base de datos
 engine = create_engine(DATABASE_URL.replace('postgres://', 'postgresql://'))
 Base = declarative_base()
 
-# Modelo de usuario para la base de datos con contraseñas hasheadas
-class User(Base, UserMixin):
+class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String, unique=True, nullable=False)
@@ -143,7 +139,6 @@ class Flow(Base):
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
-# Manejador de sesiones por solicitud
 @contextmanager
 def get_session():
     session = Session()
@@ -155,61 +150,7 @@ def get_session():
     finally:
         session.close()
 
-# Callback para cargar un usuario desde la base de datos
-@login_manager.user_loader
-def load_user(user_id):
-    with get_session() as session:
-        logger.info(f"Cargando usuario con ID: {user_id}")
-        user = session.query(User).get(int(user_id))
-        if user:
-            logger.info(f"Usuario encontrado: {user.email}")
-        else:
-            logger.info("Usuario no encontrado")
-        return user
-
-# Integrar Flask-JWT-Extended con Flask-Login
-@jwt.user_identity_loader
-def user_identity_lookup(user):
-    return user.id
-
-@jwt.user_lookup_loader
-def user_lookup_callback(_jwt_header, jwt_data):
-    identity = jwt_data["sub"]
-    with get_session() as session:
-        user = session.query(User).get(int(identity))
-        if user:
-            # Iniciar sesión con Flask-Login para que current_user esté disponible
-            login_user(user, remember=True)
-        return user
-
-# Funciones para manejar el estado de conversación en Redis
-def get_conversation_state(sender):
-    state = redis_client.get(f"conversation_state:{sender}")
-    if state:
-        return json.loads(state)
-    return {"step": "greet", "data": {"business_type": None, "needs": [], "specifics": {}, "contacted": False}}
-
-def set_conversation_state(sender, state):
-    redis_client.setex(f"conversation_state:{sender}", 3600, json.dumps(state))
-
-# Contexto de Quantum Web
-QUANTUM_WEB_CONTEXT_FULL = """
-Quantum Web es una empresa dedicada a la creación e implementación de chatbots inteligentes optimizados para WhatsApp, que trabajan 24/7. Nos especializamos en soluciones de IA para pequeños negocios, grandes empresas, tiendas online, hoteles, academias, clínicas, restaurantes, y más. 
-
-Ofrecemos:
-- Chatbots para WhatsApp: Respuestas automáticas 24/7, integración con catálogos, seguimiento de clientes.
-- Automatización para pequeños negocios: Respuestas personalizadas, gestión de citas, notificaciones.
-- Optimización para grandes empresas: Automatización de procesos, integración con CRM, análisis de datos.
-- Ejemplos: Tiendas online (30% más ventas), hoteles (40% menos carga), logística (70% menos consultas), clínicas (50% menos gestión).
-
-Nuestra misión es responder con amabilidad y empatía, escuchar al cliente, y optimizar procesos para liberar tiempo, aumentar ventas y mejorar la eficiencia.
-"""
-
-QUANTUM_WEB_CONTEXT_SHORT = """
-Eres QuantumBot de Quantum Web. Responde con amabilidad y empatía, usa un tono alegre y respuestas cortas (2-3 frases max). Incluye emojis cuando sea apropiado.
-"""
-
-# Modelos Pydantic para validación de datos
+# Modelos Pydantic para validación
 class LoginModel(BaseModel):
     email: str = Field(..., min_length=5)
     password: str = Field(..., min_length=6)
@@ -294,7 +235,7 @@ def validate_whatsapp_number(number):
         logger.error(f"Error al validar número de WhatsApp con Twilio: {str(e)}")
         return False
 
-# Rutas de autenticación con hash de contraseñas
+# Rutas de autenticación
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -320,37 +261,42 @@ def register():
             return redirect(url_for('register'))
     return render_template('register.html')
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        logger.info(f"POST en /login con datos: {request.form}")
         try:
             data = LoginModel(**request.form)
+            logger.info(f"Datos validados: {data.email}")
             with get_session() as session:
                 user = session.query(User).filter_by(email=data.email).first()
                 if not user or not bcrypt.checkpw(data.password.encode('utf-8'), user.password.encode('utf-8')):
+                    logger.warning("Credenciales inválidas")
                     flash('Credenciales inválidas', 'error')
-                    return redirect(url_for('login'))
-                login_user(user, remember=True)
-                access_token = create_access_token(identity=user)
-                response = redirect(url_for('create_page'))  # Redirige a create_page después de login
-                response.set_cookie('access_token', access_token, httponly=True, secure=False, samesite='Lax', max_age=3600)
-                flash('Inicio de sesión exitoso', 'success')
+                    return jsonify({"error": "Token inválido o no enviado"}), 401
+
+
+                access_token = create_access_token(identity=str(user.id))
+                response = redirect(url_for('create_page'))
+                set_access_cookies(response, access_token)
                 return response
-        except ValidationError as e:
-            flash(str(e), 'error')
-            return redirect(url_for('login'))
+
+
         except Exception as e:
-            logger.error(f"Error en /login: {str(e)}")
-            flash(str(e), 'error')
-            return redirect(url_for('login'))
+            logger.exception("Error en /login")
+            flash(f"Error en inicio de sesión: {str(e)}", 'error')
+            return jsonify({"error": "Token inválido o no enviado"}), 401
+
+
     return render_template('login.html')
 
-@app.route('/logout', methods=['POST'])
-@login_required
+
+@app.route("/logout", methods=["POST"])
 def logout():
-    logout_user()
-    flash('Has cerrado sesión.', 'success')
-    return redirect(url_for('index'))
+    response = jsonify({"message": "Sesión cerrada"})
+    unset_jwt_cookies(response)
+    return response
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -378,36 +324,37 @@ def forgot_password():
     return render_template('forgot_password.html')
 
 @app.route('/change_password', methods=['GET', 'POST'])
-@login_required
+@jwt_required()
 def change_password():
+    user_id = get_jwt_identity()
     if request.method == 'POST':
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
 
-        if not bcrypt.checkpw(current_password.encode('utf-8'), current_user.password.encode('utf-8')):
-            flash('La contraseña actual es incorrecta.', 'error')
-            return redirect(url_for('change_password'))
-
-        if new_password != confirm_password:
-            flash('Las contraseñas nuevas no coinciden.', 'error')
-            return redirect(url_for('change_password'))
-
         with get_session() as session:
-            user = session.query(User).filter_by(id=current_user.id).first()
+            user = session.query(User).filter_by(id=user_id).first()
+            if not user or not bcrypt.checkpw(current_password.encode('utf-8'), user.password.encode('utf-8')):
+                flash('La contraseña actual es incorrecta.', 'error')
+                return redirect(url_for('change_password'))
+
+            if new_password != confirm_password:
+                flash('Las contraseñas nuevas no coinciden.', 'error')
+                return redirect(url_for('change_password'))
+
             user.password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             session.commit()
 
             try:
                 msg = Message(
                     subject="Tu contraseña ha sido cambiada",
-                    recipients=[current_user.email],
+                    recipients=[user.email],
                     body="Hola,\n\nTu contraseña ha sido cambiada exitosamente.\n\nSi no realizaste este cambio, por favor contáctanos de inmediato.\n\nSaludos,\nEl equipo de Plubot"
                 )
                 mail.send(msg)
                 flash('Contraseña cambiada con éxito.', 'success')
             except Exception as e:
-                logger.error(f"Error al enviar correo de confirmación de cambio de contraseña: {str(e)}")
+                logger.error(f"Error al enviar correo de confirmación: {str(e)}")
                 flash(f'Contraseña cambiada, pero hubo un error al enviar la notificación: {str(e)}', 'warning')
         return redirect(url_for('index'))
     return render_template('change_password.html')
@@ -415,7 +362,6 @@ def change_password():
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
-        verify_jwt_in_request()
         user_id = get_jwt_identity()
     except Exception as e:
         flash('El enlace de restablecimiento es inválido o ha expirado.', 'error')
@@ -446,7 +392,7 @@ def reset_password(token):
                 mail.send(msg)
                 flash('Contraseña restablecida con éxito. Por favor inicia sesión.', 'success')
             except Exception as e:
-                logger.error(f"Error al enviar correo de confirmación de restablecimiento: {str(e)}")
+                logger.error(f"Error al enviar correo de confirmación: {str(e)}")
                 flash(f'Contraseña restablecida, pero hubo un error al enviar la notificación: {str(e)}', 'warning')
         return redirect(url_for('login'))
     return render_template('reset_password.html', token=token)
@@ -515,8 +461,6 @@ def subscribe():
     
 @app.route('/create-prompt')
 def create_prompt():
-    if current_user.is_authenticated:
-        return redirect(url_for('create_page'))
     return render_template('auth_prompt.html')   
 
 @app.route('/about')
@@ -596,8 +540,13 @@ def grok_api():
 
 # Rutas del creador de chatbots
 @app.route('/create', methods=['GET', 'POST'])
-@login_required
+@jwt_required()
 def create_page():
+    logger.info("Entrando en create_page")
+    user_id = get_jwt_identity()
+    logger.info(f"Acceso a /create por usuario ID: {user_id}")
+    logger.info(f"Headers: {request.headers}")
+    logger.info(f"Cookies: {request.cookies}")
     if request.method == 'POST':
         try:
             data = request.get_json() or request.form
@@ -613,26 +562,17 @@ def create_page():
             }
             if not bot_data['name']:
                 return jsonify({'status': 'error', 'message': 'El nombre es obligatorio'}), 400
-            if bot_data['whatsapp_number']:
-                WhatsAppNumberModel.validate_whatsapp_number(bot_data['whatsapp_number'])
-                if not validate_whatsapp_number(bot_data['whatsapp_number']):
-                    return jsonify({'status': 'error', 'message': 'El número de WhatsApp no está registrado en Twilio.'}), 400
-            
-            user_id = current_user.id
             with get_session() as session:
                 response = create_chatbot(**bot_data, session=session, user_id=user_id)
-                logger.info(f"Chatbot creado en /create: {response}")
                 return jsonify({'message': response})
         except ValidationError as e:
             return jsonify({'status': 'error', 'message': str(e)}), 400
         except Exception as e:
             logger.error(f"Error al guardar bot en /create: {str(e)}")
             return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
-    response = send_file('templates/create.html')
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    return response
+    
+    logger.info("Renderizando create.html")
+    return send_file('templates/create.html')
 
 def create_chatbot(name, tone, purpose, whatsapp_number=None, business_info=None, pdf_url=None, image_url=None, flows=None, session=None, user_id=None):
     logger.info(f"Creando chatbot con nombre: {name}, tono: {tone}, propósito: {purpose}")
@@ -865,31 +805,13 @@ def update_bot():
             logger.error(f"Error en /update-bot: {str(e)}")
             return jsonify({'message': f"Error: {str(e)}"}), 500
 
-@app.route('/list-bots', methods=['OPTIONS', 'GET'])
+@app.route('/list-bots', methods=['GET'])
 @jwt_required()
 def list_bots():
-    if request.method == 'OPTIONS':
-        return jsonify({'message': 'Preflight OK'}), 200
-    
     user_id = get_jwt_identity()
-    with get_session() as session:
-        try:
-            logger.info("Solicitud recibida en /list-bots")
-            chatbots = session.query(Chatbot).filter_by(user_id=user_id).all()
-            chatbots_list = [
-                {
-                    'id': bot.id, 'name': bot.name, 'tone': bot.tone, 'purpose': bot.purpose,
-                    'initial_message': bot.initial_message, 'whatsapp_number': bot.whatsapp_number,
-                    'business_info': bot.business_info, 'pdf_url': bot.pdf_url, 'image_url': bot.image_url,
-                    'flows': [{'userMessage': flow.user_message, 'botResponse': flow.bot_response, 'intent': flow.intent} 
-                              for flow in session.query(Flow).filter_by(chatbot_id=bot.id).order_by(Flow.position).all()]
-                } for bot in chatbots
-            ]
-            logger.info(f"Chatbots enviados: {len(chatbots_list)}")
-            return jsonify({'chatbots': chatbots_list}), 200
-        except Exception as e:
-            logger.error(f"Error en /list-bots: {str(e)}")
-            return jsonify({'message': f"Error: {str(e)}"}), 500
+    print(f"[DEBUG] Usuario autenticado: {user_id}")
+    return jsonify({"msg": "OK", "user_id": user_id})
+
 
 @app.route('/conversation-history', methods=['OPTIONS', 'POST'])
 @jwt_required()
@@ -1127,6 +1049,31 @@ def whatsapp():
         redis_client.delete(f"conversation_state:{sender}")
     return str(resp)
 
+def get_conversation_state(sender):
+    state = redis_client.get(f"conversation_state:{sender}")
+    if state:
+        return json.loads(state)
+    return {"step": "greet", "data": {"business_type": None, "needs": [], "specifics": {}, "contacted": False}}
+
+def set_conversation_state(sender, state):
+    redis_client.setex(f"conversation_state:{sender}", 3600, json.dumps(state))
+
+QUANTUM_WEB_CONTEXT_FULL = """
+Quantum Web es una empresa dedicada a la creación e implementación de chatbots inteligentes optimizados para WhatsApp, que trabajan 24/7. Nos especializamos en soluciones de IA para pequeños negocios, grandes empresas, tiendas online, hoteles, academias, clínicas, restaurantes, y más. 
+
+Ofrecemos:
+- Chatbots para WhatsApp: Respuestas automáticas 24/7, integración con catálogos, seguimiento de clientes.
+- Automatización para pequeños negocios: Respuestas personalizadas, gestión de citas, notificaciones.
+- Optimización para grandes empresas: Automatización de procesos, integración con CRM, análisis de datos.
+- Ejemplos: Tiendas online (30% más ventas), hoteles (40% menos carga), logística (70% menos consultas), clínicas (50% menos gestión).
+
+Nuestra misión es responder con amabilidad y empatía, escuchar al cliente, y optimizar procesos para liberar tiempo, aumentar ventas y mejorar la eficiencia.
+"""
+
+QUANTUM_WEB_CONTEXT_SHORT = """
+Eres QuantumBot de Quantum Web. Responde con amabilidad y empatía, usa un tono alegre y respuestas cortas (2-3 frases max). Incluye emojis cuando sea apropiado.
+"""
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)

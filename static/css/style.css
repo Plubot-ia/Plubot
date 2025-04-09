@@ -5497,200 +5497,145 @@ nav {
 
 
 
-.auth-section {
-    padding: 4rem 2rem;
-    min-height: 80vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    color: #fff;
-}
-
-.auth-container {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 2.5rem;
-    border-radius: 15px;
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.35);
-    max-width: 420px;
-    width: 100%;
-    text-align: center;
-    backdrop-filter: blur(5px);
-    display: flex; /* Añadido para mejor control del centrado */
-    flex-direction: column; /* Asegura que los elementos se apilen verticalmente */
-    align-items: center; /* Centra horizontalmente los elementos hijos */
-}
-
-.auth-container h1 {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 2.2rem;
-    margin-bottom: 2rem;
-    color: #00d4ff;
-    letter-spacing: 1px;
-}
-
-.auth-form {
-    width: 100%; /* Asegura que el formulario ocupe todo el ancho disponible */
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* Centra los elementos del formulario */
-}
-
-.auth-form .form-group {
-    margin-bottom: 1.75rem;
-    width: 100%; /* Asegura que el grupo ocupe todo el ancho */
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* Centra los elementos dentro del grupo */
-}
-
-.auth-form label {
-    display: block;
-    font-size: 1.1rem;
-    margin-bottom: 0.6rem;
-    color: #e0e0e0;
-    font-weight: 500;
-    width: 100%; /* Asegura que la etiqueta ocupe el ancho completo */
-    text-align: left; /* Alinea el texto a la izquierda */
-    max-width: 360px; /* Limita el ancho para que coincida con el input */
-}
-
-.auth-form input {
-    width: 100%;
-    max-width: 360px; /* Limita el ancho del input para que no se extienda demasiado */
-    padding: 0.85rem;
-    border: 1px solid #00d4ff;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.07);
-    color: #fff;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    box-sizing: border-box; /* Asegura que el padding no afecte el ancho */
-}
-
-.auth-form input:focus {
-    outline: none;
-    border-color: #ff00ff;
-    box-shadow: 0 0 8px rgba(255, 0, 255, 0.6);
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.auth-btn {
-    width: 100%;
-    max-width: 360px; /* Alinea el botón con el ancho del input */
-    padding: 0.9rem;
-    background: linear-gradient(90deg, #00d4ff, #ff00ff);
-    border: none;
-    border-radius: 6px;
-    color: #fff;
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.auth-btn:hover {
-    transform: scale(1.05) translateY(-2px);
-    box-shadow: 0 4px 15px rgba(255, 0, 255, 0.4);
-}
-
-.auth-container p {
-    margin-top: 1.5rem;
-    color: #e0e0e0;
-    font-size: 0.95rem;
-}
-
-.auth-container a {
-    color: #00d4ff;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.3s ease;
-}
-
-.auth-container a:hover {
-    color: #ff00ff;
-    text-decoration: underline;
-}
-
-/* Modo oscuro */
-.dark-mode .auth-section {
-    background: linear-gradient(135deg, #0f0f1a 0%, #0d1426 100%);
-}
-
-.dark-mode .auth-container {
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
-}
-
-
 /* ==========================================================================
-   Auth Prompt Section - Mejoras Estéticas
-   ========================================================================== */
-   
-/* ==========================================================================
-   Auth Prompt Section - Diseño Minimalista y Tecnológico
+   Auth Section - Estética Tecnológica
    ========================================================================== */
    .auth-section {
     position: relative;
     padding: 4rem 2rem;
-    min-height: 80vh;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #0d1117; /* Fondo gris oscuro, inspirado en interfaces tecnológicas */
+    background: #0a0a0a; /* Fondo negro puro */
     color: #e0e0e0;
     overflow: hidden;
 }
 
-.auth-section .particles-bg {
+.auth-section #particles-js {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     z-index: 0;
-    opacity: 0.3; /* Reducimos la opacidad para un efecto más sutil */
-}
-
-.auth-section .three-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-    opacity: 0.4; /* Escena de Three.js más discreta */
+    opacity: 0.5; /* Partículas sutiles */
 }
 
 .auth-container {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(18, 18, 18, 0.9); /* Fondo semi-transparente oscuro */
     padding: 2.5rem;
     border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 15px rgba(0, 224, 255, 0.3); /* Sombra cian */
     max-width: 450px;
     width: 100%;
     text-align: center;
-    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 224, 255, 0.5); /* Borde cian */
     position: relative;
     z-index: 1;
-    border: 1px solid rgba(255, 255, 255, 0.1);
     transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .auth-container:hover {
-    box-shadow: 0 6px 25px rgba(0, 170, 255, 0.2); /* Sombra con un toque de cian apagado */
+    box-shadow: 0 0 20px rgba(0, 224, 255, 0.5);
     transform: translateY(-3px);
 }
 
 .auth-container h1 {
     font-family: 'Orbitron', sans-serif;
     font-size: 2.2rem;
-    font-weight: 600;
-    color: #ffffff;
+    color: #00e0ff; /* Cian */
     letter-spacing: 1px;
     margin-bottom: 1.5rem;
-    text-shadow: 0 0 5px rgba(0, 170, 255, 0.3); /* Brillo sutil */
+    text-shadow: 0 0 5px rgba(0, 224, 255, 0.5); /* Brillo cian */
+}
+
+.auth-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.auth-form .form-group {
+    margin-bottom: 1.5rem;
+    width: 100%;
+    text-align: left;
+}
+
+.auth-form label {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1rem;
+    color: #e0e0e0;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.auth-form input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: rgba(18, 18, 18, 0.9);
+    border: 1px solid rgba(0, 224, 255, 0.5); /* Borde cian */
+    border-radius: 6px;
+    color: #00e0ff; /* Texto cian */
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: #ff00ff; /* Magenta */
+    box-shadow: 0 0 8px rgba(255, 0, 255, 0.5); /* Brillo magenta */
+}
+
+.auth-form input::placeholder {
+    color: #66ccff; /* Cian claro */
+}
+
+/* Estilo para los botones de auth_prompt.html */
+.auth-btn {
+    padding: 0.75rem 2rem;
+    background: linear-gradient(90deg, #00e0ff, #00c4d6); /* Gradiente cian */
+    color: #121212; /* Texto oscuro para contraste con fondo cian */
+    border: none;
+    border-radius: 50px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(0, 224, 255, 0.5);
+    width: 100%;
+    max-width: 300px;
+    text-decoration: none; /* Para los enlaces <a> */
+    display: inline-block; /* Para que el enlace se comporte como un botón */
+    text-align: center;
+}
+
+.auth-btn:hover {
+    background: linear-gradient(90deg, #ff00ff, #e600e6); /* Gradiente magenta */
+    color: #ffffff; /* Texto blanco para contraste con fondo magenta */
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.7);
+}
+
+.auth-container p {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.9rem;
+    color: #b0b0b0;
+    margin-top: 1.5rem;
+}
+
+.auth-container a {
+    color: #00e0ff; /* Cian */
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.auth-container a:hover {
+    color: #ff00ff; /* Magenta */
+    text-decoration: underline;
 }
 
 .auth-message {
@@ -5701,15 +5646,22 @@ nav {
     line-height: 1.5;
 }
 
+.form-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
 .form-message {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 224, 255, 0.1);
     padding: 0.8rem 1.5rem;
     border-radius: 5px;
     margin-bottom: 1.5rem;
     font-family: 'Roboto Mono', monospace;
     font-size: 0.9rem;
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #00e0ff;
+    border: 1px solid rgba(0, 224, 255, 0.3);
 }
 
 .form-message.error {
@@ -5718,60 +5670,20 @@ nav {
     color: #ff4b4b;
 }
 
-.form-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.auth-btn {
-    position: relative;
-    padding: 0.8rem 2rem;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    border-radius: 5px;
-    background: rgba(255, 255, 255, 0.05);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.auth-btn-login:hover,
-.auth-btn-register:hover {
-    background: rgba(0, 170, 255, 0.1);
-    border-color: #00aaff;
-    transform: translateY(-2px);
-    box-shadow: 0 0 10px rgba(0, 170, 255, 0.3);
-}
-
-/* Media Queries para responsividad */
+/* Media Queries */
 @media (max-width: 768px) {
     .auth-section {
         padding: 3rem 1.5rem;
-        min-height: 70vh;
     }
-
     .auth-container {
         padding: 2rem;
         max-width: 400px;
     }
-
     .auth-container h1 {
         font-size: 1.8rem;
-        margin-bottom: 1.2rem;
     }
-
-    .auth-message {
-        font-size: 0.9rem;
-        margin-bottom: 1.5rem;
-    }
-
     .auth-btn {
         padding: 0.7rem 1.8rem;
-        font-size: 0.85rem;
     }
 }
 
@@ -5779,24 +5691,14 @@ nav {
     .auth-section {
         padding: 2rem 1rem;
     }
-
     .auth-container {
         padding: 1.5rem;
         max-width: 340px;
     }
-
     .auth-container h1 {
         font-size: 1.6rem;
-        margin-bottom: 1rem;
     }
-
-    .auth-message {
-        font-size: 0.85rem;
-        margin-bottom: 1.2rem;
-    }
-
     .auth-btn {
         padding: 0.6rem 1.5rem;
-        font-size: 0.8rem;
     }
 }

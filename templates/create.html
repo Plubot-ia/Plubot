@@ -4,21 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crea tu Plubot</title>
-    <!-- Importar las fuentes desde Google Fonts -->
+    <!-- Fuentes desde Google Fonts -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Roboto+Mono:wght@400;500&family=Orbitron:wght@400;700&display=swap">
-    <!-- Font Awesome para los íconos -->
+    <!-- Font Awesome para íconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- AOS para animaciones -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <!-- React y ReactDOM -->
+    <!-- Dependencias de React y Babel desde CDN -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <!-- GSAP para animaciones -->
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-    <!-- Particles.js -->
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <!-- Particles.js (usamos CDN para asegurar carga) -->
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <!-- AOS Script -->
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <style>
@@ -247,13 +246,6 @@
             letter-spacing: 0.12em;
             z-index: 3;
             text-shadow: 0 0 8px rgba(0, 224, 255, 0.7);
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-
-        .chatbot-title::before,
-        .chatbot-title::after {
-            display: none;
         }
 
         .chatbot-subtitle {
@@ -262,8 +254,6 @@
             margin-bottom: 1.5rem;
             max-width: 500px;
             z-index: 3;
-            opacity: 1 !important;
-            visibility: visible !important;
         }
 
         #particles-js {
@@ -597,7 +587,7 @@
         }
 
         .chatbot-item {
-            padding:-1rem;
+            padding: 1rem; /* Corregido de padding: -1rem */
             margin-bottom: 0.5rem;
             background: rgba(30, 30, 30, 0.95);
             border-radius: 4px;
@@ -798,17 +788,8 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        const getTokenFromCookie = () => {
-            const cookies = document.cookie.split('; ');
-            console.log("Cookies disponibles:", document.cookie); // Depuración
-            const tokenRow = cookies.find(row => row.startsWith('access_token='));
-            const token = tokenRow ? tokenRow.split('=')[1] : null;
-            console.log("Token extraído de cookies:", token); // Depuración
-            return token;
-        };
-
         const ChatbotApp = () => {
-            const [isAuthenticated, setIsAuthenticated] = useState(null); // null como estado inicial
+            const [isAuthenticated, setIsAuthenticated] = useState(null);
             const [name, setName] = useState('');
             const [tone, setTone] = useState('amigable');
             const [purpose, setPurpose] = useState('');
@@ -826,72 +807,41 @@
             const [chatbotToDelete, setChatbotToDelete] = useState(null);
             const [uploadProgress, setUploadProgress] = useState(0);
 
-            // Verificar autenticación al cargar
             useEffect(() => {
-                console.log("Verificando autenticación...");
-                const token = getTokenFromCookie();
-                if (token) {
-                    console.log("Token encontrado, cargando chatbots...");
-                    setIsAuthenticated(true);
-                    loadChatbots(token);
-                } else {
-                    console.warn("No se encontró token. Redirigiendo a login...");
-                    setIsAuthenticated(false);
-                    setTimeout(() => {
-                        window.location.href = '/login'; // Redirigir a login
-                    }, 2000); // Retraso para mostrar el mensaje
-                }
+                console.log("Iniciando carga de chatbots...");
+                const loadChatbots = async () => {
+                    try {
+                        const response = await fetch('/list-bots', {
+                            method: 'GET',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                        });
+                        console.log("Estado de /list-bots:", response.status);
+                        if (!response.ok) {
+                            throw new Error(`Error al cargar chatbots: ${response.status}`);
+                        }
+                        const data = await response.json();
+                        console.log("Datos recibidos:", data);
+                        setChatbots(data.chatbots || []);
+                        setIsAuthenticated(true);
+                    } catch (error) {
+                        console.error("Error al cargar chatbots:", error);
+                        setChatbots([]);
+                        setResponseMessage(`Error: ${error.message}. Redirigiendo a /login...`);
+                        setIsAuthenticated(false);
+                        setTimeout(() => window.location.href = '/login', 2000);
+                    }
+                };
+                loadChatbots();
             }, []);
 
-            // Cargar lista de chatbots
-            const loadChatbots = async (token) => {
-                try {
-                    console.log("Enviando solicitud a /list-bots con token:", token);
-                    const response = await fetch('http://localhost:5000/list-bots', {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        credentials: 'include'
-                    });
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        console.error("Error en /list-bots:", errorData);
-                        throw new Error(`Error al cargar los chatbots: ${response.status} - ${errorData.message || response.statusText}`);
-                    }
-                    const data = await response.json();
-                    console.log("Chatbots cargados:", data.chatbots);
-                    setChatbots(data.chatbots);
-                } catch (error) {
-                    console.error('Error al cargar chatbots:', error);
-                    setResponseMessage(`Error: ${error.message}`);
-                    setIsAuthenticated(false);
-                    setTimeout(() => {
-                        window.location.href = '/login'; // Redirigir si falla la autenticación
-                    }, 2000);
-                }
-            };
-
-            // Iniciar chat con un chatbot seleccionado
             const startChat = async (chatbot) => {
                 setSelectedChatbot(chatbot);
-                setMessages([{ role: 'bot', content: chatbot.initial_message }]);
-                const token = getTokenFromCookie();
-                if (!token) {
-                    setResponseMessage('Error: No se encontró el token de autenticación. Redirigiendo a login...');
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 2000);
-                    return;
-                }
+                setMessages([{ role: 'bot', content: chatbot.initial_message || 'Hola, ¿en qué puedo ayudarte?' }]);
                 try {
-                    const response = await fetch('http://localhost:5000/conversation-history', {
+                    const response = await fetch('/conversation-history', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
                         body: JSON.stringify({ chatbot_id: chatbot.id })
                     });
@@ -903,42 +853,24 @@
                         }));
                         setMessages(prev => [...prev, ...historyMessages]);
                     } else {
-                        console.error('Error al cargar historial:', data.message);
                         setResponseMessage(`Error al cargar historial: ${data.message}`);
                     }
                 } catch (error) {
-                    console.error('Error al cargar historial:', error);
                     setResponseMessage('Error al cargar el historial de conversación.');
                 }
             };
 
-            // Enviar mensaje al chatbot
             const sendMessage = async () => {
                 if (!inputMessage || !selectedChatbot) return;
-                const token = getTokenFromCookie();
-                if (!token) {
-                    setResponseMessage('Error: No se encontró el token de autenticación. Redirigiendo a login...');
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 2000);
-                    return;
-                }
                 const newMessage = { role: 'user', content: inputMessage };
                 setMessages(prev => [...prev, newMessage]);
                 setInputMessage('');
-
                 try {
-                    const response = await fetch('http://localhost:5000/chat', {
+                    const response = await fetch('/chat', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
-                        body: JSON.stringify({
-                            chatbot_id: selectedChatbot.id,
-                            message: inputMessage
-                        })
+                        body: JSON.stringify({ chatbot_id: selectedChatbot.id, message: inputMessage })
                     });
                     const data = await response.json();
                     if (response.ok) {
@@ -947,46 +879,28 @@
                         setResponseMessage(`Error: ${data.message}`);
                     }
                 } catch (error) {
-                    console.error('Error al enviar mensaje:', error);
                     setResponseMessage('Error al enviar mensaje.');
                 }
             };
 
-            // Manejar el envío del formulario
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                const token = getTokenFromCookie();
-                if (!token) {
-                    setResponseMessage('Error: No se encontró el token de autenticación. Redirigiendo a login...');
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 2000);
-                    return;
-                }
-                const botData = {
-                    name,
-                    tone,
-                    purpose,
-                    whatsapp_number: whatsappNumber,
-                    business_info: businessInfo,
-                    pdf_url: pdfUrl,
-                    image_url: imageUrl,
-                    flows
-                };
+                const botData = { name, tone, purpose, whatsapp_number: whatsappNumber, business_info: businessInfo, pdf_url: pdfUrl, image_url: imageUrl, flows };
                 try {
-                    const response = await fetch('http://localhost:5000/create-bot', {
+                    const response = await fetch('/create-bot', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
                         body: JSON.stringify(botData)
                     });
                     const data = await response.json();
                     if (response.ok) {
                         setResponseMessage(data.message);
-                        loadChatbots(token);
+                        const loadResponse = await fetch('/list-bots', { method: 'GET', headers: { 'Content-Type': 'application/json' }, credentials: 'include' });
+                        if (loadResponse.ok) {
+                            const loadData = await loadResponse.json();
+                            setChatbots(loadData.chatbots || []);
+                        }
                         setName('');
                         setTone('amigable');
                         setPurpose('');
@@ -999,37 +913,27 @@
                         setResponseMessage(`Error: ${data.message}`);
                     }
                 } catch (error) {
-                    console.error('Error al crear el chatbot:', error);
                     setResponseMessage('Error al crear el chatbot.');
                 }
             };
 
-            // Manejar eliminación de chatbot
             const handleDelete = async () => {
                 if (!chatbotToDelete) return;
-                const token = getTokenFromCookie();
-                if (!token) {
-                    setResponseMessage('Error: No se encontró el token de autenticación. Redirigiendo a login...');
-                    setShowDeleteModal(false);
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 2000);
-                    return;
-                }
                 try {
-                    const response = await fetch('http://localhost:5000/delete-bot', {
+                    const response = await fetch('/delete-bot', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
                         body: JSON.stringify({ chatbot_id: chatbotToDelete.id })
                     });
                     const data = await response.json();
                     if (response.ok) {
                         setResponseMessage(data.message);
-                        loadChatbots(token);
+                        const loadResponse = await fetch('/list-bots', { method: 'GET', headers: { 'Content-Type': 'application/json' }, credentials: 'include' });
+                        if (loadResponse.ok) {
+                            const loadData = await loadResponse.json();
+                            setChatbots(loadData.chatbots || []);
+                        }
                         if (selectedChatbot && selectedChatbot.id === chatbotToDelete.id) {
                             setSelectedChatbot(null);
                             setMessages([]);
@@ -1038,41 +942,26 @@
                         setResponseMessage(`Error: ${data.message}`);
                     }
                 } catch (error) {
-                    console.error('Error al eliminar el chatbot:', error);
                     setResponseMessage('Error al eliminar el chatbot.');
                 }
                 setShowDeleteModal(false);
                 setChatbotToDelete(null);
             };
 
-            // Subir archivo
             const handleFileUpload = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-                const token = getTokenFromCookie();
-                if (!token) {
-                    setResponseMessage('Error: No se encontró el token de autenticación. Redirigiendo a login...');
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 2000);
-                    return;
-                }
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('type', file.type.includes('pdf') ? 'pdf' : 'image');
-
                 try {
                     const xhr = new XMLHttpRequest();
                     xhr.open('POST', 'http://localhost:5000/upload-file', true);
-                    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-
                     xhr.upload.onprogress = (event) => {
                         if (event.lengthComputable) {
-                            const percent = (event.loaded / event.total) * 100;
-                            setUploadProgress(percent);
+                            setUploadProgress((event.loaded / event.total) * 100);
                         }
                     };
-
                     xhr.onload = () => {
                         if (xhr.status === 200) {
                             const data = JSON.parse(xhr.responseText);
@@ -1080,7 +969,7 @@
                                 setPdfUrl(data.file_url || '');
                                 setResponseMessage('PDF subido con éxito.');
                             } else {
-                                setImageUrl(data.file_url);
+                                setImageUrl(data.file_url || '');
                                 setResponseMessage('Imagen subida con éxito.');
                             }
                         } else {
@@ -1089,21 +978,18 @@
                         }
                         setUploadProgress(0);
                     };
-
                     xhr.onerror = () => {
                         setResponseMessage('Error al subir el archivo.');
                         setUploadProgress(0);
                     };
-
+                    xhr.withCredentials = true;
                     xhr.send(formData);
                 } catch (error) {
-                    console.error('Error al subir archivo:', error);
                     setResponseMessage('Error al subir el archivo.');
                     setUploadProgress(0);
                 }
             };
 
-            // Manejar cambios en los flujos
             const handleFlowChange = (index, field, value) => {
                 const newFlows = [...flows];
                 newFlows[index][field] = value;
@@ -1118,7 +1004,6 @@
                 setFlows(flows.filter((_, i) => i !== index));
             };
 
-            // Renderizado condicional
             if (isAuthenticated === null) {
                 return (
                     <section className="chatbot-section">
@@ -1139,8 +1024,7 @@
                             <div className="chatbot-text-column">
                                 <h1 className="chatbot-title">Crea tu Plubot</h1>
                                 <p className="auth-message">
-                                    Redirigiendo a la página de inicio de sesión... <br />
-                                    Si no eres redirigido, <a href="/login">haz clic aquí</a> para iniciar sesión o <a href="/register">regístrate</a>.
+                                    Necesitas iniciar sesión. <a href="/login">Haz clic aquí</a> para continuar.
                                 </p>
                             </div>
                         </div>
@@ -1157,153 +1041,68 @@
                                 <h2>Configura tu Chatbot</h2>
                                 <form onSubmit={handleSubmit}>
                                     <div className="form-grid">
-                                        <input
-                                            className="contact-input"
-                                            type="text"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            placeholder="Nombre del Chatbot"
-                                            required
-                                        />
-                                        <select
-                                            className="contact-select"
-                                            value={tone}
-                                            onChange={(e) => setTone(e.target.value)}
-                                        >
+                                        <input className="contact-input" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre del Chatbot" required />
+                                        <select className="contact-select" value={tone} onChange={(e) => setTone(e.target.value)}>
                                             <option value="amigable">Amigable</option>
                                             <option value="profesional">Profesional</option>
                                             <option value="divertido">Divertido</option>
                                             <option value="serio">Serio</option>
                                         </select>
-                                        <input
-                                            className="contact-input"
-                                            type="text"
-                                            value={purpose}
-                                            onChange={(e) => setPurpose(e.target.value)}
-                                            placeholder="Propósito (ej. ventas, soporte)"
-                                            required
-                                        />
-                                        <input
-                                            className="contact-input"
-                                            type="text"
-                                            value={whatsappNumber}
-                                            onChange={(e) => setWhatsappNumber(e.target.value)}
-                                            placeholder="Número de WhatsApp (+1234567890)"
-                                        />
+                                        <input className="contact-input" type="text" value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Propósito (ej. ventas, soporte)" required />
+                                        <input className="contact-input" type="text" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} placeholder="Número de WhatsApp (+1234567890)" />
                                     </div>
-                                    <textarea
-                                        className="contact-textarea"
-                                        value={businessInfo}
-                                        onChange={(e) => setBusinessInfo(e.target.value)}
-                                        placeholder="Información del negocio (opcional)"
-                                    />
+                                    <textarea className="contact-textarea" value={businessInfo} onChange={(e) => setBusinessInfo(e.target.value)} placeholder="Información del negocio (opcional)" />
                                     <div className="form-grid">
-                                        <input
-                                            className="contact-input"
-                                            type="url"
-                                            value={pdfUrl}
-                                            onChange={(e) => setPdfUrl(e.target.value)}
-                                            placeholder="URL del PDF (opcional)"
-                                        />
-                                        <input
-                                            className="contact-input"
-                                            type="url"
-                                            value={imageUrl}
-                                            onChange={(e) => setImageUrl(e.target.value)}
-                                            placeholder="URL de la Imagen (opcional)"
-                                        />
+                                        <input className="contact-input" type="url" value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)} placeholder="URL del PDF (opcional)" />
+                                        <input className="contact-input" type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="URL de la Imagen (opcional)" />
                                     </div>
                                     <div className="file-upload">
                                         <label>Subir PDF o Imagen (máx. 5MB)</label>
-                                        <input
-                                            type="file"
-                                            accept=".pdf,image/*"
-                                            onChange={handleFileUpload}
-                                        />
+                                        <input type="file" accept=".pdf,image/*" onChange={handleFileUpload} />
                                         {uploadProgress > 0 && (
                                             <div className="progress-bar">
-                                                <div
-                                                    className="progress-bar-fill"
-                                                    style={{ width: `${uploadProgress}%` }}
-                                                />
+                                                <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }} />
                                             </div>
                                         )}
                                     </div>
                                     <h3>Flujos de Conversación</h3>
                                     {flows.map((flow, index) => (
                                         <div className="flow-item" key={index}>
-                                            <input
-                                                className="contact-input"
-                                                type="text"
-                                                value={flow.userMessage}
-                                                onChange={(e) => handleFlowChange(index, 'userMessage', e.target.value)}
-                                                placeholder="Mensaje del usuario"
-                                            />
-                                            <input
-                                                className="contact-input"
-                                                type="text"
-                                                value={flow.botResponse}
-                                                onChange={(e) => handleFlowChange(index, 'botResponse', e.target.value)}
-                                                placeholder="Respuesta del bot"
-                                            />
+                                            <input className="contact-input" type="text" value={flow.userMessage} onChange={(e) => handleFlowChange(index, 'userMessage', e.target.value)} placeholder="Mensaje del usuario" />
+                                            <input className="contact-input" type="text" value={flow.botResponse} onChange={(e) => handleFlowChange(index, 'botResponse', e.target.value)} placeholder="Respuesta del bot" />
                                             {flows.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    className="quantum-btn delete-btn"
-                                                    onClick={() => removeFlow(index)}
-                                                >
-                                                    Eliminar
-                                                </button>
+                                                <button type="button" className="quantum-btn delete-btn" onClick={() => removeFlow(index)}>Eliminar</button>
                                             )}
                                         </div>
                                     ))}
                                     <div className="flow-buttons">
-                                        <button
-                                            type="button"
-                                            className="quantum-btn magenta"
-                                            onClick={addFlow}
-                                        >
-                                            Agregar Flujo
-                                        </button>
+                                        <button type="button" className="quantum-btn magenta" onClick={addFlow}>Agregar Flujo</button>
                                     </div>
                                     <div className="form-buttons">
-                                        <button type="submit" className="quantum-btn">
-                                            Crear Chatbot
-                                        </button>
+                                        <button type="submit" className="quantum-btn">Crear Chatbot</button>
                                     </div>
                                 </form>
-                                {responseMessage && (
-                                    <div className="response-message">{responseMessage}</div>
-                                )}
+                                {responseMessage && <div className="response-message">{responseMessage}</div>}
                             </div>
 
                             <div className="chatbot-list">
                                 <h2>Tus Chatbots</h2>
-                                {chatbots.map(bot => (
-                                    <div className="chatbot-item" key={bot.id}>
-                                        <div className="chatbot-item-details">
-                                            <strong>{bot.name}</strong> - {bot.purpose} (Tono: {bot.tone})
-                                            {bot.whatsapp_number && ` | WhatsApp: ${bot.whatsapp_number}`}
+                                {chatbots.length > 0 ? (
+                                    chatbots.map(bot => (
+                                        <div className="chatbot-item" key={bot.id}>
+                                            <div className="chatbot-item-details">
+                                                <strong>{bot.name}</strong> - {bot.purpose} (Tono: {bot.tone})
+                                                {bot.whatsapp_number && ` | WhatsApp: ${bot.whatsapp_number}`}
+                                            </div>
+                                            <div className="chatbot-item-buttons">
+                                                <button className="quantum-btn magenta" onClick={() => startChat(bot)}>Chatear</button>
+                                                <button className="quantum-btn delete-btn" onClick={() => { setChatbotToDelete(bot); setShowDeleteModal(true); }}>Eliminar</button>
+                                            </div>
                                         </div>
-                                        <div className="chatbot-item-buttons">
-                                            <button
-                                                className="quantum-btn magenta"
-                                                onClick={() => startChat(bot)}
-                                            >
-                                                Chatear
-                                            </button>
-                                            <button
-                                                className="quantum-btn delete-btn"
-                                                onClick={() => {
-                                                    setChatbotToDelete(bot);
-                                                    setShowDeleteModal(true);
-                                                }}
-                                            >
-                                                Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))
+                                ) : (
+                                    <p>No hay chatbots disponibles.</p>
+                                )}
                             </div>
                         </div>
 
@@ -1332,20 +1131,11 @@
                                                 </div>
                                                 <div className="whatsapp-body">
                                                     {messages.map((msg, index) => (
-                                                        <div
-                                                            key={index}
-                                                            className={`chatbot-message ${msg.role}`}
-                                                        >
+                                                        <div key={index} className={`chatbot-message ${msg.role}`}>
                                                             {msg.content}
                                                             <div className="message-meta">
-                                                                <span className="message-time">
-                                                                    {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                                </span>
-                                                                {msg.role === 'user' && (
-                                                                    <span className="message-status">
-                                                                        <i className="fas fa-check-double"></i>
-                                                                    </span>
-                                                                )}
+                                                                <span className="message-time">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                {msg.role === 'user' && <span className="message-status"><i className="fas fa-check-double"></i></span>}
                                                             </div>
                                                         </div>
                                                     ))}
@@ -1353,18 +1143,10 @@
                                                 <div className="whatsapp-input">
                                                     <div className="input-wrapper">
                                                         <i className="fas fa-smile input-icon"></i>
-                                                        <input
-                                                            type="text"
-                                                            value={inputMessage}
-                                                            onChange={(e) => setInputMessage(e.target.value)}
-                                                            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                                                            placeholder="Escribe un mensaje..."
-                                                        />
+                                                        <input type="text" value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="Escribe un mensaje..." />
                                                         <i className="fas fa-paperclip input-icon"></i>
                                                     </div>
-                                                    <button onClick={sendMessage}>
-                                                        <i className="fas fa-paper-plane"></i>
-                                                    </button>
+                                                    <button onClick={sendMessage}><i className="fas fa-paper-plane"></i></button>
                                                 </div>
                                             </div>
                                         </div>
@@ -1374,21 +1156,13 @@
                         )}
                     </div>
 
-                    {/* Modal de Confirmación de Eliminación */}
                     <div className={`modal ${showDeleteModal ? '' : 'hidden'}`}>
                         <div className="modal-content">
                             <h2>Confirmar Eliminación</h2>
                             <p>¿Estás seguro de que deseas eliminar el chatbot "{chatbotToDelete?.name}"? Esta acción no se puede deshacer.</p>
                             <div className="modal-actions">
-                                <button className="confirm-btn" onClick={handleDelete}>
-                                    Sí, Eliminar
-                                </button>
-                                <button
-                                    className="cancel-btn"
-                                    onClick={() => setShowDeleteModal(false)}
-                                >
-                                    Cancelar
-                                </button>
+                                <button className="confirm-btn" onClick={handleDelete}>Sí, Eliminar</button>
+                                <button className="cancel-btn" onClick={() => setShowDeleteModal(false)}>Cancelar</button>
                             </div>
                         </div>
                     </div>
@@ -1397,26 +1171,36 @@
         };
 
         // Inicializar AOS
-        AOS.init();
+        try {
+            AOS.init({ duration: 1000 });
+            console.log("AOS inicializado correctamente.");
+        } catch (e) {
+            console.error("Error al inicializar AOS:", e);
+        }
 
-        // Configuración de partículas
-        particlesJS('particles-js', {
-            particles: {
-                number: { value: 80, density: { enable: true, value_area: 800 } },
-                color: { value: '#00e0ff' },
-                shape: { type: 'circle' },
-                opacity: { value: 0.5, random: true },
-                size: { value: 3, random: true },
-                line_linked: { enable: true, distance: 150, color: '#00e0ff', opacity: 0.4, width: 1 },
-                move: { enable: true, speed: 2, direction: 'none', random: false, straight: false, out_mode: 'out', bounce: false }
-            },
-            interactivity: {
-                detect_on: 'canvas',
-                events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' }, resize: true },
-                modes: { repulse: { distance: 100, duration: 0.4 }, push: { particles_nb: 4 } }
-            },
-            retina_detect: true
-        });
+        // Configuración de Particles.js
+        try {
+            particlesJS('particles-js', {
+                particles: {
+                    number: { value: 80, density: { enable: true, value_area: 800 } },
+                    color: { value: '#00e0ff' },
+                    shape: { type: 'circle' },
+                    opacity: { value: 0.5, random: true },
+                    size: { value: 3, random: true },
+                    line_linked: { enable: true, distance: 150, color: '#00e0ff', opacity: 0.4, width: 1 },
+                    move: { enable: true, speed: 2, direction: 'none', random: false, straight: false, out_mode: 'out', bounce: false }
+                },
+                interactivity: {
+                    detect_on: 'canvas',
+                    events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' }, resize: true },
+                    modes: { repulse: { distance: 100, duration: 0.4 }, push: { particles_nb: 4 } }
+                },
+                retina_detect: true
+            });
+            console.log("Particles.js inicializado correctamente.");
+        } catch (e) {
+            console.error("Error al inicializar Particles.js:", e);
+        }
 
         // Renderizar la aplicación
         const root = ReactDOM.createRoot(document.getElementById('root'));

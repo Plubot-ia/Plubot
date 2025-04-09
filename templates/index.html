@@ -11,7 +11,9 @@
     <div class="hero-content">
         <h1 class="quantum-title" data-text="Plubot Web">Plubot WEB</h1>
         <p class="quantum-subtitle">Explora el futuro de los chatbots con inteligencia Artificial</p>
-        <a href="{{ url_for('create_prompt') }}" class="quantum-btn">Crea tu propio bot</a>
+        <div id="auth-button-container">
+            <!-- El enlace del botón se renderizará dinámicamente aquí -->
+        </div>
     </div>
 </section>
 
@@ -247,89 +249,138 @@
 <!-- Scripts necesarios -->
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
-<script>
-   // === Animaciones del Carrusel Cósmico ===   
-if (typeof gsap !== 'undefined') {
-    const track = document.querySelector(".cosmic-carousel-track");
-    const items = document.querySelectorAll(".cosmic-carousel-item");
+<script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+<script type="text/babel">
+    const { useState, useEffect } = React;
 
-    if (track && items.length > 0) {
-        let carouselAnim;
+    const AuthButton = () => {
+        const [isAuthenticated, setIsAuthenticated] = useState(null); // null: verificando, true: autenticado, false: no autenticado
 
-        const updateCarousel = () => {
-            const itemWidth = items[0].getBoundingClientRect().width + 20; // Ancho del item + margen
-            const totalItems = items.length; // Total de items originales (10 en tu caso)
-            const totalWidth = itemWidth * totalItems; // Ancho total de los items originales
-
-            // Duplica los elementos para el loop infinito si no está duplicado
-            if (track.children.length === totalItems) {
-                track.innerHTML += track.innerHTML; // Duplica el contenido
-            }
-
-            // Ajustar la duración según el dispositivo
-            const isMobile = window.innerWidth <= 1024; // Consideramos móviles y tabletas hasta 1024px
-            const duration = isMobile ? totalItems * 2 : totalItems * 4; // 2 segundos por ítem en móviles, 4 en escritorio
-
-            // Configura la animación
-            carouselAnim = gsap.to(track, {
-                x: -totalWidth, // Mueve solo el ancho de los items originales
-                duration: duration, // Duración ajustada
-                ease: "none",
-                repeat: -1,
-                modifiers: {
-                    x: gsap.utils.unitize(x => parseFloat(x) % totalWidth) // Loop infinito
-                },
-                onStart: () => {
-                    // Optimizar para GPU en todos los dispositivos
-                    track.style.willChange = 'transform';
-                }
-            });
-
-            return carouselAnim;
-        };
-
-        // Inicializa el carrusel
-        carouselAnim = updateCarousel();
-
-        // Ajustar en caso de redimensionamiento
-        window.addEventListener('resize', () => {
-            carouselAnim.kill(); // Mata la animación anterior
-            track.innerHTML = track.innerHTML.slice(0, track.innerHTML.length / 2); // Restaura el contenido original
-            carouselAnim = updateCarousel(); // Reinicia el carrusel
-        });
-
-        // Animaciones de las tarjetas (sin interferencia en el movimiento)
-        const carouselCards = document.querySelectorAll('.cosmic-card');
-        carouselCards.forEach((card, index) => {
-            // Animación de entrada al hacer scroll
-            gsap.fromTo(
-                card,
-                { opacity: 0, y: 50, rotateY: 15 },
-                {
-                    opacity: 1,
-                    y: 0,
-                    rotateY: 0,
-                    duration: 1.5,
-                    ease: 'power3.out',
-                    scrollTrigger: {
-                        trigger: card,
-                        start: 'top 90%',
-                        toggleActions: 'play none none reverse'
+        // Verificar autenticación al cargar el componente
+        useEffect(() => {
+            const checkAuth = async () => {
+                try {
+                    const response = await fetch('/list-bots', {
+                        method: 'GET',
+                        credentials: 'include', // Enviar cookies
+                    });
+                    if (response.ok) {
+                        setIsAuthenticated(true);
+                    } else {
+                        setIsAuthenticated(false);
                     }
+                } catch (err) {
+                    setIsAuthenticated(false);
+                    console.error('Error al conectar con el servidor:', err);
                 }
-            );
+            };
+            checkAuth();
+        }, []);
 
-            // Animación flotante opcional
-            gsap.to(card, {
-                y: -20,
-                duration: 2,
-                repeat: -1,
-                yoyo: true,
-                ease: 'sine.inOut',
-                delay: index * 0.3
+        // Mostrar un enlace dinámico según el estado de autenticación
+        if (isAuthenticated === null) {
+            return (
+                <a href="#" className="quantum-btn" onClick={(e) => e.preventDefault()}>
+                    Verificando...
+                </a>
+            );
+        }
+
+        return (
+            <a href={isAuthenticated ? '/create' : '/login'} className="quantum-btn">
+                Crea tu propio bot
+            </a>
+        );
+    };
+
+    // Renderizar el componente del botón en el contenedor
+    ReactDOM.render(<AuthButton />, document.getElementById('auth-button-container'));
+</script>
+<script>
+    // === Animaciones del Carrusel Cósmico ===   
+    if (typeof gsap !== 'undefined') {
+        const track = document.querySelector(".cosmic-carousel-track");
+        const items = document.querySelectorAll(".cosmic-carousel-item");
+
+        if (track && items.length > 0) {
+            let carouselAnim;
+
+            const updateCarousel = () => {
+                const itemWidth = items[0].getBoundingClientRect().width + 20; // Ancho del item + margen
+                const totalItems = items.length; // Total de items originales (10 en tu caso)
+                const totalWidth = itemWidth * totalItems; // Ancho total de los items originales
+
+                // Duplica los elementos para el loop infinito si no está duplicado
+                if (track.children.length === totalItems) {
+                    track.innerHTML += track.innerHTML; // Duplica el contenido
+                }
+
+                // Ajustar la duración según el dispositivo
+                const isMobile = window.innerWidth <= 1024; // Consideramos móviles y tabletas hasta 1024px
+                const duration = isMobile ? totalItems * 2 : totalItems * 4; // 2 segundos por ítem en móviles, 4 en escritorio
+
+                // Configura la animación
+                carouselAnim = gsap.to(track, {
+                    x: -totalWidth, // Mueve solo el ancho de los items originales
+                    duration: duration, // Duración ajustada
+                    ease: "none",
+                    repeat: -1,
+                    modifiers: {
+                        x: gsap.utils.unitize(x => parseFloat(x) % totalWidth) // Loop infinito
+                    },
+                    onStart: () => {
+                        // Optimizar para GPU en todos los dispositivos
+                        track.style.willChange = 'transform';
+                    }
+                });
+
+                return carouselAnim;
+            };
+
+            // Inicializa el carrusel
+            carouselAnim = updateCarousel();
+
+            // Ajustar en caso de redimensionamiento
+            window.addEventListener('resize', () => {
+                carouselAnim.kill(); // Mata la animación anterior
+                track.innerHTML = track.innerHTML.slice(0, track.innerHTML.length / 2); // Restaura el contenido original
+                carouselAnim = updateCarousel(); // Reinicia el carrusel
             });
-        });
+
+            // Animaciones de las tarjetas (sin interferencia en el movimiento)
+            const carouselCards = document.querySelectorAll('.cosmic-card');
+            carouselCards.forEach((card, index) => {
+                // Animación de entrada al hacer scroll
+                gsap.fromTo(
+                    card,
+                    { opacity: 0, y: 50, rotateY: 15 },
+                    {
+                        opacity: 1,
+                        y: 0,
+                        rotateY: 0,
+                        duration: 1.5,
+                        ease: 'power3.out',
+                        scrollTrigger: {
+                            trigger: card,
+                            start: 'top 90%',
+                            toggleActions: 'play none none reverse'
+                        }
+                    }
+                );
+
+                // Animación flotante opcional
+                gsap.to(card, {
+                    y: -20,
+                    duration: 2,
+                    repeat: -1,
+                    yoyo: true,
+                    ease: 'sine.inOut',
+                    delay: index * 0.3
+                });
+            });
+        }
     }
-}
 </script>
 {% endblock %}
