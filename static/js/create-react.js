@@ -93,13 +93,17 @@ const ChatbotApp = () => {
             const response = await fetch('/create-bot', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(botData)
+                body: JSON.stringify(botData),
+                credentials: 'include'  // Añadir esta línea
             });
             const data = await response.json();
             if (response.ok) {
                 setResponseMessage(data.message);
-                const loadResponse = await fetch('/list-bots', { method: 'GET', headers: { 'Content-Type': 'application/json' }, credentials: 'include' });
+                const loadResponse = await fetch('/list-bots', { 
+                    method: 'GET', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    credentials: 'include' 
+                });
                 if (loadResponse.ok) {
                     const loadData = await loadResponse.json();
                     setChatbots(loadData.chatbots || []);
@@ -113,10 +117,10 @@ const ChatbotApp = () => {
                 setImageUrl('');
                 setFlows([{ userMessage: '', botResponse: '' }]);
             } else {
-                setResponseMessage(`Error: ${data.message}`);
+                setResponseMessage(`Error: ${data.message || 'undefined'}`);  // Mejorar manejo de errores
             }
         } catch (error) {
-            setResponseMessage('Error al crear el chatbot.');
+            setResponseMessage(`Error al crear el chatbot: ${error.message}`);
         }
     };
 
