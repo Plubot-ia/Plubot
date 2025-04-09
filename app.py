@@ -200,15 +200,22 @@ def call_grok(messages, max_tokens=150):
     headers = {"Authorization": f"Bearer {XAI_API_KEY}", "Content-Type": "application/json"}
     payload = {"model": "grok-2-1212", "messages": messages, "temperature": 0.5, "max_tokens": max_tokens}
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        logger.info(f"Enviando solicitud a xAI: {json.dumps(payload)}")
+        response = requests.post(url, json=payload, headers=headers, timeout=20)  # Aumentamos a 20 segundos
         response.raise_for_status()
         result = response.json()['choices'][0]['message']['content']
         redis_client.setex(cache_key, 3600, result)
         logger.info(f"Grok response: {result}")
         return result
     except (HTTPError, Timeout) as e:
-        logger.error(f"Error al conectar con Grok: {str(e)}")
+        logger.error(f"Error al conectar con Grok (HTTP/Timeout): {str(e)}")
         return "¡Ups! Algo salió mal, intenta de nuevo. 😅"
+    except requests.exceptions.ConnectionError as e:
+        logger.error(f"Error de conexión con Grok: {str(e)}")
+        return "¡Vaya! Parece que el servidor de IA no responde, intenta de nuevo en un momento."
+    except Exception as e:
+        logger.error(f"Error inesperado en Grok: {str(e)}")
+        return "¡Oops! Error inesperado, por favor intenta de nuevo."
 
 @celery_app.task
 def process_pdf_async(chatbot_id, pdf_url):
