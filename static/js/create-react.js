@@ -1,4 +1,5 @@
-const { useState, useEffect } = React;
+const { useState, useEffect, useCallback } = React;
+const { ReactFlow, ReactFlowProvider, useNodesState, useEdgesState, Background, Controls } = ReactFlow;
 
 const ChatbotApp = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -9,7 +10,7 @@ const ChatbotApp = () => {
     const [businessInfo, setBusinessInfo] = useState('');
     const [pdfUrl, setPdfUrl] = useState('');
     const [imageUrl, setImageUrl] = useState('');
-    const [flows, setFlows] = useState([{ userMessage: '', botResponse: '' }]);
+    const [flows, setFlows] = useState([{ userMessage: '', botResponse: '' }]); // Flujos originales
     const [chatbots, setChatbots] = useState([]);
     const [messages, setMessages] = useState([]);
     const [inputMessage, setInputMessage] = useState('');
@@ -24,6 +25,11 @@ const ChatbotApp = () => {
     const [step, setStep] = useState(1);
     const [previewMessage, setPreviewMessage] = useState('');
     const [quota, setQuota] = useState({ messages_used: 0, messages_limit: 100 });
+    // Nuevos estados para React Flow y mejoras
+    const [editingBot, setEditingBot] = useState(null); // Para edición post-creación
+    const [menuJson, setMenuJson] = useState(''); // Soporte para menús
+    const [nodes, setNodes, onNodesChange] = useNodesState([]); // Nodos de React Flow
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]); // Conexiones de React Flow
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -131,13 +137,22 @@ const ChatbotApp = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
+        const flowData = nodes.length > 0 
+            ? nodes.map(node => {
+                const [userMessage, botResponse] = node.data.label.split(' → ');
+                return { userMessage, botResponse };
+            })
+            : flows; // Usar React Flow si hay nodos, sino los flujos originales
         const botData = { 
             name, tone, purpose, whatsapp_number: whatsappNumber, 
-            business_info: businessInfo, pdf_url: pdfUrl, image_url: imageUrl, flows,
-            template_id: selectedTemplate || null
+            business_info: businessInfo, pdf_url: pdfUrl, image_url: imageUrl, 
+            flows: flowData, template_id: selectedTemplate || null,
+            menu_json: menuJson, // Soporte para menús
+            ...(editingBot && { chatbot_id: editingBot.id }) // Edición post-creación
         };
+        const endpoint = editingBot ? '/update-bot' : '/create-bot';
         try {
-            const response = await fetch('/create-bot', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -151,16 +166,7 @@ const ChatbotApp = () => {
                     const botsData = await botsResponse.json();
                     setChatbots(botsData.chatbots || []);
                 }
-                setName('');
-                setTone('amigable');
-                setPurpose('');
-                setWhatsappNumber('');
-                setBusinessInfo('');
-                setPdfUrl('');
-                setImageUrl('');
-                setFlows([{ userMessage: '', botResponse: '' }]);
-                setSelectedTemplate('');
-                setStep(1);
+                resetForm();
             } else {
                 setResponseMessage(data.message);
             }
@@ -169,6 +175,23 @@ const ChatbotApp = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const resetForm = () => {
+        setName('');
+        setTone('amigable');
+        setPurpose('');
+        setWhatsappNumber('');
+        setBusinessInfo('');
+        setPdfUrl('');
+        setImageUrl('');
+        setFlows([{ userMessage: '', botResponse: '' }]);
+        setSelectedTemplate('');
+        setStep(1);
+        setMenuJson('');
+        setEditingBot(null);
+        setNodes([]);
+        setEdges([]);
     };
 
     const handleDelete = async () => {
@@ -282,6 +305,74 @@ const ChatbotApp = () => {
         }
     };
 
+    // Nueva función para edición post-creación
+    const handleEdit = async (chatbot) => {
+        setEditingBot(chatbot);
+        setName(chatbot.name);
+        setTone(chatbot.tone);
+        setPurpose(chatbot.purpose);
+        setWhatsappNumber(chatbot.whatsapp_number || '');
+        setBusinessInfo(chatbot.business_info || '');
+        setPdfUrl(chatbot.pdf_url || '');
+        setImageUrl(chatbot.image_url || '');
+        setMenuJson(''); // Inicialmente vacío, podría cargarse desde backend si se guarda
+        // Cargar flujos para React Flow
+        const response = await fetch('/update-bot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chatbot_id: chatbot.id }),
+            credentials: 'include',
+        });
+        const data = await response.json();
+        const botFlows = data.flows || chatbot.flows || [];
+        setFlows(botFlows);
+        const initialNodes = botFlows.map((flow, index) => ({
+            id: `${index}`,
+            type: 'default',
+            data: { label: `${flow.userMessage} → ${flow.botResponse}` },
+            position: { x: 250, y: 50 + index * 100 },
+        }));
+        setNodes(initialNodes);
+        setEdges([]);
+        setStep(1);
+    };
+
+    // Funciones para React Flow
+    const onConnect = useCallback(
+        (params) => setEdges((eds) => [...eds, { id: `${params.source}-${params.target}`, source: params.source, target: params.target }]),
+        [setEdges]
+    );
+
+    const addNewNode = () => {
+        setNodes([
+            ...nodes,
+            {
+                id: `${nodes.length}`,
+                type: 'default',
+                data: { label: 'Nuevo flujo' },
+                position: { x: 250, y: nodes.length * 100 },
+            },
+        ]);
+    };
+
+    const applyTemplate = (templateId) => {
+        const template = templates.find(t => t.id === templateId);
+        if (template) {
+            setTone(template.tone);
+            setPurpose(template.purpose);
+            setFlows(template.flows);
+            setSelectedTemplate(templateId);
+            const initialNodes = template.flows.map((flow, index) => ({
+                id: `${index}`,
+                type: 'default',
+                data: { label: `${flow.user_message} → ${flow.bot_response}` },
+                position: { x: 250, y: 50 + index * 100 },
+            }));
+            setNodes(initialNodes);
+            setEdges([]);
+        }
+    };
+
     const renderStep = () => {
         const previewResponse = flows.find(f => f.userMessage.toLowerCase() === previewMessage.toLowerCase())?.botResponse || 'Escribe un mensaje para ver la respuesta.';
         switch (step) {
@@ -329,16 +420,27 @@ const ChatbotApp = () => {
                 return (
                     <div className="mb-8">
                         <h2 className="text-xl font-semibold mb-6 text-white">Paso 2: Plantilla (Opcional)</h2>
-                        <select
-                            className="contact-select w-full mb-4"
-                            value={selectedTemplate}
-                            onChange={(e) => setSelectedTemplate(e.target.value)}
-                        >
-                            <option value="">Sin plantilla</option>
-                            {templates.map(template => (
-                                <option key={template.id} value={template.id}>{template.name}</option>
-                            ))}
-                        </select>
+                        {templates.map(template => (
+                            <div key={template.id} className="template-card mb-4 p-4 bg-gray-800 rounded">
+                                <h3 className="text-lg font-semibold text-white">{template.name}</h3>
+                                <p className="text-gray-300">{template.description}</p>
+                                <ul className="text-gray-400 mt-2">
+                                    {template.flows.map((flow, index) => (
+                                        <li key={index}>{flow.user_message} → {flow.bot_response}</li>
+                                    ))}
+                                </ul>
+                                <button
+                                    type="button"
+                                    className="quantum-btn mt-2"
+                                    onClick={() => {
+                                        applyTemplate(template.id);
+                                        setStep(3);
+                                    }}
+                                >
+                                    Usar esta plantilla
+                                </button>
+                            </div>
+                        ))}
                         <div className="flex space-x-4">
                             <button
                                 type="button"
@@ -352,7 +454,7 @@ const ChatbotApp = () => {
                                 className="quantum-btn flex-1"
                                 onClick={() => setStep(3)}
                             >
-                                Siguiente
+                                Omitir y Personalizar
                             </button>
                         </div>
                     </div>
@@ -361,6 +463,7 @@ const ChatbotApp = () => {
                 return (
                     <div className="mb-8">
                         <h2 className="text-xl font-semibold mb-6 text-white">Paso 3: Flujos de Conversación</h2>
+                        {/* Editor original de flujos */}
                         {flows.map((flow, index) => (
                             <div className="flow-item mb-4 p-4" key={index}>
                                 <input
@@ -388,7 +491,26 @@ const ChatbotApp = () => {
                                 )}
                             </div>
                         ))}
-                        <div className="mb-4">
+                        {/* Nuevo editor con React Flow */}
+                        <div className="react-flow__container" style={{ height: '400px', marginTop: '20px' }}>
+                            <ReactFlowProvider>
+                                <ReactFlow
+                                    nodes={nodes}
+                                    edges={edges}
+                                    onNodesChange={onNodesChange}
+                                    onEdgesChange={onEdgesChange}
+                                    onConnect={onConnect}
+                                    fitView
+                                >
+                                    <Background />
+                                    <Controls />
+                                    <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 100 }}>
+                                        <button className="quantum-btn" onClick={addNewNode}>Añadir Flujo Visual</button>
+                                    </div>
+                                </ReactFlow>
+                            </ReactFlowProvider>
+                        </div>
+                        <div className="mb-4 mt-4">
                             <input
                                 className="contact-input w-full mb-2"
                                 type="text"
@@ -456,6 +578,12 @@ const ChatbotApp = () => {
                                 placeholder="URL de la Imagen (opcional)"
                             />
                         </div>
+                        <textarea
+                            className="contact-textarea mb-4"
+                            value={menuJson}
+                            onChange={(e) => setMenuJson(e.target.value)}
+                            placeholder='Menú en JSON (opcional): {"Cafés": {"Latte": {"precio": 3.5, "descripcion": "Café con leche cremoso"}}}'
+                        />
                         <div className="file-upload mb-4">
                             <label className="text-gray-300">Subir PDF o Imagen (máx. 5MB)</label>
                             <input
@@ -483,7 +611,7 @@ const ChatbotApp = () => {
                                 onClick={handleSubmit}
                                 disabled={isLoading}
                             >
-                                {isLoading ? 'Creando...' : 'Finalizar y Crear'}
+                                {isLoading ? 'Guardando...' : (editingBot ? 'Actualizar Chatbot' : 'Finalizar y Crear')}
                             </button>
                         </div>
                     </div>
@@ -574,6 +702,13 @@ const ChatbotApp = () => {
                                                 {isLoading ? 'Conectando...' : 'Conectar WhatsApp'}
                                             </button>
                                         )}
+                                        <button
+                                            className="quantum-btn"
+                                            onClick={() => handleEdit(bot)}
+                                            disabled={isLoading}
+                                        >
+                                            Editar
+                                        </button>
                                         <button
                                             className="quantum-btn delete-btn"
                                             onClick={() => {

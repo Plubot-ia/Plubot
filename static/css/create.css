@@ -815,3 +815,246 @@ a {
         justify-content: center;
     }
 }
+
+/* ==========================================================================
+   Estilos para el Editor de Flujos y Plantillas
+   ========================================================================== */
+   .react-flow__container {
+    height: 400px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    margin-top: 1.5rem;
+    background: #1a1a1a;
+    box-shadow: 0 0 8px rgba(0, 224, 255, 0.1);
+}
+
+.template-card {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 1rem;
+    margin: 0.625rem 0;
+    border-radius: 8px;
+    background-color: #252525;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.template-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 8px rgba(0, 224, 255, 0.15);
+}
+
+.template-card h3 {
+    margin: 0 0 0.625rem;
+    color: #e0e0e0;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+}
+
+.template-card p {
+    margin: 0 0 0.625rem;
+    color: #d0d0d0;
+    font-size: 0.9rem;
+}
+
+.template-card ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.template-card li {
+    margin: 0.3125rem 0;
+    color: #e0e0e0;
+    font-size: 0.9rem;
+}
+
+.step-container {
+    max-width: 800px;
+    margin: 1.25rem auto;
+    padding: 1.25rem;
+    background: rgba(18, 18, 18, 0.85);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 224, 255, 0.1);
+    box-shadow: 0 0 8px rgba(0, 224, 255, 0.1);
+}
+
+.step-container h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.4rem;
+    color: #00e0ff;
+    margin-bottom: 1rem;
+    text-align: center;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 5px rgba(0, 224, 255, 0.5);
+}
+
+.step-container h3 {
+    font-size: 1.1rem;
+    color: #ffffff;
+    margin: 1.5rem 0 0.5rem;
+    text-align: center;
+    letter-spacing: 0.05em;
+}
+
+.menu-json-input {
+    width: 100%;
+    height: 100px;
+    margin-top: 0.625rem;
+    padding: 0.625rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    background: #252525;
+    color: #e0e0e0;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.9rem;
+    resize: vertical;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.menu-json-input:focus {
+    outline: none;
+    border-color: #00e0ff;
+    box-shadow: 0 0 5px rgba(0, 224, 255, 0.3);
+}
+
+.menu-json-input::placeholder {
+    color: #888;
+    font-style: italic;
+    opacity: 1;
+}
+
+/* ==========================================================================
+   Media Queries para Responsividad
+   ========================================================================== */
+/* Tablets y pantallas medianas (hasta 1024px) */
+@media (max-width: 1024px) {
+    .react-flow__container {
+        height: 300px; /* Reducimos altura para ajustarse a pantallas más pequeñas */
+        margin-top: 1rem;
+    }
+
+    .template-card {
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+    }
+
+    .template-card h3 {
+        font-size: 1rem;
+    }
+
+    .template-card p,
+    .template-card li {
+        font-size: 0.85rem;
+    }
+
+    .step-container {
+        max-width: 600px; /* Coincide con .chatbot-container */
+        margin: 1rem auto;
+        padding: 1rem;
+    }
+
+    .step-container h1 {
+        font-size: 1.25rem; /* Ligeramente más pequeño */
+    }
+
+    .step-container h3 {
+        font-size: 1rem;
+    }
+
+    .menu-json-input {
+        height: 80px; /* Reducimos altura para ahorrar espacio */
+        font-size: 0.85rem;
+    }
+}
+
+/* Móviles (hasta 768px) */
+@media (max-width: 768px) {
+    .react-flow__container {
+        height: 250px; /* Más compacto para móviles */
+        margin-top: 0.75rem;
+        border-radius: 6px; /* Ligeramente más pequeño */
+    }
+
+    .template-card {
+        padding: 0.5rem;
+        margin: 0.375rem 0; /* 6px en rem */
+    }
+
+    .template-card h3 {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .template-card p {
+        font-size: 0.8rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .template-card li {
+        font-size: 0.8rem;
+        margin: 0.25rem 0; /* 4px en rem */
+    }
+
+    .step-container {
+        margin: 0.75rem 1rem; /* Ajustamos márgenes para móviles */
+        padding: 0.75rem;
+        border-radius: 8px; /* Más pequeño para móviles */
+    }
+
+    .step-container h1 {
+        font-size: 1.1rem; /* Más compacto */
+        margin-bottom: 0.75rem;
+    }
+
+    .step-container h3 {
+        font-size: 0.9rem;
+        margin: 1rem 0 0.375rem; /* Ajustamos espaciado */
+    }
+
+    .menu-json-input {
+        height: 60px; /* Más pequeño para móviles */
+        padding: 0.5rem;
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+    }
+}
+
+/* Pantallas muy pequeñas (hasta 480px, opcional para móviles pequeños) */
+@media (max-width: 480px) {
+    .react-flow__container {
+        height: 200px; /* Máxima compresión para pantallas pequeñas */
+        margin-top: 0.5rem;
+    }
+
+    .template-card {
+        padding: 0.375rem; /* 6px en rem */
+        margin: 0.25rem 0; /* 4px en rem */
+    }
+
+    .template-card h3 {
+        font-size: 0.85rem;
+    }
+
+    .template-card p,
+    .template-card li {
+        font-size: 0.75rem;
+    }
+
+    .step-container {
+        margin: 0.5rem; /* Márgenes mínimos */
+        padding: 0.5rem;
+    }
+
+    .step-container h1 {
+        font-size: 1rem;
+    }
+
+    .step-container h3 {
+        font-size: 0.85rem;
+    }
+
+    .menu-json-input {
+        height: 50px; /* Muy compacto */
+        padding: 0.375rem; /* 6px en rem */
+        font-size: 0.75rem;
+    }
+}

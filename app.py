@@ -79,26 +79,31 @@ redis_client = redis.Redis(
 )
 
 # Función para verificar y reconectar Redis si falla
-def ensure_redis_connection():
+def ensure_redis_connection(max_attempts=3):
     global redis_client
-    try:
-        redis_client.ping()
-        logger.info("Conexión a Redis establecida correctamente")
-    except redis.exceptions.ConnectionError as e:
-        logger.error(f"Redis no disponible: {str(e)}. Intentando reconectar...")
+    for attempt in range(max_attempts):
         try:
-            redis_client = redis.Redis(
-                connection_pool=redis_pool,
-                socket_timeout=10,
-                socket_connect_timeout=10,
-                retry=retry
-            )
             redis_client.ping()
-            logger.info("Reconexión a Redis exitosa")
+            logger.info("Conexión a Redis establecida correctamente")
+            return True
         except redis.exceptions.ConnectionError as e:
-            logger.error(f"Fallo al reconectar a Redis: {str(e)}. Usando modo sin caché.")
-            return False
-    return True
+            logger.error(f"Intento {attempt + 1}/{max_attempts} - Redis no disponible: {str(e)}. Intentando reconectar...")
+            time.sleep(2 ** attempt)  # Backoff exponencial
+            try:
+                redis_client = redis.Redis(
+                    connection_pool=redis_pool,
+                    socket_timeout=10,
+                    socket_connect_timeout=10,
+                    retry=retry
+                )
+                redis_client.ping()
+                logger.info("Reconexión a Redis exitosa")
+                return True
+            except redis.exceptions.ConnectionError:
+                continue
+    logger.error("Redis no disponible tras varios intentos. Deshabilitando caché.")
+    redis_client = None
+    return False
 
 # Verificamos conexión al iniciar
 if not ensure_redis_connection():
@@ -224,13 +229,14 @@ class MessageQuota(Base):  # Nuevo modelo para límite de mensajes
     message_count = Column(Integer, default=0)
     plan = Column(String, default='free')  # 'free' o 'premium'
 
-class Template(Base):  # Nuevo modelo para plantillas
+class Template(Base):  # Modelo para plantillas
     __tablename__ = 'templates'
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     tone = Column(String, nullable=False)
     purpose = Column(String, nullable=False)
     flows = Column(Text, nullable=False)  # JSON con flujos predefinidos
+    description = Column(Text, nullable=False)  # Campo para descripción
 
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
@@ -264,6 +270,18 @@ class WhatsAppNumberModel(BaseModel):
         if not re.match(r'^\+\d{10,15}$', value):
             raise ValueError('El número de WhatsApp debe tener el formato +1234567890')
         return value
+    
+class FlowModel(BaseModel):
+    user_message: str = Field(..., min_length=1)
+    bot_response: str = Field(..., min_length=1)
+    intent: str = Field(default="general", min_length=1)
+
+class MenuItemModel(BaseModel):
+    precio: float = Field(..., gt=0)
+    descripcion: str = Field(..., min_length=1)
+
+class MenuModel(BaseModel):
+    __root__: dict[str, dict[str, MenuItemModel]]
 
 # Funciones auxiliares
 def extract_text_from_pdf(file_stream):
@@ -401,14 +419,54 @@ def increment_quota(user_id, session):  # Nueva función para incrementar cuota
     session.commit()
     return quota
 
+def parse_menu_to_flows(menu_json):
+    try:
+        # Validar el JSON con Pydantic
+        if isinstance(menu_json, str):
+            menu_data = json.loads(menu_json)
+        else:
+            menu_data = menu_json
+        validated_menu = MenuModel(__root__=menu_data).dict()['__root__']
+        
+        flows = []
+        for category, items in validated_menu.items():
+            category_response = f"📋 {category.capitalize()} disponibles:\n"
+            for item_name, details in items.items():
+                category_response += f"- {item_name}: {details['descripcion']} (${details['precio']})\n"
+                flows.append({
+                    "user_message": f"quiero {item_name.lower()}",
+                    "bot_response": f"¡Buena elección! {item_name}: {details['descripcion']} por ${details['precio']}. ¿Confirmas el pedido?"
+                })
+            flows.append({
+                "user_message": f"ver {category.lower()}",
+                "bot_response": category_response
+            })
+        flows.append({
+            "user_message": "ver menú",
+            "bot_response": "¡Claro! Aquí tienes nuestro menú completo:\n" + "\n".join(
+                f"📋 {category.capitalize()}: {', '.join(items.keys())}" for category, items in validated_menu.items()
+            )
+        })
+        return flows
+    except json.JSONDecodeError as e:
+        logger.error(f"Error al parsear JSON de menú: {str(e)}")
+        return []
+    except ValidationError as e:
+        logger.error(f"Formato inválido de menu_json: {str(e)}")
+        return []
+    except Exception as e:
+        logger.error(f"Error inesperado al procesar menú: {str(e)}")
+        return []
+
 def load_initial_templates():
     with get_session() as session:
-        # Lista de plantillas esperadas
+        # Lista de plantillas esperadas con descripciones
         expected_templates = [
             {
                 "name": "Ventas Tienda Online",
                 "tone": "amigable",
                 "purpose": "vender productos y responder preguntas",
+                "description": "Ideal para tiendas online. Incluye flujos para saludar, mostrar catálogo y tomar pedidos.",
                 "flows": json.dumps([
                     {"user_message": "hola", "bot_response": "¡Hola! Bienvenid@ a mi tienda. ¿Qué te gustaría comprar hoy? 😊"},
                     {"user_message": "precio", "bot_response": "Dime qué producto te interesa y te doy el precio al instante. 💰"}
@@ -418,6 +476,7 @@ def load_initial_templates():
                 "name": "Soporte Técnico",
                 "tone": "profesional",
                 "purpose": "resolver problemas técnicos",
+                "description": "Perfecto para empresas de tecnología. Ayuda a resolver problemas técnicos paso a paso.",
                 "flows": json.dumps([
                     {"user_message": "tengo un problema", "bot_response": "Describe tu problema y te ayudaré paso a paso."},
                     {"user_message": "no funciona", "bot_response": "¿Puedes dar más detalles? Estoy aquí para solucionarlo."}
@@ -427,6 +486,7 @@ def load_initial_templates():
                 "name": "Reservas de Restaurante",
                 "tone": "amigable",
                 "purpose": "gestionar reservas y responder consultas",
+                "description": "Diseñado para restaurantes. Gestiona reservas y responde preguntas sobre el menú.",
                 "flows": json.dumps([
                     {"user_message": "hola", "bot_response": "¡Hola! Bienvenid@ a nuestro restaurante. ¿Quieres reservar una mesa? 🍽️"},
                     {"user_message": "reservar", "bot_response": "Claro, dime para cuántas personas y a qué hora. ¡Te ayudo en un segundo!"},
@@ -437,6 +497,7 @@ def load_initial_templates():
                 "name": "Atención al Cliente - Ecommerce",
                 "tone": "profesional",
                 "purpose": "gestionar pedidos y devoluciones",
+                "description": "Para tiendas online grandes. Gestiona pedidos, devoluciones y dudas frecuentes.",
                 "flows": json.dumps([
                     {"user_message": "estado de mi pedido", "bot_response": "Por favor, dame tu número de pedido y lo verifico de inmediato."},
                     {"user_message": "devolver producto", "bot_response": "Claro, indícame el producto y el motivo. Te guiaré en el proceso de devolución."},
@@ -447,6 +508,7 @@ def load_initial_templates():
                 "name": "Promoción de Servicios",
                 "tone": "divertido",
                 "purpose": "promocionar servicios y captar clientes",
+                "description": "Para freelancers y agencias. Promociona servicios con un tono alegre y atractivo.",
                 "flows": json.dumps([
                     {"user_message": "hola", "bot_response": "¡Hey, hola! ¿List@ para descubrir algo genial? Ofrecemos servicios que te van a encantar. 🎉"},
                     {"user_message": "qué ofreces", "bot_response": "Desde diseño épico hasta soluciones locas. ¿Qué necesitas? ¡Te lo cuento todo!"},
@@ -457,6 +519,7 @@ def load_initial_templates():
                 "name": "Asistente de Eventos",
                 "tone": "amigable",
                 "purpose": "gestionar invitaciones y detalles de eventos",
+                "description": "Para organizadores de eventos. Gestiona invitaciones y responde dudas sobre fechas y lugares.",
                 "flows": json.dumps([
                     {"user_message": "hola", "bot_response": "¡Hola! ¿Vienes a nuestro próximo evento? Te cuento todo lo que necesitas saber. 🎈"},
                     {"user_message": "cuándo es", "bot_response": "Dime qué evento te interesa y te paso la fecha y hora exactas."},
@@ -467,6 +530,7 @@ def load_initial_templates():
                 "name": "Soporte de Suscripciones",
                 "tone": "serio",
                 "purpose": "gestionar suscripciones y pagos",
+                "description": "Para servicios de suscripción. Gestiona cancelaciones y problemas de pago con profesionalismo.",
                 "flows": json.dumps([
                     {"user_message": "cancelar suscripción", "bot_response": "Lamento que quieras cancelar. Por favor, indícame tu ID de suscripción para proceder."},
                     {"user_message": "pago fallido", "bot_response": "Verifiquemos eso. Proporcióname tu correo o número de suscripción y lo solucionamos."},
@@ -484,7 +548,8 @@ def load_initial_templates():
                     name=template_data["name"],
                     tone=template_data["tone"],
                     purpose=template_data["purpose"],
-                    flows=template_data["flows"]
+                    flows=template_data["flows"],
+                    description=template_data["description"]
                 )
                 session.add(new_template)
                 logger.info(f"Plantilla '{template_data['name']}' creada.")
@@ -493,6 +558,7 @@ def load_initial_templates():
                 template.tone = template_data["tone"]
                 template.purpose = template_data["purpose"]
                 template.flows = template_data["flows"]
+                template.description = template_data["description"]
                 logger.info(f"Plantilla '{template_data['name']}' actualizada.")
 
         session.commit()
@@ -503,7 +569,16 @@ def load_initial_templates():
 def get_templates():
     with get_session() as session:
         templates = session.query(Template).all()
-        return jsonify({'templates': [{'id': t.id, 'name': t.name} for t in templates]})
+        return jsonify({
+            'templates': [
+                {
+                    'id': t.id,
+                    'name': t.name,
+                    'description': t.description,
+                    'flows': json.loads(t.flows)
+                } for t in templates
+            ]
+        })
 
 # Rutas de autenticación
 @app.route('/register', methods=['GET', 'POST'])
@@ -876,7 +951,8 @@ def create_page():
                 'pdf_url': data.get('pdf_url', None),
                 'image_url': data.get('image_url', None),
                 'flows': data.get('flows', []),
-                'template_id': data.get('template_id', None)  # Nuevo campo para plantillas
+                'menu_json': data.get('menu_json', None),  # Nuevo campo para menús
+                'template_id': data.get('template_id', None)
             }
             if not bot_data['name']:
                 return jsonify({'status': 'error', 'message': 'El nombre es obligatorio'}), 400
@@ -892,7 +968,7 @@ def create_page():
     logger.info("Renderizando create.html")
     return render_template('create.html')
 
-def create_chatbot(name, tone, purpose, whatsapp_number=None, business_info=None, pdf_url=None, image_url=None, flows=None, template_id=None, session=None, user_id=None):
+def create_chatbot(name, tone, purpose, whatsapp_number=None, business_info=None, pdf_url=None, image_url=None, flows=None, menu_json=None, template_id=None, session=None, user_id=None):
     logger.info(f"Creando chatbot con nombre: {name}, tono: {tone}, propósito: {purpose}")
     if template_id:
         template = session.query(Template).filter_by(id=template_id).first()
@@ -901,6 +977,11 @@ def create_chatbot(name, tone, purpose, whatsapp_number=None, business_info=None
             purpose = template.purpose
             flows = json.loads(template.flows)
             logger.info(f"Usando plantilla {template.name} con ID {template_id}")
+
+    # Procesar menú JSON si se proporciona
+    if menu_json:
+        menu_flows = parse_menu_to_flows(menu_json)
+        flows = flows + menu_flows if flows else menu_flows
 
     system_message = f"Eres un chatbot {tone} llamado '{name}'. Tu propósito es {purpose}. Usa un tono {tone} y gramática correcta."
     if business_info:
@@ -927,9 +1008,9 @@ def create_chatbot(name, tone, purpose, whatsapp_number=None, business_info=None
 
     if flows:
         for index, flow in enumerate(flows):
-            if flow.get('userMessage') and flow.get('botResponse'):
+            if flow.get('user_message') and flow.get('bot_response'):
                 intent = flow.get('intent', 'general')
-                flow_entry = Flow(chatbot_id=chatbot_id, user_message=flow['userMessage'], bot_response=flow['botResponse'], position=index, intent=intent)
+                flow_entry = Flow(chatbot_id=chatbot_id, user_message=flow['user_message'], bot_response=flow['bot_response'], position=index, intent=intent)
                 session.add(flow_entry)
     session.commit()
     return f"Chatbot '{name}' creado con éxito. ID: {chatbot_id}. Mensaje inicial: {initial_message}"
@@ -956,8 +1037,19 @@ def create_bot():
             business_info = data.get('business_info', None)
             pdf_url = data.get('pdf_url', None)
             image_url = data.get('image_url', None)
-            flows = data.get('flows', [])
+            flows_raw = data.get('flows', [])
+            menu_json = data.get('menu_json', None)
             template_id = data.get('template_id', None)
+
+            # Validar flujos con Pydantic
+            flows = []
+            for flow in flows_raw:
+                try:
+                    validated_flow = FlowModel(**flow)
+                    flows.append(validated_flow.dict())
+                except ValidationError as e:
+                    logger.warning(f"Flujo inválido: {flow}. Error: {str(e)}")
+                    return jsonify({'status': 'error', 'message': f'Flujo inválido: {str(e)}'}), 400
 
             if whatsapp_number:
                 try:
@@ -978,7 +1070,7 @@ def create_bot():
                         'message': f'El número {whatsapp_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}). Usa otro número o déjalo en blanco.'
                     }), 400
 
-            response = create_chatbot(bot_name, tone, purpose, whatsapp_number, business_info, pdf_url, image_url, flows, template_id, session=session, user_id=user_id)
+            response = create_chatbot(bot_name, tone, purpose, whatsapp_number, business_info, pdf_url, image_url, flows, menu_json, template_id, session=session, user_id=user_id)
             logger.info(f"Respuesta enviada: {response}")
             return jsonify({'message': response}), 200
         except ValidationError as e:
@@ -1083,6 +1175,16 @@ def update_bot():
             pdf_url = data.get('pdf_url')
             image_url = data.get('image_url')
             flows = data.get('flows', [])
+            # Aquí va el bloque de validación
+            flows = []  # Redefinimos flows para llenarlo con datos validados
+            for flow in flows_raw:  # Nota: flows_raw debe ser el flows original, así que usa flows aquí
+                try:
+                    validated_flow = FlowModel(**flow)
+                    flows.append(validated_flow.dict())
+                except ValidationError as e:
+                    logger.warning(f"Flujo inválido: {flow}. Error: {str(e)}")
+                    return jsonify({'status': 'error', 'message': f'Flujo inválido: {str(e)}'}), 400
+            menu_json = data.get('menu_json', None)
 
             if not all([chatbot_id, name, tone, purpose]):
                 logger.error("Faltan campos obligatorios")
@@ -1100,6 +1202,11 @@ def update_bot():
                 existing_bot = session.query(Chatbot).filter_by(whatsapp_number=whatsapp_number).first()
                 if existing_bot and existing_bot.id != chatbot_id:
                     return jsonify({'status': 'error', 'message': f'El número {whatsapp_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}).'}), 400
+
+            # Procesar menú JSON si se proporciona
+            if menu_json:
+                menu_flows = parse_menu_to_flows(menu_json)
+                flows = flows + menu_flows if flows else menu_flows
 
             pdf_content = chatbot.pdf_content if pdf_url == chatbot.pdf_url else None
             if pdf_url and pdf_url != chatbot.pdf_url:
@@ -1127,9 +1234,9 @@ def update_bot():
 
             session.query(Flow).filter_by(chatbot_id=chatbot_id).delete()
             for index, flow in enumerate(flows):
-                if flow.get('userMessage') and flow.get('botResponse'):
+                if flow.get('user_message') and flow.get('bot_response'):
                     intent = flow.get('intent', 'general')
-                    session.add(Flow(chatbot_id=chatbot_id, user_message=flow['userMessage'], bot_response=flow['botResponse'], position=index, intent=intent))
+                    session.add(Flow(chatbot_id=chatbot_id, user_message=flow['user_message'], bot_response=flow['bot_response'], position=index, intent=intent))
             
             session.commit()
             logger.info(f"Chatbot {chatbot_id} actualizado")
@@ -1193,6 +1300,7 @@ def chat():
         return jsonify({'message': 'Preflight OK'}), 200
     
     user_id = get_jwt_identity()
+    is_mobile = 'Mobile' in request.headers.get('User-Agent', '')
     with get_session() as session:
         try:
             logger.info("Solicitud recibida en /chat")
@@ -1225,9 +1333,9 @@ def chat():
                 if history:
                     messages.extend([{"role": conv.role, "content": conv.message} for conv in history[-5:]])
                 messages.append({"role": "user", "content": message})
-                max_tokens = 150 if len(message) < 100 else 300
+                max_tokens = 100 if is_mobile else (150 if len(message) < 100 else 300)  # Menos tokens en móviles
                 response = call_grok(messages, max_tokens=max_tokens)
-                if chatbot.image_url and "logo" in message.lower():
+                if chatbot.image_url and "logo" in message.lower() and not is_mobile:  # Evita URLs largas en móviles
                     response += f"\nLogo: {chatbot.image_url}"
 
             session.add(Conversation(chatbot_id=chatbot_id, user_id=user_id_from_data, message=message, role="user"))
@@ -1437,140 +1545,31 @@ def whatsapp():
             session.commit()
             increment_quota(user_id, session)
 
-    resp = MessagingResponse()
-    resp.message(response)
-    logger.info(f"Respuesta enviada a {sender}: {response}")
-    if 'state' in locals() and state.get("step") == "done":
-        logger.info(f"Datos de conversación para {sender}: {state['data']}")
-        try:
-            redis_client.delete(f"conversation_state:{sender}")
-        except redis.exceptions.ConnectionError as e:
-            logger.exception(f"Error al eliminar estado de conversación en Redis: {str(e)}")
-    return str(resp)  
-
+        resp = MessagingResponse()
+        resp.message(response)
+        logger.info(f"Respuesta enviada a {sender}: {response}")
+        return str(resp)
 
 def get_conversation_state(sender):
-    default_state = {"step": "greet", "data": {"business_type": None, "needs": [], "specifics": {}, "contacted": False}}
+    default_state = {"step": "greet", "data": {"business_type": "", "needs": [], "specifics": {}, "contacted": False}}
     if redis_client and ensure_redis_connection():
         try:
-            state = redis_client.get(f"conversation_state:{sender}")
-            if state:
-                return json.loads(state)
-        except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
-            logger.exception(f"Error al conectar con Redis en get_conversation_state: {str(e)}. Usando estado por defecto.")
-    else:
-        logger.warning("Redis no disponible. Usando estado por defecto.")
+            state = redis_client.get(f"whatsapp_state:{sender}")
+            return json.loads(state) if state else default_state
+        except redis.exceptions.RedisError as e:
+            logger.warning(f"Error al leer estado de Redis: {str(e)}. Usando estado predeterminado.")
     return default_state
 
 def set_conversation_state(sender, state):
     if redis_client and ensure_redis_connection():
         try:
-            redis_client.setex(f"conversation_state:{sender}", 3600, json.dumps(state))
-            logger.info(f"Estado de conversación guardado para {sender}")
-        except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
-            logger.exception(f"Error al conectar con Redis en set_conversation_state: {str(e)}. Estado no guardado.")
-    else:
-        logger.warning("Redis no disponible. Estado no guardado en caché.")
+            redis_client.setex(f"whatsapp_state:{sender}", 86400, json.dumps(state))
+        except redis.exceptions.RedisError as e:
+            logger.warning(f"Error al guardar estado en Redis: {str(e)}.")
 
 QUANTUM_WEB_CONTEXT_FULL = """
-Plubot es una plataforma tipo Wix para crear chatbots personalizados (llamados "Plubots") que se integran con WhatsApp y trabajan 24/7. Nos especializamos en ayudar a negocios de todos los tamaños (tiendas online, restaurantes, clínicas, hoteles, academias, etc.) a automatizar procesos, aumentar ventas y ahorrar tiempo.
-
-**¿Qué ofrecemos?**
-- Creación fácil de chatbots: Regístrate en https://www.plubot.com/register, crea tu Plubot en https://www.plubot.com/create, y personalízalo en minutos.
-- Integración con WhatsApp: Conecta tu Plubot a WhatsApp usando un número registrado en Twilio y empieza a interactuar con tus clientes.
-- Automatización para negocios: Respuestas automáticas, gestión de citas, seguimiento de clientes, integración con catálogos, y más.
-- Resultados comprobados: Tiendas online aumentan ventas un 30%, hoteles reducen carga administrativa un 40%, clínicas optimizan gestión un 50%.
-
-**¿Cómo funciona la plataforma?**
-1. **Registro**: Ve a https://www.plubot.com/register, ingresa tu email y contraseña, y verifica tu cuenta.
-2. **Creación del Plubot**: En https://www.plubot.com/create, define el nombre, tono (amigable, profesional, etc.), propósito (ventas, soporte, reservas, etc.), y sube info de tu negocio (como un PDF).
-3. **Configuración**: Personaliza tu Plubot con flujos conversacionales (preguntas y respuestas predefinidas) y datos de tu negocio.
-4. **Conexión a WhatsApp**: Ve a la sección "Conectar a WhatsApp", ingresa tu número registrado en Twilio, y verifica el número siguiendo las instrucciones.
-5. **Operatividad**: Una vez conectado, tu Plubot responde automáticamente a tus clientes en WhatsApp 24/7.
-
-**Planes y precios**
-- **Plan gratuito**: 100 mensajes al mes para que pruebes tu Plubot sin costo.
-- **Plan premium**: Por 19.99 USD/mes, tienes mensajes ilimitados, integración con CRM, análisis de datos, y soporte prioritario.
-- Beneficio del plan premium: Ideal para negocios en crecimiento que necesitan automatización avanzada y soporte continuo.
-
-**Beneficios de usar un Plubot**
-- Ahorro de tiempo: Automatiza tareas repetitivas como responder preguntas, agendar citas o tomar pedidos.
-- Aumento de ventas: Tiendas online pueden aumentar ventas un 30% con un Plubot que guía a los clientes y cierra ventas.
-- Mejora de eficiencia: Clínicas y hoteles reducen su carga administrativa hasta un 50% al delegar tareas a un Plubot.
-- Disponibilidad 24/7: Tu Plubot responde a tus clientes en cualquier momento, incluso mientras duermes.
-
-**Tono y estilo**
-- Usa un tono amigable, profesional y persuasivo. Ejemplo: "¡Hola! Soy Plubot, tu asistente para crear chatbots increíbles. 😊 ¿En qué puedo ayudarte hoy?"
-- Sé breve (2-3 frases máximo) a menos que el usuario pida más detalles.
-- Usa emojis de forma moderada para dar un toque amigable (😊, 🚀, 💡).
-- Siempre incluye una llamada a la acción para motivar al usuario a registrarse o crear un Plubot. Ejemplo: "¿Quieres crear tu Plubot ahora? Ve a https://www.plubot.com/create. 🚀"
-- Si no entiendes algo, pide aclaraciones de forma natural. Ejemplo: "¡Gracias por tu mensaje! ¿Podrías contarme un poco más sobre tu negocio para ayudarte mejor? 😊"
-
-**Ejemplos de respuestas persuasivas**
-- Si el usuario duda: "Un Plubot puede ahorrarte horas de trabajo y aumentar tus ventas un 30%. 💰 ¿Te gustaría probar el plan gratuito en https://www.plubot.com/register?"
-- Si el usuario pregunta por precios: "¡Buena pregunta! 😊 Tienes 100 mensajes gratis al mes para empezar, y por solo 19.99 USD/mes tienes mensajes ilimitados y más funciones. ¿Quieres probarlo?"
-- Si el usuario menciona su negocio: "¡Genial! 😊 Un Plubot puede ayudarte a [beneficio específico]. ¿Quieres crearlo ahora en https://www.plubot.com/create?"
+Eres Plubot de Plubot Web, una plataforma que permite a cualquier persona crear chatbots para WhatsApp sin conocimientos técnicos. Tu propósito es asistir a los usuarios en la creación de chatbots para automatizar sus negocios y aumentar ventas. Responde con un tono amigable, breve y alegre (máx. 2-3 frases). Usa emojis si aplica. Si te piden precios, menciona que ofrecemos 100 mensajes gratis al mes y un plan premium de 19.99 USD/mes con mensajes ilimitados.
 """
 
-@app.route('/fallback', methods=['POST'])
-def fallback():
-    logger.error("Webhook principal falló. Datos recibidos: %s", request.values)
-    return "OK", 200
-
-@app.route('/status-callback', methods=['POST'])
-def status_callback():
-    message_status = request.values.get('MessageStatus', 'unknown')
-    message_sid = request.values.get('MessageSid', 'unknown')
-    logger.info(f"Estado del mensaje {message_sid}: {message_status}")
-    return "OK", 200
-
-@app.route('/test-redis', methods=['GET'])
-def test_redis():
-    try:
-        redis_client.set('test_key', 'test_value')
-        value = redis_client.get('test_key')
-        return jsonify({"status": "success", "value": value})
-    except redis.exceptions.ConnectionError as e:
-        logger.exception(f"Error en /test-redis: {str(e)}")
-        return jsonify({"status": "error", "message": str(e)}), 500
-    
-PREDEFINED_FLOWS = [
-    {"user_message": "hola", "bot_response": "¡Hola! Soy Plubot, tu asistente para crear chatbots increíbles. 😊 ¿En qué puedo ayudarte hoy?", "intent": "greeting"},
-    {"user_message": "cuanto cuesta", "bot_response": "El plan básico de Plubot comienza en $10/mes y te permite crear hasta 3 chatbots. El plan premium, que incluye funciones avanzadas, cuesta $25/mes. ¿Te gustaría saber más?", "intent": "pricing"},
-    {"user_message": "tengo una tienda", "bot_response": "¡Genial! Un chatbot puede ayudarte a automatizar tus ventas y atender a tus clientes 24/7. ¿Quieres crear uno ahora? Puedo guiarte paso a paso.", "intent": "business_type"},
-    {"user_message": "quiero crear un chatbot", "bot_response": "¡Perfecto! Puedo ayudarte a crear tu chatbot. Primero, ¿para qué quieres usarlo? Por ejemplo, ¿para ventas, soporte al cliente o algo más?", "intent": "create_chatbot"},
-]
-
-def load_predefined_flows():
-    with get_session() as session:
-        chatbot = session.query(Chatbot).filter_by(name="Plubot").first()
-        if not chatbot:
-            chatbot = Chatbot(
-                name="Plubot",
-                tone="amigable",
-                purpose="asistir a los usuarios de Plubot y cerrar ventas",
-                initial_message="¡Hola! Soy Plubot, tu asistente para crear chatbots increíbles. 😊 ¿En qué puedo ayudarte hoy?",
-                user_id=1
-            )
-            session.add(chatbot)
-            session.commit()
-
-        existing_flows = session.query(Flow).filter_by(chatbot_id=chatbot.id).count()
-        if existing_flows == 0:
-            for index, flow in enumerate(PREDEFINED_FLOWS):
-                flow_entry = Flow(
-                    chatbot_id=chatbot.id,
-                    user_message=flow["user_message"],
-                    bot_response=flow["bot_response"],
-                    position=index,
-                    intent=flow["intent"]
-                )
-                session.add(flow_entry)
-            session.commit()
-            logger.info(f"Se cargaron {len(PREDEFINED_FLOWS)} flujos predefinidos para el chatbot Plubot.")
-
-load_predefined_flows()
-
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=os.getenv('FLASK_ENV') == 'development')
