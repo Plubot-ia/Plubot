@@ -6,7 +6,7 @@ from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from twilio.twiml.messaging_response import MessagingResponse
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity, set_access_cookies, unset_jwt_cookies, decode_token
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, RootModel
 import re
 import os
 import requests
@@ -280,8 +280,8 @@ class MenuItemModel(BaseModel):
     precio: float = Field(..., gt=0)
     descripcion: str = Field(..., min_length=1)
 
-class MenuModel(BaseModel):
-    __root__: dict[str, dict[str, MenuItemModel]]
+class MenuModel(RootModel):
+    root: dict[str, dict[str, MenuItemModel]]
 
 # Funciones auxiliares
 def extract_text_from_pdf(file_stream):
@@ -426,8 +426,8 @@ def parse_menu_to_flows(menu_json):
             menu_data = json.loads(menu_json)
         else:
             menu_data = menu_json
-        validated_menu = MenuModel(__root__=menu_data).dict()['__root__']
-        
+        validated_menu = MenuModel(root=menu_data).root  # Cambiamos a .root
+        # Resto del código sigue igual
         flows = []
         for category, items in validated_menu.items():
             category_response = f"📋 {category.capitalize()} disponibles:\n"
