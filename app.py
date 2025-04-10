@@ -27,6 +27,7 @@ from celery import Celery
 from contextlib import contextmanager
 from datetime import timedelta
 import uuid
+from ratelimit import limits, sleep_and_retry
 
 # Configuración inicial
 load_dotenv()
@@ -36,12 +37,16 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 if not app.config['SECRET_KEY']:
     raise ValueError("No se encontró SECRET_KEY en las variables de entorno.")
 
-# Configuración de logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configuración de logging mejorada
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('plubot.log'),  # Guardar logs en archivo
+        logging.StreamHandler()  # Mostrar logs en consola
+    ]
+)
 logger = logging.getLogger(__name__)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-logger.addHandler(console_handler)
 
 # Configuración de CORS
 CORS(app, resources={r"/*": {
@@ -51,19 +56,18 @@ CORS(app, resources={r"/*": {
     "supports_credentials": True
 }})
 
-# Configuración de Redis con pool de conexiones y reintentos
+# Configuración de Redis con mejoras
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-# Configuramos un mecanismo de reintentos con backoff exponencial
 retry = Retry(ExponentialBackoff(cap=10, base=1), retries=3)
 redis_pool = ConnectionPool.from_url(
     REDIS_URL,
     decode_responses=True,
-    max_connections=3,  # Reducimos a 3 conexiones para evitar exceder el límite de Upstash
-    retry=retry,  # Añadimos reintentos
+    max_connections=10,  # Aumentado para escalabilidad
+    retry=retry,
     retry_on_timeout=True,
     health_check_interval=30,
-    socket_timeout=5,  # Tiempo de espera para operaciones de socket
-    socket_connect_timeout=5  # Tiempo de espera para la conexión inicial
+    socket_timeout=5,
+    socket_connect_timeout=5
 )
 redis_client = redis.Redis(
     connection_pool=redis_pool,
@@ -72,7 +76,6 @@ redis_client = redis.Redis(
     retry=retry
 )
 
-# Prueba la conexión a Redis al iniciar la app
 try:
     redis_client.ping()
     logger.info("Conexión a Redis establecida correctamente")
@@ -92,7 +95,7 @@ celery_app.conf.update(
     timezone='UTC',
     enable_utc=True,
     broker_connection_retry_on_startup=True,
-    broker_pool_limit=2,  # Limitamos el pool de conexiones del broker a 2
+    broker_pool_limit=2,
     result_backend_transport_options={
         'retry_policy': {
             'max_retries': 3,
@@ -110,7 +113,6 @@ TWILIO_TOKEN = os.getenv("TWILIO_TOKEN")
 TWILIO_PHONE = os.getenv("TWILIO_PHONE")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Verificar claves
 if not XAI_API_KEY:
     raise ValueError("No se encontró XAI_API_KEY en las variables de entorno.")
 if not all([TWILIO_SID, TWILIO_TOKEN, TWILIO_PHONE]):
@@ -136,7 +138,7 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token"
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
-app.config['JWT_COOKIE_SECURE'] = os.getenv('FLASK_ENV', 'development') != 'development'  # True en Render
+app.config['JWT_COOKIE_SECURE'] = os.getenv('FLASK_ENV', 'development') != 'development'
 app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
 app.config["JWT_ACCESS_COOKIE_PATH"] = "/"
 jwt = JWTManager(app)
@@ -185,6 +187,22 @@ class Flow(Base):
     position = Column(Integer, nullable=False)
     intent = Column(String)
 
+class MessageQuota(Base):  # Nuevo modelo para límite de mensajes
+    __tablename__ = 'message_quotas'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    month = Column(String, nullable=False)  # Formato: "YYYY-MM"
+    message_count = Column(Integer, default=0)
+    plan = Column(String, default='free')  # 'free' o 'premium'
+
+class Template(Base):  # Nuevo modelo para plantillas
+    __tablename__ = 'templates'
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    tone = Column(String, nullable=False)
+    purpose = Column(String, nullable=False)
+    flows = Column(Text, nullable=False)  # JSON con flujos predefinidos
+
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
@@ -195,6 +213,7 @@ def get_session():
         yield session
     except Exception as e:
         session.rollback()
+        logger.exception(f"Error en sesión de base de datos: {str(e)}")
         raise e
     finally:
         session.close()
@@ -226,7 +245,7 @@ def extract_text_from_pdf(file_stream):
             text += page.extract_text() or ""
         return text
     except Exception as e:
-        logger.error(f"Error al extraer texto del PDF: {str(e)}")
+        logger.exception(f"Error al extraer texto del PDF: {str(e)}")
         return ""
 
 def summarize_history(history):
@@ -234,6 +253,8 @@ def summarize_history(history):
         return "Resumen: " + " ".join([conv.message[:50] for conv in history[-5:]])
     return " ".join([conv.message for conv in history])
 
+@sleep_and_retry
+@limits(calls=50, period=60)  # Límite de tasa para la API de xAI
 def call_grok(messages, max_tokens=150):
     if len(messages) > 4:
         messages = [messages[0]] + messages[-3:]
@@ -246,8 +267,7 @@ def call_grok(messages, max_tokens=150):
             logger.info("Respuesta obtenida desde caché")
             return cached
     except redis.exceptions.ConnectionError as e:
-        logger.error(f"Error al conectar con Redis en cache: {str(e)}")
-        # Continúa sin caché si falla Redis
+        logger.exception(f"Error al conectar con Redis en cache: {str(e)}")
 
     url = "https://api.x.ai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {XAI_API_KEY}", "Content-Type": "application/json"}
@@ -260,20 +280,20 @@ def call_grok(messages, max_tokens=150):
         try:
             redis_client.setex(cache_key, 3600, result)
         except redis.exceptions.ConnectionError as e:
-            logger.error(f"Error al guardar en Redis: {str(e)}")
+            logger.exception(f"Error al guardar en Redis: {str(e)}")
         logger.info(f"Grok response: {result}")
         return result
     except requests.exceptions.ConnectionError as e:
-        logger.error(f"Error de conexión con xAI: {str(e)}")
+        logger.exception(f"Error de conexión con xAI: {str(e)}")
         return "¡Vaya! La conexión con la IA falló, intenta de nuevo en un momento."
     except requests.exceptions.Timeout as e:
-        logger.error(f"Timeout al conectar con xAI: {str(e)}")
+        logger.exception(f"Timeout al conectar con xAI: {str(e)}")
         return "¡Ups! La IA tardó demasiado, intenta de nuevo."
     except requests.exceptions.HTTPError as e:
-        logger.error(f"Error HTTP con xAI: {str(e)}")
+        logger.exception(f"Error HTTP con xAI: {str(e)}")
         return "¡Oops! Error con la IA, intenta de nuevo."
     except Exception as e:
-        logger.error(f"Error inesperado en call_grok: {str(e)}")
+        logger.exception(f"Error inesperado en call_grok: {str(e)}")
         return "¡Error inesperado! Por favor, intenta de nuevo."
 
 @celery_app.task
@@ -299,8 +319,42 @@ def validate_whatsapp_number(number):
         logger.warning(f"Número {number} no está registrado en tu cuenta Twilio.")
         return False
     except TwilioRestException as e:
-        logger.error(f"Error al validar número de WhatsApp con Twilio: {str(e)}")
+        logger.exception(f"Error al validar número de WhatsApp con Twilio: {str(e)}")
         return False
+
+def check_quota(user_id, session):  # Nueva función para límite de mensajes
+    current_month = time.strftime("%Y-%m")
+    quota = session.query(MessageQuota).filter_by(user_id=user_id, month=current_month).first()
+    if not quota:
+        quota = MessageQuota(user_id=user_id, month=current_month)
+        session.add(quota)
+        session.commit()
+    return quota.message_count < 100 if quota.plan == 'free' else True
+
+def increment_quota(user_id, session):  # Nueva función para incrementar cuota
+    current_month = time.strftime("%Y-%m")
+    quota = session.query(MessageQuota).filter_by(user_id=user_id, month=current_month).first()
+    if not quota:
+        quota = MessageQuota(user_id=user_id, month=current_month)
+        session.add(quota)
+    quota.message_count += 1
+    session.commit()
+    return quota
+
+def load_initial_templates():  # Nueva función para plantillas iniciales
+    with get_session() as session:
+        if not session.query(Template).count():
+            session.add(Template(
+                name="Soporte Técnico",
+                tone="profesional",
+                purpose="resolver problemas técnicos",
+                flows=json.dumps([
+                    {"user_message": "tengo un problema", "bot_response": "Describe tu problema y te ayudaré."},
+                    {"user_message": "no funciona", "bot_response": "¿Puedes dar más detalles? Estoy aquí para ayudarte."}
+                ])
+            ))
+            session.commit()
+            logger.info("Plantillas iniciales cargadas.")
 
 # Rutas de autenticación
 @app.route('/register', methods=['GET', 'POST'])
@@ -330,7 +384,7 @@ def register():
                     mail.send(msg)
                     flash('Revisa tu correo para verificar tu cuenta.', 'success')
                 except Exception as e:
-                    logger.error(f"Error al enviar correo de verificación: {str(e)}")
+                    logger.exception(f"Error al enviar correo de verificación: {str(e)}")
                     flash('Usuario creado, pero hubo un error al enviar el correo de verificación. Contacta al soporte.', 'warning')
 
                 return redirect(url_for('login'))
@@ -338,7 +392,7 @@ def register():
             flash(str(e), 'error')
             return redirect(url_for('register'))
         except Exception as e:
-            logger.error(f"Error en /register: {str(e)}")
+            logger.exception(f"Error en /register: {str(e)}")
             flash(str(e), 'error')
             return redirect(url_for('register'))
     return render_template('register.html')
@@ -361,7 +415,7 @@ def verify_email(token):
             flash('Correo verificado con éxito. Ahora puedes iniciar sesión.', 'success')
             return redirect(url_for('login'))
     except Exception as e:
-        logger.error(f"Error al verificar correo: {str(e)}")
+        logger.exception(f"Error al verificar correo: {str(e)}")
         flash('El enlace de verificación es inválido o ha expirado.', 'error')
         return redirect(url_for('register'))
 
@@ -428,7 +482,7 @@ def forgot_password():
                     mail.send(msg)
                     flash('Se ha enviado un enlace de restablecimiento a tu correo.', 'success')
                 except Exception as e:
-                    logger.error(f"Error al enviar correo de restablecimiento: {str(e)}")
+                    logger.exception(f"Error al enviar correo de restablecimiento: {str(e)}")
                     flash(f'Error al enviar el enlace de restablecimiento: {str(e)}', 'error')
             else:
                 flash('No se encontró un usuario con ese correo.', 'error')
@@ -466,7 +520,7 @@ def change_password():
                 mail.send(msg)
                 flash('Contraseña cambiada con éxito.', 'success')
             except Exception as e:
-                logger.error(f"Error al enviar correo de confirmación: {str(e)}")
+                logger.exception(f"Error al enviar correo de confirmación: {str(e)}")
                 flash(f'Contraseña cambiada, pero hubo un error al enviar la notificación: {str(e)}', 'warning')
         return redirect(url_for('index'))
     return render_template('change_password.html')
@@ -505,7 +559,7 @@ def reset_password(token):
                 mail.send(msg)
                 flash('Contraseña restablecida con éxito. Por favor inicia sesión.', 'success')
             except Exception as e:
-                logger.error(f"Error al enviar correo de confirmación: {str(e)}")
+                logger.exception(f"Error al enviar correo de confirmación: {str(e)}")
                 flash(f'Contraseña restablecida, pero hubo un error al enviar la notificación: {str(e)}', 'warning')
         return redirect(url_for('login'))
     return render_template('reset_password.html', token=token)
@@ -552,7 +606,7 @@ def contacto():
 
             return jsonify({'success': True, 'message': 'Mensaje enviado con éxito'}), 200
         except Exception as e:
-            logger.error(f"Error al enviar correo: {str(e)}")
+            logger.exception(f"Error al enviar correo: {str(e)}")
             return jsonify({'success': False, 'message': f'Error al enviar el mensaje: {str(e)}'}), 500
     return render_template('contact.html')
 
@@ -569,7 +623,7 @@ def subscribe():
         logger.info(f"Correo de suscripción enviado a {email}")
         return jsonify({'success': True, 'message': 'Suscripción exitosa'}), 200
     except Exception as e:
-        logger.error(f"Error al enviar correo de suscripción: {str(e)}")
+        logger.exception(f"Error al enviar correo de suscripción: {str(e)}")
         return jsonify({'success': False, 'message': f'Error al suscribirte: {str(e)}'}), 500
     
 @app.route('/create-prompt')
@@ -645,10 +699,10 @@ def grok_api():
             if e.response.status_code == 429 and attempt < max_retries - 1:
                 time.sleep(2 ** attempt)
                 continue
-            logger.error(f"Error en /api/grok: {str(e)}")
+            logger.exception(f"Error en /api/grok: {str(e)}")
             return jsonify({'error': f"Error al conectar con Grok: {str(e)}"}), 500
         except Exception as e:
-            logger.error(f"Error en /api/grok: {str(e)}")
+            logger.exception(f"Error en /api/grok: {str(e)}")
             return jsonify({'error': f"Error: {str(e)}"}), 500
 
 # Rutas del creador de chatbots
@@ -656,6 +710,7 @@ def grok_api():
 @jwt_required()
 def create_page():
     logger.info("Entrando en create_page")
+    load_initial_templates()  # Cargar plantillas al acceder
     user_id = get_jwt_identity()
     logger.info(f"Acceso a /create por usuario ID: {user_id}")
     logger.info(f"Headers: {request.headers}")
@@ -671,7 +726,8 @@ def create_page():
                 'business_info': data.get('business_info', None),
                 'pdf_url': data.get('pdf_url', None),
                 'image_url': data.get('image_url', None),
-                'flows': data.get('flows', [])
+                'flows': data.get('flows', []),
+                'template_id': data.get('template_id', None)  # Nuevo campo para plantillas
             }
             if not bot_data['name']:
                 return jsonify({'status': 'error', 'message': 'El nombre es obligatorio'}), 400
@@ -681,14 +737,22 @@ def create_page():
         except ValidationError as e:
             return jsonify({'status': 'error', 'message': str(e)}), 400
         except Exception as e:
-            logger.error(f"Error al guardar bot en /create: {str(e)}")
+            logger.exception(f"Error al guardar bot en /create: {str(e)}")
             return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
     
     logger.info("Renderizando create.html")
     return render_template('create.html')
 
-def create_chatbot(name, tone, purpose, whatsapp_number=None, business_info=None, pdf_url=None, image_url=None, flows=None, session=None, user_id=None):
+def create_chatbot(name, tone, purpose, whatsapp_number=None, business_info=None, pdf_url=None, image_url=None, flows=None, template_id=None, session=None, user_id=None):
     logger.info(f"Creando chatbot con nombre: {name}, tono: {tone}, propósito: {purpose}")
+    if template_id:
+        template = session.query(Template).filter_by(id=template_id).first()
+        if template:
+            tone = template.tone
+            purpose = template.purpose
+            flows = json.loads(template.flows)
+            logger.info(f"Usando plantilla {template.name} con ID {template_id}")
+
     system_message = f"Eres un chatbot {tone} llamado '{name}'. Tu propósito es {purpose}. Usa un tono {tone} y gramática correcta."
     if business_info:
         system_message += f"\nNegocio: {business_info}"
@@ -744,6 +808,7 @@ def create_bot():
             pdf_url = data.get('pdf_url', None)
             image_url = data.get('image_url', None)
             flows = data.get('flows', [])
+            template_id = data.get('template_id', None)  # Nuevo campo para plantillas
 
             if whatsapp_number:
                 WhatsAppNumberModel.validate_whatsapp_number(whatsapp_number)
@@ -753,13 +818,13 @@ def create_bot():
                 if existing_bot:
                     return jsonify({'status': 'error', 'message': f'El número {whatsapp_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}).'}), 400
 
-            response = create_chatbot(bot_name, tone, purpose, whatsapp_number, business_info, pdf_url, image_url, flows, session=session, user_id=user_id)
+            response = create_chatbot(bot_name, tone, purpose, whatsapp_number, business_info, pdf_url, image_url, flows, template_id, session=session, user_id=user_id)
             logger.info(f"Respuesta enviada: {response}")
             return jsonify({'message': response}), 200
         except ValidationError as e:
             return jsonify({'status': 'error', 'message': str(e)}), 400
         except Exception as e:
-            logger.error(f"Error en /create-bot: {str(e)}")
+            logger.exception(f"Error en /create-bot: {str(e)}")
             return jsonify({'message': f"Error: {str(e)}"}), 500
 
 @app.route('/connect-whatsapp', methods=['OPTIONS', 'POST'])
@@ -796,7 +861,7 @@ def connect_whatsapp():
                 )
                 logger.info(f"Mensaje de verificación enviado a {phone_number}: {message.sid}")
             except TwilioRestException as e:
-                logger.error(f"Error al enviar mensaje de verificación: {str(e)}")
+                logger.exception(f"Error al enviar mensaje de verificación: {str(e)}")
                 return jsonify({'status': 'error', 'message': f'Error al enviar mensaje de verificación: {str(e)}'}), 500
 
             chatbot.whatsapp_number = phone_number
@@ -804,7 +869,7 @@ def connect_whatsapp():
 
             return jsonify({'status': 'success', 'message': f'Se envió un mensaje de verificación a {phone_number}. Responde con "VERIFICAR" para completar el proceso.'}), 200
         except Exception as e:
-            logger.error(f"Error en /connect-whatsapp: {str(e)}")
+            logger.exception(f"Error en /connect-whatsapp: {str(e)}")
             return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500        
 
 @app.route('/delete-bot', methods=['OPTIONS', 'POST'])
@@ -837,7 +902,7 @@ def delete_bot():
             logger.info(f"Chatbot {chatbot_id} eliminado")
             return jsonify({'message': f'Chatbot {chatbot_id} eliminado con éxito'}), 200
         except Exception as e:
-            logger.error(f"Error en /delete-bot: {str(e)}")
+            logger.exception(f"Error en /delete-bot: {str(e)}")
             return jsonify({'message': f"Error: {str(e)}"}), 500
 
 @app.route('/update-bot', methods=['OPTIONS', 'POST'])
@@ -915,7 +980,7 @@ def update_bot():
         except ValidationError as e:
             return jsonify({'status': 'error', 'message': str(e)}), 400
         except Exception as e:
-            logger.error(f"Error en /update-bot: {str(e)}")
+            logger.exception(f"Error en /update-bot: {str(e)}")
             return jsonify({'message': f"Error: {str(e)}"}), 500
 
 @app.route('/list-bots', methods=['GET'])
@@ -961,7 +1026,7 @@ def conversation_history():
             logger.info(f"Historial enviado para chatbot {chatbot_id}")
             return jsonify({'history': history_list}), 200
         except Exception as e:
-            logger.error(f"Error en /conversation-history: {str(e)}")
+            logger.exception(f"Error en /conversation-history: {str(e)}")
             return jsonify({'message': f"Error: {str(e)}"}), 500
 
 @app.route('/chat', methods=['OPTIONS', 'POST'])
@@ -981,6 +1046,9 @@ def chat():
             message = data.get('message')
             if not chatbot_id or not message:
                 return jsonify({'message': 'Faltan chatbot_id o message'}), 400
+
+            if not check_quota(user_id, session):
+                return jsonify({'message': 'Límite de 100 mensajes alcanzado. Suscríbete al plan premium.'}), 403
 
             chatbot = session.query(Chatbot).filter_by(id=chatbot_id, user_id=user_id).first()
             if not chatbot:
@@ -1008,10 +1076,11 @@ def chat():
             session.add(Conversation(chatbot_id=chatbot_id, user_id=user_id_from_data, message=message, role="user"))
             session.add(Conversation(chatbot_id=chatbot_id, user_id=user_id_from_data, message=response, role="assistant"))
             session.commit()
+            increment_quota(user_id, session)
             logger.info(f"Respuesta enviada: {response}")
             return jsonify({'response': response}), 200
         except Exception as e:
-            logger.error(f"Error en /chat: {str(e)}")
+            logger.exception(f"Error en /chat: {str(e)}")
             return jsonify({'message': f"Error: {str(e)}"}), 500
 
 @app.route('/upload-file', methods=['POST'])
@@ -1069,26 +1138,22 @@ def whatsapp():
                 logger.info(f"Número {sender} verificado para chatbot {chatbot.id}")
                 return str(resp)
             else:
-                # Obtener el estado de la conversación
                 state = get_conversation_state(sender)
                 incoming_msg_lower = incoming_msg.lower()
 
-                # Definir palabras clave para detectar intenciones
                 info_keywords = ["saber más", "información", "qué son", "cómo funcionan", "detalles", "qué es", "qué haces"]
                 price_keywords = ["precio", "coste", "cuánto cuesta", "valor", "tarifa"]
                 greeting_keywords = ["hola", "buenos", "buenas", "hey", "cómo estás"]
                 business_keywords = ["tengo", "mi negocio", "tienda", "restaurante", "clínica", "hotel"]
                 action_keywords = ["quiero crear", "cómo empiezo", "estoy listo", "listo"]
 
-                # Verificar si hay un flujo predefinido que coincida con el mensaje
                 response = None
-                flows = session.query(Flow).filter_by(chatbot_id=1).order_by(Flow.position).all()  # Ajusta el chatbot_id según el ID de Plubot
+                flows = session.query(Flow).filter_by(chatbot_id=1).order_by(Flow.position).all()
                 for flow in flows:
                     if flow.user_message.lower() in incoming_msg_lower:
                         response = flow.bot_response
                         break
 
-                # Si no hay un flujo predefinido, procesar según el estado
                 if not response:
                     if state["step"] == "greet":
                         if any(k in incoming_msg_lower for k in greeting_keywords):
@@ -1121,7 +1186,6 @@ def whatsapp():
                             response = "¡Genial! 🚀 Ve a https://www.plubot.com/register para empezar. Si necesitas ayuda, estoy aquí. 😊 ¿Qué tipo de negocio tienes?"
                             state["step"] = "ask_business_type"
                         else:
-                            # Usar Grok para respuestas inesperadas
                             messages = [
                                 {"role": "system", "content": QUANTUM_WEB_CONTEXT_FULL},
                                 {"role": "user", "content": incoming_msg}
@@ -1184,10 +1248,14 @@ def whatsapp():
                             ]
                             response = call_grok(messages, max_tokens=150)
 
-                # Guardar el estado de la conversación
                 set_conversation_state(sender, state)
         else:
-            # Si hay un chatbot asociado al número
+            user_id = chatbot.user_id
+            if not check_quota(user_id, session):
+                resp = MessagingResponse()
+                resp.message("Límite de 100 mensajes alcanzado. Suscríbete al plan premium en https://www.plubot.com.")
+                return str(resp)
+
             chatbot_id, name, tone, purpose, business_info, pdf_content, image_url = chatbot.id, chatbot.name, chatbot.tone, chatbot.purpose, chatbot.business_info, chatbot.pdf_content, chatbot.image_url
             flows = session.query(Flow).filter_by(chatbot_id=chatbot_id).order_by(Flow.position).all()
             response = next((flow.bot_response for flow in flows if flow.user_message.lower() in incoming_msg.lower()), None)
@@ -1210,6 +1278,7 @@ def whatsapp():
             session.add(Conversation(chatbot_id=chatbot_id, user_id=sender, message=incoming_msg, role="user"))
             session.add(Conversation(chatbot_id=chatbot_id, user_id=sender, message=response, role="assistant"))
             session.commit()
+            increment_quota(user_id, session)
 
     resp = MessagingResponse()
     resp.message(response)
@@ -1219,7 +1288,7 @@ def whatsapp():
         try:
             redis_client.delete(f"conversation_state:{sender}")
         except redis.exceptions.ConnectionError as e:
-            logger.error(f"Error al eliminar estado de conversación en Redis: {str(e)}")
+            logger.exception(f"Error al eliminar estado de conversación en Redis: {str(e)}")
     return str(resp)
 
 def get_conversation_state(sender):
@@ -1228,14 +1297,14 @@ def get_conversation_state(sender):
         if state:
             return json.loads(state)
     except redis.exceptions.ConnectionError as e:
-        logger.error(f"Error al conectar con Redis en get_conversation_state: {str(e)}")
+        logger.exception(f"Error al conectar con Redis en get_conversation_state: {str(e)}")
     return {"step": "greet", "data": {"business_type": None, "needs": [], "specifics": {}, "contacted": False}}
 
 def set_conversation_state(sender, state):
     try:
         redis_client.setex(f"conversation_state:{sender}", 3600, json.dumps(state))
     except redis.exceptions.ConnectionError as e:
-        logger.error(f"Error al conectar con Redis en set_conversation_state: {str(e)}")
+        logger.exception(f"Error al conectar con Redis en set_conversation_state: {str(e)}")
 
 QUANTUM_WEB_CONTEXT_FULL = """
 Plubot es una plataforma tipo Wix para crear chatbots personalizados (llamados "Plubots") que se integran con WhatsApp y trabajan 24/7. Nos especializamos en ayudar a negocios de todos los tamaños (tiendas online, restaurantes, clínicas, hoteles, academias, etc.) a automatizar procesos, aumentar ventas y ahorrar tiempo.
@@ -1296,6 +1365,7 @@ def test_redis():
         value = redis_client.get('test_key')
         return jsonify({"status": "success", "value": value})
     except redis.exceptions.ConnectionError as e:
+        logger.exception(f"Error en /test-redis: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
     
 PREDEFINED_FLOWS = [
@@ -1307,24 +1377,20 @@ PREDEFINED_FLOWS = [
 
 def load_predefined_flows():
     with get_session() as session:
-        # Verificar si ya existe un chatbot llamado "Plubot"
         chatbot = session.query(Chatbot).filter_by(name="Plubot").first()
         if not chatbot:
-            # Crear un chatbot genérico para Plubot si no existe
             chatbot = Chatbot(
                 name="Plubot",
                 tone="amigable",
                 purpose="asistir a los usuarios de Plubot y cerrar ventas",
                 initial_message="¡Hola! Soy Plubot, tu asistente para crear chatbots increíbles. 😊 ¿En qué puedo ayudarte hoy?",
-                user_id=1  # Aseguramos que el user_id sea 1
+                user_id=1
             )
             session.add(chatbot)
             session.commit()
 
-        # Verificar si ya existen flujos para este chatbot
         existing_flows = session.query(Flow).filter_by(chatbot_id=chatbot.id).count()
         if existing_flows == 0:
-            # Cargar los flujos predefinidos
             for index, flow in enumerate(PREDEFINED_FLOWS):
                 flow_entry = Flow(
                     chatbot_id=chatbot.id,
@@ -1337,9 +1403,8 @@ def load_predefined_flows():
             session.commit()
             logger.info(f"Se cargaron {len(PREDEFINED_FLOWS)} flujos predefinidos para el chatbot Plubot.")
 
-# Ejecutar al iniciar la aplicación
 load_predefined_flows()
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)  # Debug False para producción
+    app.run(host='0.0.0.0', port=port, debug=False)

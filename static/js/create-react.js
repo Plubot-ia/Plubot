@@ -18,31 +18,48 @@ const ChatbotApp = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [chatbotToDelete, setChatbotToDelete] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [isLoading, setIsLoading] = useState(false); // Nuevo: Indicador de carga
+    const [templates, setTemplates] = useState([]); // Nuevo: Lista de plantillas
+    const [selectedTemplate, setSelectedTemplate] = useState(''); // Nuevo: Plantilla seleccionada
 
+    // Cargar chatbots y plantillas al montar el componente
     useEffect(() => {
-        const loadChatbots = async () => {
+        const loadInitialData = async () => {
             try {
-                const response = await fetch('/list-bots', {
+                // Cargar chatbots
+                const botsResponse = await fetch('/list-bots', {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
                 });
-                if (!response.ok) throw new Error('No se pudieron cargar los chatbots');
-                const data = await response.json();
-                setChatbots(data.chatbots || []);
+                if (!botsResponse.ok) throw new Error('No se pudieron cargar los chatbots');
+                const botsData = await botsResponse.json();
+                setChatbots(botsData.chatbots || []);
                 setIsAuthenticated(true);
+
+                // Cargar plantillas (nueva solicitud al backend)
+                const templatesResponse = await fetch('/api/templates', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                });
+                if (templatesResponse.ok) {
+                    const templatesData = await templatesResponse.json();
+                    setTemplates(templatesData.templates || []);
+                }
             } catch (error) {
                 setResponseMessage(`Error: ${error.message}. Redirigiendo a /login...`);
                 setIsAuthenticated(false);
                 setTimeout(() => window.location.href = '/login', 2000);
             }
         };
-        loadChatbots();
+        loadInitialData();
     }, []);
 
     const startChat = async (chatbot) => {
         setSelectedChatbot(chatbot);
         setMessages([{ role: 'bot', content: chatbot.initial_message || 'Hola, ¿en qué puedo ayudarte?' }]);
+        setIsLoading(true);
         try {
             const response = await fetch('/conversation-history', {
                 method: 'POST',
@@ -57,9 +74,13 @@ const ChatbotApp = () => {
                     content: msg.message
                 }));
                 setMessages(prev => [...prev, ...historyMessages]);
+            } else {
+                setResponseMessage(`Error al cargar historial: ${data.message}`);
             }
         } catch (error) {
             setResponseMessage('Error al cargar el historial de conversación.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -68,6 +89,7 @@ const ChatbotApp = () => {
         const newMessage = { role: 'user', content: inputMessage };
         setMessages(prev => [...prev, newMessage]);
         setInputMessage('');
+        setIsLoading(true);
         try {
             const response = await fetch('/chat', {
                 method: 'POST',
@@ -78,23 +100,38 @@ const ChatbotApp = () => {
             const data = await response.json();
             if (response.ok) {
                 setMessages(prev => [...prev, { role: 'bot', content: data.response }]);
+            } else if (response.status === 403) {
+                setResponseMessage('Límite de 100 mensajes alcanzado. Suscríbete al plan premium en <a href="/pricing" class="text-blue-500 underline">aquí</a>.');
             } else {
                 setResponseMessage(`Error: ${data.message}`);
             }
         } catch (error) {
             setResponseMessage('Error al enviar mensaje.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const botData = { name, tone, purpose, whatsapp_number: whatsappNumber, business_info: businessInfo, pdf_url: pdfUrl, image_url: imageUrl, flows };
+        setIsLoading(true);
+        const botData = { 
+            name, 
+            tone, 
+            purpose, 
+            whatsapp_number: whatsappNumber, 
+            business_info: businessInfo, 
+            pdf_url: pdfUrl, 
+            image_url: imageUrl, 
+            flows,
+            template_id: selectedTemplate || null // Nuevo: Enviar template_id
+        };
         try {
             const response = await fetch('/create-bot', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(botData),
-                credentials: 'include'  // Añadir esta línea
             });
             const data = await response.json();
             if (response.ok) {
@@ -116,16 +153,20 @@ const ChatbotApp = () => {
                 setPdfUrl('');
                 setImageUrl('');
                 setFlows([{ userMessage: '', botResponse: '' }]);
+                setSelectedTemplate('');
             } else {
-                setResponseMessage(`Error: ${data.message || 'undefined'}`);  // Mejorar manejo de errores
+                setResponseMessage(`Error: ${data.message || 'No se pudo crear el chatbot'}`);
             }
         } catch (error) {
             setResponseMessage(`Error al crear el chatbot: ${error.message}`);
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleDelete = async () => {
         if (!chatbotToDelete) return;
+        setIsLoading(true);
         try {
             const response = await fetch('/delete-bot', {
                 method: 'POST',
@@ -150,9 +191,11 @@ const ChatbotApp = () => {
             }
         } catch (error) {
             setResponseMessage('Error al eliminar el chatbot.');
+        } finally {
+            setIsLoading(false);
+            setShowDeleteModal(false);
+            setChatbotToDelete(null);
         }
-        setShowDeleteModal(false);
-        setChatbotToDelete(null);
     };
 
     const handleFileUpload = async (e) => {
@@ -161,6 +204,7 @@ const ChatbotApp = () => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', file.type.includes('pdf') ? 'pdf' : 'image');
+        setIsLoading(true);
         try {
             const xhr = new XMLHttpRequest();
             xhr.open('POST', '/upload-file', true);
@@ -174,26 +218,29 @@ const ChatbotApp = () => {
                     const data = JSON.parse(xhr.responseText);
                     if (file.type.includes('pdf')) {
                         setPdfUrl(data.file_url || '');
-                        setResponseMessage('PDF subido con éxito.');
+                        setResponseMessage(`PDF subido con éxito: ${data.file_url}`);
                     } else {
                         setImageUrl(data.file_url || '');
-                        setResponseMessage('Imagen subida con éxito.');
+                        setResponseMessage(`Imagen subida con éxito: ${data.file_url}`);
                     }
                 } else {
                     const data = JSON.parse(xhr.responseText);
                     setResponseMessage(`Error: ${data.message}`);
                 }
                 setUploadProgress(0);
+                setIsLoading(false);
             };
             xhr.onerror = () => {
                 setResponseMessage('Error al subir el archivo.');
                 setUploadProgress(0);
+                setIsLoading(false);
             };
             xhr.withCredentials = true;
             xhr.send(formData);
         } catch (error) {
             setResponseMessage('Error al subir el archivo.');
             setUploadProgress(0);
+            setIsLoading(false);
         }
     };
 
@@ -205,6 +252,29 @@ const ChatbotApp = () => {
 
     const addFlow = () => setFlows([...flows, { userMessage: '', botResponse: '' }]);
     const removeFlow = (index) => setFlows(flows.filter((_, i) => i !== index));
+
+    // Nueva función: Conectar a WhatsApp
+    const connectWhatsapp = async (chatbot) => {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/connect-whatsapp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ chatbot_id: chatbot.id, phone_number: chatbot.whatsapp_number })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setResponseMessage(data.message);
+            } else {
+                setResponseMessage(`Error: ${data.message}`);
+            }
+        } catch (error) {
+            setResponseMessage('Error al conectar con WhatsApp.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     if (isAuthenticated === null) {
         return (
@@ -258,6 +328,16 @@ const ChatbotApp = () => {
                                 <input className="contact-input" type="url" value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)} placeholder="URL del PDF (opcional)" />
                                 <input className="contact-input" type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="URL de la Imagen (opcional)" />
                             </div>
+                            {/* Nuevo: Selector de plantillas */}
+                            <div className="mb-4">
+                                <label className="block text-gray-700 mb-2">Plantilla (opcional)</label>
+                                <select className="contact-select w-full" value={selectedTemplate} onChange={(e) => setSelectedTemplate(e.target.value)}>
+                                    <option value="">Sin plantilla</option>
+                                    {templates.map(template => (
+                                        <option key={template.id} value={template.id}>{template.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                             <div className="file-upload">
                                 <label>Subir PDF o Imagen (máx. 5MB)</label>
                                 <input type="file" accept=".pdf,image/*" onChange={handleFileUpload} />
@@ -281,10 +361,14 @@ const ChatbotApp = () => {
                                 <button type="button" className="quantum-btn magenta" onClick={addFlow}>Agregar Flujo</button>
                             </div>
                             <div className="form-buttons">
-                                <button type="submit" className="quantum-btn">Crear Chatbot</button>
+                                <button type="submit" className="quantum-btn" disabled={isLoading}>
+                                    {isLoading ? 'Creando...' : 'Crear Chatbot'}
+                                </button>
                             </div>
                         </form>
-                        {responseMessage && <div className="response-message">{responseMessage}</div>}
+                        {responseMessage && (
+                            <div className="response-message" dangerouslySetInnerHTML={{ __html: responseMessage }} />
+                        )}
                     </div>
 
                     <div className="chatbot-list">
@@ -297,8 +381,17 @@ const ChatbotApp = () => {
                                         {bot.whatsapp_number && ` | WhatsApp: ${bot.whatsapp_number}`}
                                     </div>
                                     <div className="chatbot-item-buttons">
-                                        <button className="quantum-btn magenta" onClick={() => startChat(bot)}>Chatear</button>
-                                        <button className="quantum-btn delete-btn" onClick={() => { setChatbotToDelete(bot); setShowDeleteModal(true); }}>Eliminar</button>
+                                        <button className="quantum-btn magenta" onClick={() => startChat(bot)} disabled={isLoading}>
+                                            {isLoading ? 'Cargando...' : 'Chatear'}
+                                        </button>
+                                        {bot.whatsapp_number && (
+                                            <button className="quantum-btn bg-green-500 text-white" onClick={() => connectWhatsapp(bot)} disabled={isLoading}>
+                                                {isLoading ? 'Conectando...' : 'Conectar WhatsApp'}
+                                            </button>
+                                        )}
+                                        <button className="quantum-btn delete-btn" onClick={() => { setChatbotToDelete(bot); setShowDeleteModal(true); }} disabled={isLoading}>
+                                            Eliminar
+                                        </button>
                                     </div>
                                 </div>
                             ))
@@ -341,14 +434,15 @@ const ChatbotApp = () => {
                                                     </div>
                                                 </div>
                                             ))}
+                                            {isLoading && <div className="text-center text-gray-500">Cargando...</div>}
                                         </div>
                                         <div className="whatsapp-input">
                                             <div className="input-wrapper">
                                                 <i className="fas fa-smile input-icon"></i>
-                                                <input type="text" value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="Escribe un mensaje..." />
+                                                <input type="text" value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="Escribe un mensaje..." disabled={isLoading} />
                                                 <i className="fas fa-paperclip input-icon"></i>
                                             </div>
-                                            <button onClick={sendMessage}><i className="fas fa-paper-plane"></i></button>
+                                            <button onClick={sendMessage} disabled={isLoading}><i className="fas fa-paper-plane"></i></button>
                                         </div>
                                     </div>
                                 </div>
@@ -363,8 +457,10 @@ const ChatbotApp = () => {
                     <h2>Confirmar Eliminación</h2>
                     <p>¿Estás seguro de que deseas eliminar el chatbot "{chatbotToDelete?.name}"? Esta acción no se puede deshacer.</p>
                     <div className="modal-actions">
-                        <button className="confirm-btn" onClick={handleDelete}>Sí, Eliminar</button>
-                        <button className="cancel-btn" onClick={() => setShowDeleteModal(false)}>Cancelar</button>
+                        <button className="confirm-btn bg-red-500 text-white" onClick={handleDelete} disabled={isLoading}>
+                            {isLoading ? 'Eliminando...' : 'Sí, Eliminar'}
+                        </button>
+                        <button className="cancel-btn" onClick={() => setShowDeleteModal(false)} disabled={isLoading}>Cancelar</button>
                     </div>
                 </div>
             </div>
