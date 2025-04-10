@@ -49,14 +49,12 @@ CORS(app, resources={r"/*": {
     "supports_credentials": True
 }})
 
-# Configuración de Redis con soporte para SSL y pool de conexiones
+# Configuración de Redis con pool de conexiones
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 redis_pool = ConnectionPool.from_url(
     REDIS_URL,
     decode_responses=True,
     max_connections=5,  # Limita a 5 conexiones simultáneas
-    ssl=True,  # Habilita SSL para Upstash
-    ssl_cert_reqs=None,  # Desactiva la verificación de certificados (opcional, para pruebas)
     retry_on_timeout=True,  # Reintenta si hay timeout
     health_check_interval=30  # Verifica la conexión cada 30 segundos
 )
@@ -69,13 +67,11 @@ try:
 except redis.exceptions.ConnectionError as e:
     logger.error(f"Error al conectar con Redis al iniciar: {str(e)}")
 
-# Configuración de Celery con soporte para SSL
+# Configuración de Celery
 celery_app = Celery(
     'tasks',
     broker=REDIS_URL,
-    backend=REDIS_URL.replace('/0', '/1'),
-    broker_use_ssl={'ssl_cert_reqs': None},  # Habilita SSL para el broker
-    redis_backend_use_ssl={'ssl_cert_reqs': None}  # Habilita SSL para el backend
+    backend=REDIS_URL.replace('/0', '/1')
 )
 celery_app.conf.update(
     task_serializer='json',
