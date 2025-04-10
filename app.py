@@ -21,6 +21,8 @@ from sqlalchemy.sql import func
 from requests.exceptions import HTTPError, Timeout
 import redis
 from redis.connection import ConnectionPool
+from redis.retry import Retry
+from redis.backoff import ExponentialBackoff
 from celery import Celery
 from contextlib import contextmanager
 from datetime import timedelta
@@ -49,16 +51,26 @@ CORS(app, resources={r"/*": {
     "supports_credentials": True
 }})
 
-# Configuración de Redis con pool de conexiones
+# Configuración de Redis con pool de conexiones y reintentos
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+# Configuramos un mecanismo de reintentos con backoff exponencial
+retry = Retry(ExponentialBackoff(cap=10, base=1), retries=3)
 redis_pool = ConnectionPool.from_url(
     REDIS_URL,
     decode_responses=True,
-    max_connections=5,  # Limita a 5 conexiones simultáneas
-    retry_on_timeout=True,  # Reintenta si hay timeout
-    health_check_interval=30  # Verifica la conexión cada 30 segundos
+    max_connections=3,  # Reducimos a 3 conexiones para evitar exceder el límite de Upstash
+    retry=retry,  # Añadimos reintentos
+    retry_on_timeout=True,
+    health_check_interval=30,
+    socket_timeout=5,  # Tiempo de espera para operaciones de socket
+    socket_connect_timeout=5  # Tiempo de espera para la conexión inicial
 )
-redis_client = redis.Redis(connection_pool=redis_pool)
+redis_client = redis.Redis(
+    connection_pool=redis_pool,
+    socket_timeout=5,
+    socket_connect_timeout=5,
+    retry=retry
+)
 
 # Prueba la conexión a Redis al iniciar la app
 try:
@@ -79,7 +91,16 @@ celery_app.conf.update(
     result_serializer='json',
     timezone='UTC',
     enable_utc=True,
-    broker_connection_retry_on_startup=True
+    broker_connection_retry_on_startup=True,
+    broker_pool_limit=2,  # Limitamos el pool de conexiones del broker a 2
+    result_backend_transport_options={
+        'retry_policy': {
+            'max_retries': 3,
+            'interval_start': 1,
+            'interval_step': 1,
+            'interval_max': 10
+        }
+    }
 )
 
 # Cargar claves desde .env
@@ -233,7 +254,7 @@ def call_grok(messages, max_tokens=150):
     payload = {"model": "grok-2-1212", "messages": messages, "temperature": 0.5, "max_tokens": max_tokens}
     try:
         logger.info(f"Enviando solicitud a xAI con payload: {json.dumps(payload)}")
-        response = requests.post(url, json=payload, headers=headers, timeout=30)  # Aumentamos a 30 segundos
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
         response.raise_for_status()
         result = response.json()['choices'][0]['message']['content']
         try:
