@@ -756,7 +756,7 @@ def connect_whatsapp():
             return jsonify({'status': 'success', 'message': f'Se envió un mensaje de verificación a {phone_number}. Responde con "VERIFICAR" para completar el proceso.'}), 200
         except Exception as e:
             logger.error(f"Error en /connect-whatsapp: {str(e)}")
-            return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500
+            return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500        
 
 @app.route('/delete-bot', methods=['OPTIONS', 'POST'])
 @jwt_required()
@@ -1150,6 +1150,18 @@ Nuestra misión es responder con amabilidad y empatía, escuchar al cliente, y o
 QUANTUM_WEB_CONTEXT_SHORT = """
 Eres Plubot. Responde con amabilidad y empatía, usa un tono alegre y respuestas cortas (2-3 frases max). Incluye emojis cuando sea apropiado, invita cuando puedas al usuario para que cree su propio bot.
 """
+
+@app.route('/fallback', methods=['POST'])
+def fallback():
+    logger.error("Webhook principal falló. Datos recibidos: %s", request.values)
+    return "OK", 200
+
+@app.route('/status-callback', methods=['POST'])
+def status_callback():
+    message_status = request.values.get('MessageStatus', 'unknown')
+    message_sid = request.values.get('MessageSid', 'unknown')
+    logger.info(f"Estado del mensaje {message_sid}: {message_status}")
+    return "OK", 200
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
