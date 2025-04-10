@@ -18,11 +18,15 @@ const ChatbotApp = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [chatbotToDelete, setChatbotToDelete] = useState(null);
     const [uploadProgress, setUploadProgress] = useState(0);
-    const [isLoading, setIsLoading] = useState(false); // Nuevo: Indicador de carga
-    const [templates, setTemplates] = useState([]); // Nuevo: Lista de plantillas
-    const [selectedTemplate, setSelectedTemplate] = useState(''); // Nuevo: Plantilla seleccionada
+    const [isLoading, setIsLoading] = useState(false);
+    const [templates, setTemplates] = useState([]);
+    const [selectedTemplate, setSelectedTemplate] = useState('');
+    // Nuevos estados para las mejoras
+    const [step, setStep] = useState(1); // Paso actual del asistente
+    const [previewMessage, setPreviewMessage] = useState(''); // Vista previa
+    const [quota, setQuota] = useState({ messages_used: 0, messages_limit: 100 }); // Estado del plan
 
-    // Cargar chatbots y plantillas al montar el componente
+    // Cargar chatbots, plantillas y cuota al montar el componente
     useEffect(() => {
         const loadInitialData = async () => {
             try {
@@ -37,7 +41,7 @@ const ChatbotApp = () => {
                 setChatbots(botsData.chatbots || []);
                 setIsAuthenticated(true);
 
-                // Cargar plantillas (nueva solicitud al backend)
+                // Cargar plantillas
                 const templatesResponse = await fetch('/api/templates', {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
@@ -47,6 +51,17 @@ const ChatbotApp = () => {
                     const templatesData = await templatesResponse.json();
                     setTemplates(templatesData.templates || []);
                 }
+
+                // Cargar estado de la cuota
+                const quotaResponse = await fetch('/api/quota', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                });
+                if (quotaResponse.ok) {
+                    const quotaData = await quotaResponse.json();
+                    setQuota(quotaData);
+                }
             } catch (error) {
                 setResponseMessage(`Error: ${error.message}. Redirigiendo a /login...`);
                 setIsAuthenticated(false);
@@ -55,6 +70,11 @@ const ChatbotApp = () => {
         };
         loadInitialData();
     }, []);
+
+    // Controlar visibilidad del loader global
+    useEffect(() => {
+        document.getElementById('global-loader').classList.toggle('hidden', !isLoading);
+    }, [isLoading]);
 
     const startChat = async (chatbot) => {
         setSelectedChatbot(chatbot);
@@ -100,6 +120,9 @@ const ChatbotApp = () => {
             const data = await response.json();
             if (response.ok) {
                 setMessages(prev => [...prev, { role: 'bot', content: data.response }]);
+                // Actualizar cuota después de enviar mensaje
+                const quotaResponse = await fetch('/api/quota', { credentials: 'include' });
+                if (quotaResponse.ok) setQuota(await quotaResponse.json());
             } else if (response.status === 403) {
                 setResponseMessage('Límite de 100 mensajes alcanzado. Suscríbete al plan premium en <a href="/pricing" class="text-blue-500 underline">aquí</a>.');
             } else {
@@ -116,15 +139,9 @@ const ChatbotApp = () => {
         e.preventDefault();
         setIsLoading(true);
         const botData = { 
-            name, 
-            tone, 
-            purpose, 
-            whatsapp_number: whatsappNumber, 
-            business_info: businessInfo, 
-            pdf_url: pdfUrl, 
-            image_url: imageUrl, 
-            flows,
-            template_id: selectedTemplate || null // Nuevo: Enviar template_id
+            name, tone, purpose, whatsapp_number: whatsappNumber, 
+            business_info: businessInfo, pdf_url: pdfUrl, image_url: imageUrl, flows,
+            template_id: selectedTemplate || null
         };
         try {
             const response = await fetch('/create-bot', {
@@ -136,14 +153,10 @@ const ChatbotApp = () => {
             const data = await response.json();
             if (response.ok) {
                 setResponseMessage(data.message);
-                const loadResponse = await fetch('/list-bots', { 
-                    method: 'GET', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    credentials: 'include' 
-                });
-                if (loadResponse.ok) {
-                    const loadData = await loadResponse.json();
-                    setChatbots(loadData.chatbots || []);
+                const botsResponse = await fetch('/list-bots', { method: 'GET', headers: { 'Content-Type': 'application/json' }, credentials: 'include' });
+                if (botsResponse.ok) {
+                    const botsData = await botsResponse.json();
+                    setChatbots(botsData.chatbots || []);
                 }
                 setName('');
                 setTone('amigable');
@@ -154,11 +167,12 @@ const ChatbotApp = () => {
                 setImageUrl('');
                 setFlows([{ userMessage: '', botResponse: '' }]);
                 setSelectedTemplate('');
+                setStep(1); // Reiniciar al paso 1
             } else {
-                setResponseMessage(`Error: ${data.message || 'No se pudo crear el chatbot'}`);
+                setResponseMessage(data.message);
             }
         } catch (error) {
-            setResponseMessage(`Error al crear el chatbot: ${error.message}`);
+            setResponseMessage('Error al conectar con el servidor. Por favor, revisa tu conexión e intenta de nuevo.');
         } finally {
             setIsLoading(false);
         }
@@ -253,7 +267,6 @@ const ChatbotApp = () => {
     const addFlow = () => setFlows([...flows, { userMessage: '', botResponse: '' }]);
     const removeFlow = (index) => setFlows(flows.filter((_, i) => i !== index));
 
-    // Nueva función: Conectar a WhatsApp
     const connectWhatsapp = async (chatbot) => {
         setIsLoading(true);
         try {
@@ -273,6 +286,97 @@ const ChatbotApp = () => {
             setResponseMessage('Error al conectar con WhatsApp.');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    // Nueva función para renderizar los pasos del asistente
+    const renderStep = () => {
+        const previewResponse = flows.find(f => f.userMessage.toLowerCase() === previewMessage.toLowerCase())?.botResponse || 'Escribe un mensaje para ver la respuesta.';
+        switch (step) {
+            case 1:
+                return (
+                    <div className="mb-6">
+                        <h2 className="text-xl font-semibold mb-4">Paso 1: Nombre y Tono</h2>
+                        <input className="contact-input mb-2" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre del Chatbot" required />
+                        <select className="contact-select mb-2" value={tone} onChange={(e) => setTone(e.target.value)}>
+                            <option value="amigable">Amigable</option>
+                            <option value="profesional">Profesional</option>
+                            <option value="divertido">Divertido</option>
+                            <option value="serio">Serio</option>
+                        </select>
+                        <input className="contact-input mb-2" type="text" value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Propósito (ej. ventas, soporte)" required />
+                        <button type="button" className="quantum-btn" onClick={() => setStep(2)} disabled={!name || !purpose}>Siguiente</button>
+                    </div>
+                );
+            case 2:
+                return (
+                    <div className="mb-6">
+                        <h2 className="text-xl font-semibold mb-4">Paso 2: Plantilla (Opcional)</h2>
+                        <select className="contact-select w-full mb-2" value={selectedTemplate} onChange={(e) => setSelectedTemplate(e.target.value)}>
+                            <option value="">Sin plantilla</option>
+                            {templates.map(template => (
+                                <option key={template.id} value={template.id}>{template.name}</option>
+                            ))}
+                        </select>
+                        <div className="flex space-x-2">
+                            <button type="button" className="quantum-btn magenta" onClick={() => setStep(1)}>Atrás</button>
+                            <button type="button" className="quantum-btn" onClick={() => setStep(3)}>Siguiente</button>
+                        </div>
+                    </div>
+                );
+            case 3:
+                return (
+                    <div className="mb-6">
+                        <h2 className="text-xl font-semibold mb-4">Paso 3: Flujos de Conversación</h2>
+                        {flows.map((flow, index) => (
+                            <div className="flow-item mb-2" key={index}>
+                                <input className="contact-input" type="text" value={flow.userMessage} onChange={(e) => handleFlowChange(index, 'userMessage', e.target.value)} placeholder="Mensaje del usuario" />
+                                <input className="contact-input" type="text" value={flow.botResponse} onChange={(e) => handleFlowChange(index, 'botResponse', e.target.value)} placeholder="Respuesta del bot" />
+                                {flows.length > 1 && (
+                                    <button type="button" className="quantum-btn delete-btn" onClick={() => removeFlow(index)}>Eliminar</button>
+                                )}
+                            </div>
+                        ))}
+                        <div className="mb-2">
+                            <input className="contact-input w-full" type="text" value={previewMessage} onChange={(e) => setPreviewMessage(e.target.value)} placeholder="Prueba un mensaje aquí" />
+                            <p className="mt-2 text-gray-600">Respuesta: {previewResponse}</p>
+                        </div>
+                        <button type="button" className="quantum-btn magenta mb-2" onClick={addFlow}>Agregar Flujo</button>
+                        <div className="flex space-x-2">
+                            <button type="button" className="quantum-btn magenta" onClick={() => setStep(2)}>Atrás</button>
+                            <button type="button" className="quantum-btn" onClick={() => setStep(4)}>Siguiente</button>
+                        </div>
+                    </div>
+                );
+            case 4:
+                return (
+                    <div className="mb-6">
+                        <h2 className="text-xl font-semibold mb-4">Paso 4: Conectar WhatsApp</h2>
+                        <input className="contact-input mb-2" type="text" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} placeholder="Número de WhatsApp (+1234567890)" />
+                        <textarea className="contact-textarea mb-2" value={businessInfo} onChange={(e) => setBusinessInfo(e.target.value)} placeholder="Información del negocio (opcional)" />
+                        <div className="form-grid mb-2">
+                            <input className="contact-input" type="url" value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)} placeholder="URL del PDF (opcional)" />
+                            <input className="contact-input" type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="URL de la Imagen (opcional)" />
+                        </div>
+                        <div className="file-upload mb-2">
+                            <label>Subir PDF o Imagen (máx. 5MB)</label>
+                            <input type="file" accept=".pdf,image/*" onChange={handleFileUpload} />
+                            {uploadProgress > 0 && (
+                                <div className="progress-bar">
+                                    <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }} />
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex space-x-2">
+                            <button type="button" className="quantum-btn magenta" onClick={() => setStep(3)}>Atrás</button>
+                            <button type="submit" className="quantum-btn" onClick={handleSubmit} disabled={isLoading}>
+                                {isLoading ? 'Creando...' : 'Finalizar y Crear'}
+                            </button>
+                        </div>
+                    </div>
+                );
+            default:
+                return null;
         }
     };
 
@@ -311,60 +415,15 @@ const ChatbotApp = () => {
                     <h1 className="chatbot-title">Crea tu Plubot</h1>
                     <div className="bot-config">
                         <h2>Configura tu Chatbot</h2>
+                        {/* Información de cuota */}
+                        <div className="quota-info mb-4">
+                            <p>Mensajes usados: {quota.messages_used}/{quota.messages_limit}</p>
+                            {quota.messages_used >= 75 && (
+                                <p className="text-yellow-500">¡Estás cerca del límite! Suscríbete al plan premium <a href="/pricing" className="text-blue-500 underline">aquí</a>.</p>
+                            )}
+                        </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="form-grid">
-                                <input className="contact-input" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre del Chatbot" required />
-                                <select className="contact-select" value={tone} onChange={(e) => setTone(e.target.value)}>
-                                    <option value="amigable">Amigable</option>
-                                    <option value="profesional">Profesional</option>
-                                    <option value="divertido">Divertido</option>
-                                    <option value="serio">Serio</option>
-                                </select>
-                                <input className="contact-input" type="text" value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Propósito (ej. ventas, soporte)" required />
-                                <input className="contact-input" type="text" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} placeholder="Número de WhatsApp (+1234567890)" />
-                            </div>
-                            <textarea className="contact-textarea" value={businessInfo} onChange={(e) => setBusinessInfo(e.target.value)} placeholder="Información del negocio (opcional)" />
-                            <div className="form-grid">
-                                <input className="contact-input" type="url" value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)} placeholder="URL del PDF (opcional)" />
-                                <input className="contact-input" type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="URL de la Imagen (opcional)" />
-                            </div>
-                            {/* Nuevo: Selector de plantillas */}
-                            <div className="mb-4">
-                                <label className="block text-gray-700 mb-2">Plantilla (opcional)</label>
-                                <select className="contact-select w-full" value={selectedTemplate} onChange={(e) => setSelectedTemplate(e.target.value)}>
-                                    <option value="">Sin plantilla</option>
-                                    {templates.map(template => (
-                                        <option key={template.id} value={template.id}>{template.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="file-upload">
-                                <label>Subir PDF o Imagen (máx. 5MB)</label>
-                                <input type="file" accept=".pdf,image/*" onChange={handleFileUpload} />
-                                {uploadProgress > 0 && (
-                                    <div className="progress-bar">
-                                        <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }} />
-                                    </div>
-                                )}
-                            </div>
-                            <h3>Flujos de Conversación</h3>
-                            {flows.map((flow, index) => (
-                                <div className="flow-item" key={index}>
-                                    <input className="contact-input" type="text" value={flow.userMessage} onChange={(e) => handleFlowChange(index, 'userMessage', e.target.value)} placeholder="Mensaje del usuario" />
-                                    <input className="contact-input" type="text" value={flow.botResponse} onChange={(e) => handleFlowChange(index, 'botResponse', e.target.value)} placeholder="Respuesta del bot" />
-                                    {flows.length > 1 && (
-                                        <button type="button" className="quantum-btn delete-btn" onClick={() => removeFlow(index)}>Eliminar</button>
-                                    )}
-                                </div>
-                            ))}
-                            <div className="flow-buttons">
-                                <button type="button" className="quantum-btn magenta" onClick={addFlow}>Agregar Flujo</button>
-                            </div>
-                            <div className="form-buttons">
-                                <button type="submit" className="quantum-btn" disabled={isLoading}>
-                                    {isLoading ? 'Creando...' : 'Crear Chatbot'}
-                                </button>
-                            </div>
+                            {renderStep()}
                         </form>
                         {responseMessage && (
                             <div className="response-message" dangerouslySetInnerHTML={{ __html: responseMessage }} />

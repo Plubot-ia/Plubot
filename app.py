@@ -80,7 +80,8 @@ try:
     redis_client.ping()
     logger.info("Conexión a Redis establecida correctamente")
 except redis.exceptions.ConnectionError as e:
-    logger.error(f"Error al conectar con Redis al iniciar: {str(e)}")
+    logger.error(f"Redis no disponible: {str(e)}. Usando modo sin caché.")
+    redis_client = None  # Desactiva Redis si falla
 
 # Configuración de Celery
 celery_app = Celery(
@@ -291,10 +292,12 @@ def call_grok(messages, max_tokens=150):
         return "¡Ups! La IA tardó demasiado, intenta de nuevo."
     except requests.exceptions.HTTPError as e:
         logger.exception(f"Error HTTP con xAI: {str(e)}")
-        return "¡Oops! Error con la IA, intenta de nuevo."
-    except Exception as e:
-        logger.exception(f"Error inesperado en call_grok: {str(e)}")
-        return "¡Error inesperado! Por favor, intenta de nuevo."
+        status = e.response.status_code
+        if status == 429:
+            return "Demasiadas solicitudes. Espera un momento y vuelve a intentarlo."
+        elif status == 401:
+            return "Error de autenticación con la IA. Contacta al soporte."
+        return f"Error con la IA (código {status}). Intenta de nuevo más tarde."
 
 @celery_app.task
 def process_pdf_async(chatbot_id, pdf_url):
@@ -322,14 +325,32 @@ def validate_whatsapp_number(number):
         logger.exception(f"Error al validar número de WhatsApp con Twilio: {str(e)}")
         return False
 
-def check_quota(user_id, session):  # Nueva función para límite de mensajes
+def check_quota(user_id, session):
     current_month = time.strftime("%Y-%m")
     quota = session.query(MessageQuota).filter_by(user_id=user_id, month=current_month).first()
     if not quota:
         quota = MessageQuota(user_id=user_id, month=current_month)
         session.add(quota)
         session.commit()
-    return quota.message_count < 100 if quota.plan == 'free' else True
+    if quota.plan == 'free':
+        if quota.message_count >= 75 and quota.message_count < 100:
+            logger.info(f"Usuario {user_id} ha usado {quota.message_count} mensajes. Notificando...")
+            # Aquí podrías enviar un correo o notificación
+        return quota.message_count < 100
+    return True
+
+@app.route('/api/quota', methods=['GET'])
+@jwt_required()
+def get_quota():
+    user_id = get_jwt_identity()
+    with get_session() as session:
+        current_month = time.strftime("%Y-%m")
+        quota = session.query(MessageQuota).filter_by(user_id=user_id, month=current_month).first()
+        return jsonify({
+            'plan': quota.plan if quota else 'free',
+            'messages_used': quota.message_count if quota else 0,
+            'messages_limit': 100 if (quota and quota.plan == 'free') else 'ilimitado'
+        })
 
 def increment_quota(user_id, session):  # Nueva función para incrementar cuota
     current_month = time.strftime("%Y-%m")
@@ -341,20 +362,39 @@ def increment_quota(user_id, session):  # Nueva función para incrementar cuota
     session.commit()
     return quota
 
-def load_initial_templates():  # Nueva función para plantillas iniciales
+def load_initial_templates():
     with get_session() as session:
         if not session.query(Template).count():
-            session.add(Template(
-                name="Soporte Técnico",
-                tone="profesional",
-                purpose="resolver problemas técnicos",
-                flows=json.dumps([
-                    {"user_message": "tengo un problema", "bot_response": "Describe tu problema y te ayudaré."},
-                    {"user_message": "no funciona", "bot_response": "¿Puedes dar más detalles? Estoy aquí para ayudarte."}
-                ])
-            ))
+            templates = [
+                Template(
+                    name="Ventas Tienda Online",
+                    tone="amigable",
+                    purpose="vender productos y responder preguntas",
+                    flows=json.dumps([
+                        {"user_message": "hola", "bot_response": "¡Hola! Bienvenid@ a mi tienda. ¿Qué te gustaría comprar hoy? 😊"},
+                        {"user_message": "precio", "bot_response": "Dime qué producto te interesa y te doy el precio al instante. 💰"}
+                    ])
+                ),
+                Template(
+                    name="Soporte Técnico",
+                    tone="profesional",
+                    purpose="resolver problemas técnicos",
+                    flows=json.dumps([
+                        {"user_message": "tengo un problema", "bot_response": "Describe tu problema y te ayudaré paso a paso."},
+                        {"user_message": "no funciona", "bot_response": "¿Puedes dar más detalles? Estoy aquí para solucionarlo."}
+                    ])
+                )
+            ]
+            session.add_all(templates)
             session.commit()
             logger.info("Plantillas iniciales cargadas.")
+
+@app.route('/api/templates', methods=['GET'])
+@jwt_required()
+def get_templates():
+    with get_session() as session:
+        templates = session.query(Template).all()
+        return jsonify({'templates': [{'id': t.id, 'name': t.name} for t in templates]})
 
 # Rutas de autenticación
 @app.route('/register', methods=['GET', 'POST'])
@@ -808,15 +848,26 @@ def create_bot():
             pdf_url = data.get('pdf_url', None)
             image_url = data.get('image_url', None)
             flows = data.get('flows', [])
-            template_id = data.get('template_id', None)  # Nuevo campo para plantillas
+            template_id = data.get('template_id', None)
 
             if whatsapp_number:
-                WhatsAppNumberModel.validate_whatsapp_number(whatsapp_number)
+                try:
+                    WhatsAppNumberModel.validate_whatsapp_number(whatsapp_number)
+                except ValueError as e:
+                    return jsonify({'status': 'error', 'message': 'El número de WhatsApp debe tener el formato internacional, como +1234567890.'}), 400
+                
                 if not validate_whatsapp_number(whatsapp_number):
-                    return jsonify({'status': 'error', 'message': 'El número de WhatsApp no está registrado en Twilio.'}), 400
+                    return jsonify({
+                        'status': 'error', 
+                        'message': 'El número de WhatsApp no está habilitado para este servicio. Usa un número válido o déjalo en blanco para continuar sin WhatsApp.'
+                    }), 400
+                
                 existing_bot = session.query(Chatbot).filter_by(whatsapp_number=whatsapp_number).first()
                 if existing_bot:
-                    return jsonify({'status': 'error', 'message': f'El número {whatsapp_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}).'}), 400
+                    return jsonify({
+                        'status': 'error', 
+                        'message': f'El número {whatsapp_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}). Usa otro número o déjalo en blanco.'
+                    }), 400
 
             response = create_chatbot(bot_name, tone, purpose, whatsapp_number, business_info, pdf_url, image_url, flows, template_id, session=session, user_id=user_id)
             logger.info(f"Respuesta enviada: {response}")
@@ -825,7 +876,7 @@ def create_bot():
             return jsonify({'status': 'error', 'message': str(e)}), 400
         except Exception as e:
             logger.exception(f"Error en /create-bot: {str(e)}")
-            return jsonify({'message': f"Error: {str(e)}"}), 500
+            return jsonify({'message': f"Error inesperado al crear el chatbot: {str(e)}"}), 500
 
 @app.route('/connect-whatsapp', methods=['OPTIONS', 'POST'])
 @jwt_required()
@@ -836,41 +887,38 @@ def connect_whatsapp():
     user_id = get_jwt_identity()
     with get_session() as session:
         try:
-            logger.info("Solicitud recibida en /connect-whatsapp")
             data = request.get_json()
-            logger.info(f"Datos recibidos: {data}")
             chatbot_id = data.get('chatbot_id')
             phone_number = data.get('phone_number')
 
             if not chatbot_id or not phone_number:
                 return jsonify({'status': 'error', 'message': 'Faltan chatbot_id o phone_number'}), 400
 
+            # Validar formato del número
+            if not re.match(r'^\+\d{10,15}$', phone_number):
+                return jsonify({'status': 'error', 'message': 'El número debe tener formato internacional, ej. +1234567890'}), 400
+
             chatbot = session.query(Chatbot).filter_by(id=chatbot_id, user_id=user_id).first()
             if not chatbot:
                 return jsonify({'status': 'error', 'message': 'Chatbot no encontrado o no tienes permiso'}), 404
 
-            existing_bot = session.query(Chatbot).filter_by(whatsapp_number=phone_number).first()
-            if existing_bot and existing_bot.id != chatbot_id:
-                return jsonify({'status': 'error', 'message': f'El número {phone_number} ya está vinculado al chatbot "{existing_bot.name}" (ID: {existing_bot.id}).'}), 400
+            if not validate_whatsapp_number(phone_number):
+                return jsonify({'status': 'error', 'message': 'El número no está registrado en Twilio. Regístralo primero.'}), 400
 
-            try:
-                message = twilio_client.messages.create(
-                    body="Hola, soy Plubot. Responde con 'VERIFICAR' para conectar tu número a tu chatbot.",
-                    from_=f'whatsapp:{TWILIO_PHONE}',
-                    to=f'whatsapp:{phone_number}'
-                )
-                logger.info(f"Mensaje de verificación enviado a {phone_number}: {message.sid}")
-            except TwilioRestException as e:
-                logger.exception(f"Error al enviar mensaje de verificación: {str(e)}")
-                return jsonify({'status': 'error', 'message': f'Error al enviar mensaje de verificación: {str(e)}'}), 500
-
+            message = twilio_client.messages.create(
+                body="¡Hola! Soy Plubot. Responde 'VERIFICAR' para conectar tu chatbot. Si necesitas ayuda, visita https://www.plubot.com/support.",
+                from_=f'whatsapp:{TWILIO_PHONE}',
+                to=f'whatsapp:{phone_number}'
+            )
+            logger.info(f"Mensaje enviado a {phone_number}: {message.sid}")
             chatbot.whatsapp_number = phone_number
             session.commit()
-
-            return jsonify({'status': 'success', 'message': f'Se envió un mensaje de verificación a {phone_number}. Responde con "VERIFICAR" para completar el proceso.'}), 200
+            return jsonify({'status': 'success', 'message': f'Verifica tu número {phone_number} respondiendo "VERIFICAR" en WhatsApp.'}), 200
+        except TwilioRestException as e:
+            return jsonify({'status': 'error', 'message': f'Error con Twilio: {str(e)}. Verifica tus credenciales.'}), 500
         except Exception as e:
             logger.exception(f"Error en /connect-whatsapp: {str(e)}")
-            return jsonify({'status': 'error', 'message': f'Error: {str(e)}'}), 500        
+            return jsonify({'status': 'error', 'message': f'Error inesperado: {str(e)}'}), 500       
 
 @app.route('/delete-bot', methods=['OPTIONS', 'POST'])
 @jwt_required()
@@ -1289,7 +1337,8 @@ def whatsapp():
             redis_client.delete(f"conversation_state:{sender}")
         except redis.exceptions.ConnectionError as e:
             logger.exception(f"Error al eliminar estado de conversación en Redis: {str(e)}")
-    return str(resp)
+    return str(resp)  
+
 
 def get_conversation_state(sender):
     try:
