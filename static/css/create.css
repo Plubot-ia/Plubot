@@ -86,6 +86,11 @@ a {
     box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
 }
 
+.quantum-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .delete-btn {
     border-color: #ff4444;
     color: #ff4444;
@@ -96,6 +101,19 @@ a {
     background: #ff4444;
     color: #0a0a0a;
     box-shadow: 0 0 15px rgba(255, 68, 68, 0.6);
+}
+
+/* Nuevo: Botón para conectar WhatsApp */
+.quantum-btn.whatsapp-btn {
+    border-color: #25d366;
+    color: #25d366;
+    box-shadow: 0 0 8px rgba(37, 211, 102, 0.3);
+}
+
+.quantum-btn.whatsapp-btn:hover {
+    background: #25d366;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(37, 211, 102, 0.6);
 }
 
 .contact-input, .contact-select, .contact-textarea {
@@ -128,6 +146,11 @@ a {
     color: #888;
     font-style: italic;
     opacity: 1;
+}
+
+.contact-input:disabled, .contact-select:disabled, .contact-textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .file-upload {
@@ -358,6 +381,14 @@ a {
     gap: 0.4rem;
 }
 
+/* Nuevo: Estilo para el indicador de carga en el chat */
+.whatsapp-body .loading-indicator {
+    text-align: center;
+    color: #888;
+    font-size: 0.85rem;
+    padding: 0.4rem;
+}
+
 .chatbot-message {
     padding: 0.4rem 0.8rem;
     font-size: 0.85rem;
@@ -506,6 +537,22 @@ a {
     max-width: 100%;
 }
 
+/* Nuevo: Estilo para el contenedor de la plantilla */
+.template-container {
+    margin-bottom: 1rem;
+}
+
+.template-container label {
+    font-size: 0.9rem;
+    color: #d0d0d0;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.template-container .contact-select {
+    width: 100%;
+}
+
 .flow-item {
     padding: 0.8rem;
     background: rgba(30, 30, 30, 0.95);
@@ -545,6 +592,15 @@ a {
     color: #00e0ff;
     border: 1px solid rgba(0, 224, 255, 0.2);
     box-shadow: 0 0 8px rgba(0, 224, 255, 0.15);
+}
+
+.response-message a {
+    color: #00e0ff;
+    text-decoration: underline;
+}
+
+.response-message a:hover {
+    color: #00aaff;
 }
 
 /* ==========================================================================
@@ -649,6 +705,7 @@ a {
     border-radius: 5px;
     color: #fff;
     cursor: pointer;
+    transition: background 0.3s ease;
 }
 
 .confirm-btn {
@@ -659,12 +716,22 @@ a {
     background: #00aaff;
 }
 
+.confirm-btn:disabled {
+    background: #007a99;
+    cursor: not-allowed;
+}
+
 .cancel-btn {
     background: #ff4444;
 }
 
 .cancel-btn:hover {
     background: #cc0000;
+}
+
+.cancel-btn:disabled {
+    background: #992222;
+    cursor: not-allowed;
 }
 
 /* ==========================================================================

@@ -35,3 +35,4 @@ billiard==4.2.1
 kombu==5.5.2
 vine==5.1.0
 click==8.1.8
+ratelimit==2.2.1
