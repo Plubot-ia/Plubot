@@ -20,6 +20,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 from requests.exceptions import HTTPError, Timeout
 import redis
+from redis.connection import ConnectionPool
 from celery import Celery
 from contextlib import contextmanager
 from datetime import timedelta
@@ -48,12 +49,42 @@ CORS(app, resources={r"/*": {
     "supports_credentials": True
 }})
 
-# Configuración de Redis
+# Configuración de Redis con soporte para SSL y pool de conexiones
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+redis_pool = ConnectionPool.from_url(
+    REDIS_URL,
+    decode_responses=True,
+    max_connections=5,  # Limita a 5 conexiones simultáneas
+    ssl=True,  # Habilita SSL para Upstash
+    ssl_cert_reqs=None,  # Desactiva la verificación de certificados (opcional, para pruebas)
+    retry_on_timeout=True,  # Reintenta si hay timeout
+    health_check_interval=30  # Verifica la conexión cada 30 segundos
+)
+redis_client = redis.Redis(connection_pool=redis_pool)
 
-# Configuración de Celery
-celery_app = Celery('tasks', broker=REDIS_URL, backend=REDIS_URL.replace('/0', '/1'))
+# Prueba la conexión a Redis al iniciar la app
+try:
+    redis_client.ping()
+    logger.info("Conexión a Redis establecida correctamente")
+except redis.exceptions.ConnectionError as e:
+    logger.error(f"Error al conectar con Redis al iniciar: {str(e)}")
+
+# Configuración de Celery con soporte para SSL
+celery_app = Celery(
+    'tasks',
+    broker=REDIS_URL,
+    backend=REDIS_URL.replace('/0', '/1'),
+    broker_use_ssl={'ssl_cert_reqs': None},  # Habilita SSL para el broker
+    redis_backend_use_ssl={'ssl_cert_reqs': None}  # Habilita SSL para el backend
+)
+celery_app.conf.update(
+    task_serializer='json',
+    accept_content=['json'],
+    result_serializer='json',
+    timezone='UTC',
+    enable_utc=True,
+    broker_connection_retry_on_startup=True
+)
 
 # Cargar claves desde .env
 XAI_API_KEY = os.getenv("XAI_API_KEY")
@@ -191,12 +222,13 @@ def call_grok(messages, max_tokens=150):
         messages = [messages[0]] + messages[-3:]
     
     cache_key = json.dumps(messages)
+    cached = None
     try:
         cached = redis_client.get(cache_key)
         if cached:
             logger.info("Respuesta obtenida desde caché")
             return cached
-    except Exception as e:
+    except redis.exceptions.ConnectionError as e:
         logger.error(f"Error al conectar con Redis en cache: {str(e)}")
         # Continúa sin caché si falla Redis
 
@@ -210,7 +242,7 @@ def call_grok(messages, max_tokens=150):
         result = response.json()['choices'][0]['message']['content']
         try:
             redis_client.setex(cache_key, 3600, result)
-        except Exception as e:
+        except redis.exceptions.ConnectionError as e:
             logger.error(f"Error al guardar en Redis: {str(e)}")
         logger.info(f"Grok response: {result}")
         return result
@@ -1123,17 +1155,26 @@ def whatsapp():
     logger.info(f"Respuesta enviada a {sender}: {response}")
     if 'state' in locals() and state.get("step") == "done":
         logger.info(f"Datos de conversación para {sender}: {state['data']}")
-        redis_client.delete(f"conversation_state:{sender}")
+        try:
+            redis_client.delete(f"conversation_state:{sender}")
+        except redis.exceptions.ConnectionError as e:
+            logger.error(f"Error al eliminar estado de conversación en Redis: {str(e)}")
     return str(resp)
 
 def get_conversation_state(sender):
-    state = redis_client.get(f"conversation_state:{sender}")
-    if state:
-        return json.loads(state)
+    try:
+        state = redis_client.get(f"conversation_state:{sender}")
+        if state:
+            return json.loads(state)
+    except redis.exceptions.ConnectionError as e:
+        logger.error(f"Error al conectar con Redis en get_conversation_state: {str(e)}")
     return {"step": "greet", "data": {"business_type": None, "needs": [], "specifics": {}, "contacted": False}}
 
 def set_conversation_state(sender, state):
-    redis_client.setex(f"conversation_state:{sender}", 3600, json.dumps(state))
+    try:
+        redis_client.setex(f"conversation_state:{sender}", 3600, json.dumps(state))
+    except redis.exceptions.ConnectionError as e:
+        logger.error(f"Error al conectar con Redis en set_conversation_state: {str(e)}")
 
 QUANTUM_WEB_CONTEXT_FULL = """
 Plubot es una empresa dedicada a la creación e implementación de chatbots inteligentes optimizados para WhatsApp, que trabajan 24/7. Nos especializamos en soluciones de IA para pequeños negocios, grandes empresas, tiendas online, hoteles, academias, clínicas, restaurantes, y más. 
@@ -1162,6 +1203,15 @@ def status_callback():
     message_sid = request.values.get('MessageSid', 'unknown')
     logger.info(f"Estado del mensaje {message_sid}: {message_status}")
     return "OK", 200
+
+@app.route('/test-redis', methods=['GET'])
+def test_redis():
+    try:
+        redis_client.set('test_key', 'test_value')
+        value = redis_client.get('test_key')
+        return jsonify({"status": "success", "value": value})
+    except redis.exceptions.ConnectionError as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
