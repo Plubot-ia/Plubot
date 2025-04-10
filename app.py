@@ -1069,81 +1069,125 @@ def whatsapp():
                 logger.info(f"Número {sender} verificado para chatbot {chatbot.id}")
                 return str(resp)
             else:
+                # Obtener el estado de la conversación
                 state = get_conversation_state(sender)
-                info_keywords = ["saber más", "información", "qué son", "cómo funcionan", "detalles"]
+                incoming_msg_lower = incoming_msg.lower()
+
+                # Definir palabras clave para detectar intenciones
+                info_keywords = ["saber más", "información", "qué son", "cómo funcionan", "detalles", "qué es", "qué haces"]
                 price_keywords = ["precio", "coste", "cuánto cuesta", "valor", "tarifa"]
-                needs_max_tokens = 300 if any(k in incoming_msg.lower() for k in info_keywords + price_keywords) else 150
+                greeting_keywords = ["hola", "buenos", "buenas", "hey", "cómo estás"]
+                business_keywords = ["tengo", "mi negocio", "tienda", "restaurante", "clínica", "hotel"]
+                action_keywords = ["quiero crear", "cómo empiezo", "estoy listo", "listo"]
 
-                if state["step"] == "greet":
-                    if incoming_msg.lower().startswith(("hola", "buenos", "buenas", "hey")):
-                        response = "¡Hola! Soy Plubot, un placer conocerte. ¿En qué puedo ayudarte hoy? 😊"
-                        state["step"] = "awaiting_response"
-                    else:
-                        if any(k in incoming_msg.lower() for k in price_keywords):
-                            response = "¡Hola! Para darte el mejor precio, dime más sobre tu negocio. ¿Qué tipo de negocio tienes? 😊"
-                        else:
-                            response = "¡Hola! Soy Plubot. ¿Qué tipo de negocio tienes? 😊"
-                        state["step"] = "ask_business_type"
-                elif state["step"] == "awaiting_response":
-                    if any(k in incoming_msg.lower() for k in price_keywords):
-                        response = "¡Entendido! Para un precio exacto, dime qué tipo de negocio tienes. 😊"
-                        state["step"] = "ask_business_type"
-                    else:
-                        messages = [{"role": "system", "content": QUANTUM_WEB_CONTEXT_FULL + "\nInterpreta y responde antes de preguntar por el negocio."}, {"role": "user", "content": incoming_msg}]
-                        response = call_grok(messages, max_tokens=needs_max_tokens)
-                        state["step"] = "ask_business_type"
-                elif state["step"] == "ask_business_type":
-                    state["data"]["business_type"] = incoming_msg
-                    response = "¡Entendido! ¿Qué necesitas que haga tu chatbot (ventas, reservas, soporte)? 😊"
-                    state["step"] = "ask_needs"
-                elif state["step"] == "ask_needs":
-                    state["data"]["needs"].append(incoming_msg.lower())
-                    response = "¡Perfecto! ¿Algo más que quieras que haga? Di 'listo' si terminaste. 😊"
-                    state["step"] = "more_needs"
-                elif state["step"] == "more_needs":
-                    if incoming_msg.lower() == "listo":
-                        needs = state["data"]["needs"]
-                        if "ventas" in " ".join(needs):
-                            response = "¡Genial! ¿Cuántos productos incluirías en el catálogo? 😊"
-                            state["step"] = "ask_sales_details"
-                        elif "soporte" in " ".join(needs):
-                            response = "¡Entendido! ¿Cuántos clientes gestionas por día? 😊"
-                            state["step"] = "ask_support_details"
-                        elif "reservas" in " ".join(needs):
-                            response = "¡Perfecto! ¿Cuántas reservas esperas por día? 😊"
-                            state["step"] = "ask_reservations_details"
-                        else:
-                            response = "¡Listo! Te contactaremos en 24 horas con más info. ¡Gracias! 😊"
-                            state["step"] = "done"
-                            state["data"]["contacted"] = True
-                    else:
-                        state["data"]["needs"].append(incoming_msg.lower())
-                        response = "¡Anotado! ¿Algo más? Di 'listo' si terminaste. 😊"
-                elif state["step"] == "ask_sales_details":
-                    state["data"]["specifics"]["products"] = incoming_msg
-                    response = "¡Gracias! Te contactaremos en 24 horas con más info y precios personalizados. 😊"
-                    state["step"] = "done"
-                    state["data"]["contacted"] = True
-                elif state["step"] == "ask_support_details":
-                    state["data"]["specifics"]["daily_clients"] = incoming_msg
-                    response = "¡Gracias! Te contactaremos en 24 horas con más info y precios personalizados. 😊"
-                    state["step"] = "done"
-                    state["data"]["contacted"] = True
-                elif state["step"] == "ask_reservations_details":
-                    state["data"]["specifics"]["daily_reservations"] = incoming_msg
-                    response = "¡Gracias! Te contactaremos en 24 horas con más info y precios personalizados. 😊"
-                    state["step"] = "done"
-                    state["data"]["contacted"] = True
-                elif state["step"] == "done":
-                    messages = [{"role": "system", "content": QUANTUM_WEB_CONTEXT_SHORT}, {"role": "user", "content": incoming_msg}]
-                    if any(k in incoming_msg.lower() for k in price_keywords):
-                        response = "¡Entendido! Para un precio exacto, dime qué tipo de negocio tienes. 😊"
-                        state["step"] = "ask_business_type"
-                    else:
-                        response = call_grok(messages, max_tokens=needs_max_tokens)
+                # Verificar si hay un flujo predefinido que coincida con el mensaje
+                response = None
+                flows = session.query(Flow).filter_by(chatbot_id=1).order_by(Flow.position).all()  # Ajusta el chatbot_id según el ID de Plubot
+                for flow in flows:
+                    if flow.user_message.lower() in incoming_msg_lower:
+                        response = flow.bot_response
+                        break
 
+                # Si no hay un flujo predefinido, procesar según el estado
+                if not response:
+                    if state["step"] == "greet":
+                        if any(k in incoming_msg_lower for k in greeting_keywords):
+                            response = "¡Hola! Soy Plubot, tu asistente para crear chatbots increíbles. 😊 ¿En qué puedo ayudarte hoy?"
+                            state["step"] = "awaiting_response"
+                        elif any(k in incoming_msg_lower for k in price_keywords):
+                            response = "¡Buena pregunta! 😊 Tienes 100 mensajes gratis al mes para empezar, y por solo 19.99 USD/mes tienes mensajes ilimitados y más funciones. ¿Quieres probarlo en https://www.plubot.com/register?"
+                            state["step"] = "awaiting_response"
+                        elif any(k in incoming_msg_lower for k in info_keywords):
+                            response = "Plubot es una plataforma para crear chatbots personalizados que se integran con WhatsApp. 🚀 Automatizan tu negocio y aumentan tus ventas. ¿Te gustaría saber más?"
+                            state["step"] = "awaiting_response"
+                        elif any(k in incoming_msg_lower for k in action_keywords):
+                            response = "¡Genial! 🚀 Ve a https://www.plubot.com/register para empezar. Si necesitas ayuda, estoy aquí. 😊 ¿Qué tipo de negocio tienes?"
+                            state["step"] = "ask_business_type"
+                        else:
+                            response = "¡Hola! Soy Plubot. 😊 ¿Qué tipo de negocio tienes? Un Plubot puede ayudarte a automatizar y crecer."
+                            state["step"] = "ask_business_type"
+                    elif state["step"] == "awaiting_response":
+                        if any(k in incoming_msg_lower for k in price_keywords):
+                            response = "¡Entendido! 😊 Tienes 100 mensajes gratis al mes, y por solo 19.99 USD/mes tienes mensajes ilimitados y más funciones. ¿Quieres empezar en https://www.plubot.com/register?"
+                            state["step"] = "awaiting_response"
+                        elif any(k in incoming_msg_lower for k in info_keywords):
+                            response = "Plubot te permite crear chatbots para WhatsApp que trabajan 24/7. 🚀 Automatizan procesos, aumentan ventas y ahorran tiempo. ¿Te interesa probar en https://www.plubot.com/create?"
+                            state["step"] = "awaiting_response"
+                        elif any(k in incoming_msg_lower for k in business_keywords):
+                            state["data"]["business_type"] = incoming_msg
+                            response = "¡Entendido! 😊 ¿Qué necesitas que haga tu Plubot (ventas, reservas, soporte)? Di 'listo' si no necesitas nada más."
+                            state["step"] = "ask_needs"
+                        elif any(k in incoming_msg_lower for k in action_keywords):
+                            response = "¡Genial! 🚀 Ve a https://www.plubot.com/register para empezar. Si necesitas ayuda, estoy aquí. 😊 ¿Qué tipo de negocio tienes?"
+                            state["step"] = "ask_business_type"
+                        else:
+                            # Usar Grok para respuestas inesperadas
+                            messages = [
+                                {"role": "system", "content": QUANTUM_WEB_CONTEXT_FULL},
+                                {"role": "user", "content": incoming_msg}
+                            ]
+                            response = call_grok(messages, max_tokens=150)
+                            state["step"] = "ask_business_type"
+                    elif state["step"] == "ask_business_type":
+                        state["data"]["business_type"] = incoming_msg
+                        response = "¡Entendido! 😊 ¿Qué necesitas que haga tu Plubot (ventas, reservas, soporte)? Di 'listo' si no necesitas nada más."
+                        state["step"] = "ask_needs"
+                    elif state["step"] == "ask_needs":
+                        state["data"]["needs"].append(incoming_msg_lower)
+                        response = "¡Perfecto! 😊 ¿Algo más que quieras que haga? Di 'listo' si terminaste."
+                        state["step"] = "more_needs"
+                    elif state["step"] == "more_needs":
+                        if incoming_msg_lower == "listo":
+                            needs = state["data"]["needs"]
+                            if "ventas" in " ".join(needs):
+                                response = "¡Genial! 😊 ¿Cuántos productos incluirías en el catálogo? Esto nos ayudará a personalizar tu Plubot."
+                                state["step"] = "ask_sales_details"
+                            elif "soporte" in " ".join(needs):
+                                response = "¡Entendido! 😊 ¿Cuántos clientes gestionas por día? Esto nos ayudará a optimizar tu Plubot."
+                                state["step"] = "ask_support_details"
+                            elif "reservas" in " ".join(needs):
+                                response = "¡Perfecto! 😊 ¿Cuántas reservas esperas por día? Esto nos ayudará a configurar tu Plubot."
+                                state["step"] = "ask_reservations_details"
+                            else:
+                                response = "¡Listo! 🚀 Te contactaremos en 24 horas con más info. Mientras tanto, ¿quieres crear tu Plubot en https://www.plubot.com/create?"
+                                state["step"] = "done"
+                                state["data"]["contacted"] = True
+                        else:
+                            state["data"]["needs"].append(incoming_msg_lower)
+                            response = "¡Anotado! 😊 ¿Algo más? Di 'listo' si terminaste."
+                    elif state["step"] == "ask_sales_details":
+                        state["data"]["specifics"]["products"] = incoming_msg
+                        response = "¡Gracias! 🚀 Te contactaremos en 24 horas con más info. Mientras tanto, crea tu Plubot en https://www.plubot.com/create."
+                        state["step"] = "done"
+                        state["data"]["contacted"] = True
+                    elif state["step"] == "ask_support_details":
+                        state["data"]["specifics"]["daily_clients"] = incoming_msg
+                        response = "¡Gracias! 🚀 Te contactaremos en 24 horas con más info. Mientras tanto, crea tu Plubot en https://www.plubot.com/create."
+                        state["step"] = "done"
+                        state["data"]["contacted"] = True
+                    elif state["step"] == "ask_reservations_details":
+                        state["data"]["specifics"]["daily_reservations"] = incoming_msg
+                        response = "¡Gracias! 🚀 Te contactaremos en 24 horas con más info. Mientras tanto, crea tu Plubot en https://www.plubot.com/create."
+                        state["step"] = "done"
+                        state["data"]["contacted"] = True
+                    elif state["step"] == "done":
+                        if any(k in incoming_msg_lower for k in price_keywords):
+                            response = "¡Entendido! 😊 Tienes 100 mensajes gratis al mes, y por solo 19.99 USD/mes tienes mensajes ilimitados y más funciones. ¿Quieres empezar en https://www.plubot.com/register?"
+                            state["step"] = "awaiting_response"
+                        elif any(k in incoming_msg_lower for k in action_keywords):
+                            response = "¡Genial! 🚀 Ve a https://www.plubot.com/register para empezar. Si necesitas ayuda, estoy aquí. 😊 ¿Qué tipo de negocio tienes?"
+                            state["step"] = "ask_business_type"
+                        else:
+                            messages = [
+                                {"role": "system", "content": QUANTUM_WEB_CONTEXT_FULL},
+                                {"role": "user", "content": incoming_msg}
+                            ]
+                            response = call_grok(messages, max_tokens=150)
+
+                # Guardar el estado de la conversación
                 set_conversation_state(sender, state)
         else:
+            # Si hay un chatbot asociado al número
             chatbot_id, name, tone, purpose, business_info, pdf_content, image_url = chatbot.id, chatbot.name, chatbot.tone, chatbot.purpose, chatbot.business_info, chatbot.pdf_content, chatbot.image_url
             flows = session.query(Flow).filter_by(chatbot_id=chatbot_id).order_by(Flow.position).all()
             response = next((flow.bot_response for flow in flows if flow.user_message.lower() in incoming_msg.lower()), None)
@@ -1194,19 +1238,43 @@ def set_conversation_state(sender, state):
         logger.error(f"Error al conectar con Redis en set_conversation_state: {str(e)}")
 
 QUANTUM_WEB_CONTEXT_FULL = """
-Plubot es una empresa dedicada a la creación e implementación de chatbots inteligentes optimizados para WhatsApp, que trabajan 24/7. Nos especializamos en soluciones de IA para pequeños negocios, grandes empresas, tiendas online, hoteles, academias, clínicas, restaurantes, y más. 
+Plubot es una plataforma tipo Wix para crear chatbots personalizados (llamados "Plubots") que se integran con WhatsApp y trabajan 24/7. Nos especializamos en ayudar a negocios de todos los tamaños (tiendas online, restaurantes, clínicas, hoteles, academias, etc.) a automatizar procesos, aumentar ventas y ahorrar tiempo.
 
-Ofrecemos:
-- Chatbots para WhatsApp: Respuestas automáticas 24/7, integración con catálogos, seguimiento de clientes.
-- Automatización para pequeños negocios: Respuestas personalizadas, gestión de citas, notificaciones.
-- Optimización para grandes empresas: Automatización de procesos, integración con CRM, análisis de datos.
-- Ejemplos: Tiendas online (30% más ventas), hoteles (40% menos carga), logística (70% menos consultas), clínicas (50% menos gestión).
+**¿Qué ofrecemos?**
+- Creación fácil de chatbots: Regístrate en https://www.plubot.com/register, crea tu Plubot en https://www.plubot.com/create, y personalízalo en minutos.
+- Integración con WhatsApp: Conecta tu Plubot a WhatsApp usando un número registrado en Twilio y empieza a interactuar con tus clientes.
+- Automatización para negocios: Respuestas automáticas, gestión de citas, seguimiento de clientes, integración con catálogos, y más.
+- Resultados comprobados: Tiendas online aumentan ventas un 30%, hoteles reducen carga administrativa un 40%, clínicas optimizan gestión un 50%.
 
-Nuestra misión es responder con amabilidad y empatía, escuchar al cliente, y optimizar procesos para liberar tiempo, aumentar ventas y mejorar la eficiencia.
-"""
+**¿Cómo funciona la plataforma?**
+1. **Registro**: Ve a https://www.plubot.com/register, ingresa tu email y contraseña, y verifica tu cuenta.
+2. **Creación del Plubot**: En https://www.plubot.com/create, define el nombre, tono (amigable, profesional, etc.), propósito (ventas, soporte, reservas, etc.), y sube info de tu negocio (como un PDF).
+3. **Configuración**: Personaliza tu Plubot con flujos conversacionales (preguntas y respuestas predefinidas) y datos de tu negocio.
+4. **Conexión a WhatsApp**: Ve a la sección "Conectar a WhatsApp", ingresa tu número registrado en Twilio, y verifica el número siguiendo las instrucciones.
+5. **Operatividad**: Una vez conectado, tu Plubot responde automáticamente a tus clientes en WhatsApp 24/7.
 
-QUANTUM_WEB_CONTEXT_SHORT = """
-Eres Plubot. Responde con amabilidad y empatía, usa un tono alegre y respuestas cortas (2-3 frases max). Incluye emojis cuando sea apropiado, invita cuando puedas al usuario para que cree su propio bot.
+**Planes y precios**
+- **Plan gratuito**: 100 mensajes al mes para que pruebes tu Plubot sin costo.
+- **Plan premium**: Por 19.99 USD/mes, tienes mensajes ilimitados, integración con CRM, análisis de datos, y soporte prioritario.
+- Beneficio del plan premium: Ideal para negocios en crecimiento que necesitan automatización avanzada y soporte continuo.
+
+**Beneficios de usar un Plubot**
+- Ahorro de tiempo: Automatiza tareas repetitivas como responder preguntas, agendar citas o tomar pedidos.
+- Aumento de ventas: Tiendas online pueden aumentar ventas un 30% con un Plubot que guía a los clientes y cierra ventas.
+- Mejora de eficiencia: Clínicas y hoteles reducen su carga administrativa hasta un 50% al delegar tareas a un Plubot.
+- Disponibilidad 24/7: Tu Plubot responde a tus clientes en cualquier momento, incluso mientras duermes.
+
+**Tono y estilo**
+- Usa un tono amigable, profesional y persuasivo. Ejemplo: "¡Hola! Soy Plubot, tu asistente para crear chatbots increíbles. 😊 ¿En qué puedo ayudarte hoy?"
+- Sé breve (2-3 frases máximo) a menos que el usuario pida más detalles.
+- Usa emojis de forma moderada para dar un toque amigable (😊, 🚀, 💡).
+- Siempre incluye una llamada a la acción para motivar al usuario a registrarse o crear un Plubot. Ejemplo: "¿Quieres crear tu Plubot ahora? Ve a https://www.plubot.com/create. 🚀"
+- Si no entiendes algo, pide aclaraciones de forma natural. Ejemplo: "¡Gracias por tu mensaje! ¿Podrías contarme un poco más sobre tu negocio para ayudarte mejor? 😊"
+
+**Ejemplos de respuestas persuasivas**
+- Si el usuario duda: "Un Plubot puede ahorrarte horas de trabajo y aumentar tus ventas un 30%. 💰 ¿Te gustaría probar el plan gratuito en https://www.plubot.com/register?"
+- Si el usuario pregunta por precios: "¡Buena pregunta! 😊 Tienes 100 mensajes gratis al mes para empezar, y por solo 19.99 USD/mes tienes mensajes ilimitados y más funciones. ¿Quieres probarlo?"
+- Si el usuario menciona su negocio: "¡Genial! 😊 Un Plubot puede ayudarte a [beneficio específico]. ¿Quieres crearlo ahora en https://www.plubot.com/create?"
 """
 
 @app.route('/fallback', methods=['POST'])
@@ -1229,6 +1297,48 @@ def test_redis():
         return jsonify({"status": "success", "value": value})
     except redis.exceptions.ConnectionError as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+    
+PREDEFINED_FLOWS = [
+    {"user_message": "hola", "bot_response": "¡Hola! Soy Plubot, tu asistente para crear chatbots increíbles. 😊 ¿En qué puedo ayudarte hoy?", "intent": "greeting"},
+    {"user_message": "cuanto cuesta", "bot_response": "El plan básico de Plubot comienza en $10/mes y te permite crear hasta 3 chatbots. El plan premium, que incluye funciones avanzadas, cuesta $25/mes. ¿Te gustaría saber más?", "intent": "pricing"},
+    {"user_message": "tengo una tienda", "bot_response": "¡Genial! Un chatbot puede ayudarte a automatizar tus ventas y atender a tus clientes 24/7. ¿Quieres crear uno ahora? Puedo guiarte paso a paso.", "intent": "business_type"},
+    {"user_message": "quiero crear un chatbot", "bot_response": "¡Perfecto! Puedo ayudarte a crear tu chatbot. Primero, ¿para qué quieres usarlo? Por ejemplo, ¿para ventas, soporte al cliente o algo más?", "intent": "create_chatbot"},
+]
+
+def load_predefined_flows():
+    with get_session() as session:
+        # Verificar si ya existe un chatbot llamado "Plubot"
+        chatbot = session.query(Chatbot).filter_by(name="Plubot").first()
+        if not chatbot:
+            # Crear un chatbot genérico para Plubot si no existe
+            chatbot = Chatbot(
+                name="Plubot",
+                tone="amigable",
+                purpose="asistir a los usuarios de Plubot y cerrar ventas",
+                initial_message="¡Hola! Soy Plubot, tu asistente para crear chatbots increíbles. 😊 ¿En qué puedo ayudarte hoy?",
+                user_id=1  # Aseguramos que el user_id sea 1
+            )
+            session.add(chatbot)
+            session.commit()
+
+        # Verificar si ya existen flujos para este chatbot
+        existing_flows = session.query(Flow).filter_by(chatbot_id=chatbot.id).count()
+        if existing_flows == 0:
+            # Cargar los flujos predefinidos
+            for index, flow in enumerate(PREDEFINED_FLOWS):
+                flow_entry = Flow(
+                    chatbot_id=chatbot.id,
+                    user_message=flow["user_message"],
+                    bot_response=flow["bot_response"],
+                    position=index,
+                    intent=flow["intent"]
+                )
+                session.add(flow_entry)
+            session.commit()
+            logger.info(f"Se cargaron {len(PREDEFINED_FLOWS)} flujos predefinidos para el chatbot Plubot.")
+
+# Ejecutar al iniciar la aplicación
+load_predefined_flows()
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
