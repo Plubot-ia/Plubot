@@ -194,3 +194,46 @@
 2025-04-10 07:02:13,194 - WARNING - Python-dotenv could not parse statement starting at line 6
 2025-04-10 07:02:13,218 - WARNING -  * Debugger is active!
 2025-04-10 07:02:13,228 - INFO -  * Debugger PIN: 134-045-728
+2025-04-10 07:03:51,540 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:51] "GET / HTTP/1.1" 200 -
+2025-04-10 07:03:51,555 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:51] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-04-10 07:03:51,557 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:51] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:51,558 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:51] "[36mGET /static/img/logo.png HTTP/1.1[0m" 304 -
+2025-04-10 07:03:51,559 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:51] "[36mGET /static/js/particles.min.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:51,560 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:51] "[36mGET /static/js/quantum-three.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:51,560 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:51] "[36mGET /static/js/contact.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:52,043 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:52] "[33mGET /cdn-cgi/challenge-platform/scripts/jsd/main.js HTTP/1.1[0m" 404 -
+2025-04-10 07:03:52,077 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:52] "[31m[1mGET /list-bots HTTP/1.1[0m" 401 -
+2025-04-10 07:03:52,077 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:52] "GET /apple-touch-icon-precomposed.png HTTP/1.1" 200 -
+2025-04-10 07:03:52,079 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:52] "GET /apple-touch-icon.png HTTP/1.1" 200 -
+2025-04-10 07:03:52,081 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:52] "GET /favicon.ico HTTP/1.1" 200 -
+2025-04-10 07:03:52,082 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:52] "GET /static/img/favicon.ico HTTP/1.1" 200 -
+2025-04-10 07:03:58,177 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:58] "GET /about HTTP/1.1" 200 -
+2025-04-10 07:03:58,188 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:58] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-04-10 07:03:58,190 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:58] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:58,192 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:58] "[36mGET /static/js/quantum-three.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:58,193 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:58] "[36mGET /static/img/logo.png HTTP/1.1[0m" 304 -
+2025-04-10 07:03:58,194 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:58] "[36mGET /static/js/particles.min.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:58,195 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:58] "[36mGET /static/js/contact.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:58,246 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:58] "[33mGET /cdn-cgi/challenge-platform/scripts/jsd/main.js HTTP/1.1[0m" 404 -
+2025-04-10 07:03:59,875 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "GET / HTTP/1.1" 200 -
+2025-04-10 07:03:59,878 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,878 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,879 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/js/particles.min.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,880 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/js/quantum-three.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,881 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/js/contact.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,882 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/img/favicon.ico HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,882 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/img/logo.png HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,884 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,885 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,886 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/js/particles.min.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,888 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/js/quantum-three.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,889 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/js/contact.js HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,889 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[36mGET /static/img/logo.png HTTP/1.1[0m" 304 -
+2025-04-10 07:03:59,964 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[33mGET /cdn-cgi/challenge-platform/scripts/jsd/main.js HTTP/1.1[0m" 404 -
+2025-04-10 07:03:59,998 - INFO - 192.168.0.213 - - [10/Apr/2025 07:03:59] "[31m[1mGET /list-bots HTTP/1.1[0m" 401 -
+2025-04-10 07:04:55,382 - INFO - 192.168.0.213 - - [10/Apr/2025 07:04:55] "[33mGET /cdn-cgi/challenge-platform/scripts/jsd/main.js HTTP/1.1[0m" 404 -
+2025-04-10 07:04:55,400 - INFO - 192.168.0.213 - - [10/Apr/2025 07:04:55] "[31m[1mGET /list-bots HTTP/1.1[0m" 401 -
+2025-04-10 07:04:55,402 - INFO - 192.168.0.213 - - [10/Apr/2025 07:04:55] "GET /apple-touch-icon-precomposed.png HTTP/1.1" 200 -
+2025-04-10 07:04:55,402 - INFO - 192.168.0.213 - - [10/Apr/2025 07:04:55] "GET /apple-touch-icon.png HTTP/1.1" 200 -
+2025-04-10 07:04:55,403 - INFO - 192.168.0.213 - - [10/Apr/2025 07:04:55] "GET /favicon.ico HTTP/1.1" 200 -
+2025-04-10 07:04:55,404 - INFO - 192.168.0.213 - - [10/Apr/2025 07:04:55] "GET /static/img/favicon.ico HTTP/1.1" 200 -

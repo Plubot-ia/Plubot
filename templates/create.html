@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crea tu Chatbot - Plubot</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- Añadimos React Flow CSS -->
     <link rel="stylesheet" href="https://unpkg.com/reactflow@11.11.3/dist/style.css">
 </head>
 <body>
@@ -17,6 +16,36 @@
         </nav>
     </header>
     <main>
+        <!-- Indicador de Progreso -->
+        <div class="progress-container">
+            <div class="progress-step" id="progress-step1">1. Información Básica</div>
+            <div class="progress-step" id="progress-step2">2. Plantilla</div>
+            <div class="progress-step" id="progress-step3">3. Personalización</div>
+            <div class="progress-step" id="progress-step4">4. Revisión</div>
+        </div>
+
+        <!-- Botón de Ayuda -->
+        <button class="help-btn" onclick="showHelpModal()">?</button>
+
+        <!-- Modal de Ayuda -->
+        <div class="modal hidden" id="help-modal">
+            <div class="modal-content">
+                <h2>Guía para Crear tu Chatbot</h2>
+                <p>¡Bienvenido a Plubot! Sigue estos pasos para crear tu chatbot:</p>
+                <ul>
+                    <li><strong>Paso 1:</strong> Define el nombre, tono y propósito de tu chatbot.</li>
+                    <li><strong>Paso 2:</strong> Selecciona una plantilla o personaliza tu chatbot desde cero.</li>
+                    <li><strong>Paso 3:</strong> Crea flujos de conversación usando el editor visual. Arrastra y conecta nodos para definir cómo responderá tu chatbot.</li>
+                    <li><strong>Paso 4:</strong> Conecta tu chatbot a WhatsApp y sube archivos si es necesario. Usa el formato JSON para menús, por ejemplo: <code>{"Cafés": {"Latte": {"precio": 3.5, "descripcion": "Café con leche cremoso"}}}</code></li>
+                </ul>
+                <button class="quantum-btn" onclick="closeHelpModal()">Cerrar</button>
+            </div>
+        </div>
+
+        <!-- Contenedor para React -->
+        <div id="root"></div>
+
+        <!-- Contenedores de Pasos (manteniendo el HTML original) -->
         <div class="step-container" id="step1">
             <h1>Paso 1: Información Básica</h1>
             <form id="basic-info-form">
@@ -42,28 +71,29 @@
         <div class="step-container" id="step2" style="display: none;">
             <h1>Paso 2: Selecciona una Plantilla (Opcional)</h1>
             <div id="templates-list"></div>
-            <button onclick="skipTemplates()">Omitir y personalizar</button>
-            <button onclick="nextStep(2)">Siguiente</button>
+            <button type="button" onclick="prevStep(2)">Atrás</button>
+            <button type="button" onclick="skipTemplates()">Omitir y Personalizar</button>
         </div>
 
         <div class="step-container" id="step3" style="display: none;">
-            <h1>Paso 3: Personaliza tu Chatbot</h1>
-            <label for="pdf_url">URL del PDF (opcional):</label>
-            <input type="url" id="pdf_url" name="pdf_url">
-            <label for="image_url">URL de la Imagen (opcional):</label>
-            <input type="url" id="image_url" name="image_url">
-            <label for="menu_json">Menú en JSON (opcional):</label>
-            <textarea id="menu_json" name="menu_json" class="menu-json-input" placeholder='Ejemplo: {"Cafés": {"Latte": {"precio": 3.5, "descripcion": "Café con leche cremoso"}}}'></textarea>
-            <h3>Flujos de Conversación</h3>
-            <div id="flow-editor" class="react-flow__container"></div>
+            <h1>Paso 3: Personaliza los Flujos de Conversación</h1>
+            <div id="flow-editor"></div>
+            <button type="button" onclick="prevStep(3)">Atrás</button>
             <button type="button" onclick="nextStep(3)">Siguiente</button>
         </div>
 
         <div class="step-container" id="step4" style="display: none;">
-            <h1>Paso 4: Revisa y Crea</h1>
-            <div id="preview"></div>
-            <button type="button" onclick="submitChatbot()">Crear Chatbot</button>
-            <button type="button" onclick="prevStep(4)">Volver</button>
+            <h1>Paso 4: Conecta tu Chatbot</h1>
+            <form id="connect-form">
+                <label for="pdf_url">URL del PDF (opcional):</label>
+                <input type="url" id="pdf_url" name="pdf_url">
+                <label for="image_url">URL de la Imagen (opcional):</label>
+                <input type="url" id="image_url" name="image_url">
+                <label for="menu_json">Menú en JSON (opcional):</label>
+                <textarea id="menu_json" name="menu_json" placeholder='{"Cafés": {"Latte": {"precio": 3.5, "descripcion": "Café con leche cremoso"}}}'></textarea>
+                <button type="button" onclick="prevStep(4)">Atrás</button>
+                <button type="submit">Finalizar y Crear</button>
+            </form>
         </div>
 
         <div class="step-container" id="bot-list" style="margin-top: 40px;">
@@ -75,22 +105,50 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Añadimos React Flow -->
     <script src="https://unpkg.com/reactflow@11.11.3/dist/umd/reactflow.min.js"></script>
     <script src="{{ url_for('static', filename='js/create-react.js') }}" type="text/babel"></script>
     <script>
+        // Funciones para manejar los pasos (originales)
         function nextStep(step) {
             document.getElementById(`step${step}`).style.display = 'none';
             document.getElementById(`step${step + 1}`).style.display = 'block';
+            updateProgress(step + 1);
         }
+
         function prevStep(step) {
             document.getElementById(`step${step}`).style.display = 'none';
             document.getElementById(`step${step - 1}`).style.display = 'block';
+            updateProgress(step - 1);
         }
+
         function skipTemplates() {
             document.getElementById('step2').style.display = 'none';
             document.getElementById('step3').style.display = 'block';
+            updateProgress(3);
         }
+
+        // Función para actualizar el indicador de progreso
+        function updateProgress(step) {
+            for (let i = 1; i <= 4; i++) {
+                const stepElement = document.getElementById(`progress-step${i}`);
+                stepElement.classList.remove('active');
+                if (i === step) {
+                    stepElement.classList.add('active');
+                }
+            }
+        }
+
+        // Funciones para el modal de ayuda
+        function showHelpModal() {
+            document.getElementById('help-modal').classList.remove('hidden');
+        }
+
+        function closeHelpModal() {
+            document.getElementById('help-modal').classList.add('hidden');
+        }
+
+        // Inicializar el progreso en el paso 1
+        updateProgress(1);
     </script>
 </body>
 </html>

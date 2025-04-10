@@ -28,6 +28,7 @@ from contextlib import contextmanager
 from datetime import timedelta
 import uuid
 from ratelimit import limits, sleep_and_retry
+import magic
 
 # Configuración inicial
 load_dotenv()
@@ -1042,14 +1043,37 @@ def create_bot():
             template_id = data.get('template_id', None)
 
             # Validar flujos con Pydantic
+            # Validar flujos con Pydantic, evitar duplicados y vacíos
             flows = []
+            user_messages = set()
+
             for flow in flows_raw:
                 try:
                     validated_flow = FlowModel(**flow)
+                    user_msg = validated_flow.user_message.strip().lower()
+                    bot_resp = validated_flow.bot_response.strip()
+
+                    if not user_msg or not bot_resp:
+                        return jsonify({
+                            'status': 'error', 
+                            'message': 'Los mensajes de usuario y respuesta del bot no pueden estar vacíos.'
+                        }), 400
+
+                    if user_msg in user_messages:
+                        return jsonify({
+                            'status': 'error',
+                            'message': f'El mensaje de usuario "{user_msg}" está duplicado en los flujos.'
+                        }), 400
+
+                    user_messages.add(user_msg)
                     flows.append(validated_flow.dict())
+
                 except ValidationError as e:
                     logger.warning(f"Flujo inválido: {flow}. Error: {str(e)}")
-                    return jsonify({'status': 'error', 'message': f'Flujo inválido: {str(e)}'}), 400
+                    return jsonify({
+                        'status': 'error', 
+                        'message': f'Flujo inválido: {str(e)}'
+                    }), 400
 
             if whatsapp_number:
                 try:
@@ -1174,16 +1198,7 @@ def update_bot():
             business_info = data.get('business_info')
             pdf_url = data.get('pdf_url')
             image_url = data.get('image_url')
-            flows = data.get('flows', [])
-            # Aquí va el bloque de validación
-            flows = []  # Redefinimos flows para llenarlo con datos validados
-            for flow in flows_raw:  # Nota: flows_raw debe ser el flows original, así que usa flows aquí
-                try:
-                    validated_flow = FlowModel(**flow)
-                    flows.append(validated_flow.dict())
-                except ValidationError as e:
-                    logger.warning(f"Flujo inválido: {flow}. Error: {str(e)}")
-                    return jsonify({'status': 'error', 'message': f'Flujo inválido: {str(e)}'}), 400
+            flows = data.get('flows', [])  # Corregido: Usar 'flows' directamente
             menu_json = data.get('menu_json', None)
 
             if not all([chatbot_id, name, tone, purpose]):
@@ -1195,6 +1210,24 @@ def update_bot():
                 logger.error(f"Chatbot {chatbot_id} no encontrado o no tienes permiso")
                 return jsonify({'message': 'Chatbot no encontrado o no tienes permiso'}), 404
 
+            # Validar flujos con Pydantic y evitar duplicados
+            validated_flows = []
+            user_messages = set()  # Para rastrear mensajes de usuario y evitar duplicados
+            for flow in flows:
+                try:
+                    validated_flow = FlowModel(**flow)
+                    user_msg = validated_flow.user_message.lower()
+                    if not user_msg or not validated_flow.bot_response:
+                        return jsonify({'status': 'error', 'message': 'Los mensajes de usuario y respuesta del bot no pueden estar vacíos'}), 400
+                    if user_msg in user_messages:
+                        return jsonify({'status': 'error', 'message': f'El mensaje de usuario "{user_msg}" está duplicado'}), 400
+                    user_messages.add(user_msg)
+                    validated_flows.append(validated_flow.dict())
+                except ValidationError as e:
+                    logger.warning(f"Flujo inválido: {flow}. Error: {str(e)}")
+                    return jsonify({'status': 'error', 'message': f'Flujo inválido: {str(e)}'}), 400
+
+            # Resto del código sigue igual...
             if whatsapp_number and whatsapp_number != chatbot.whatsapp_number:
                 WhatsAppNumberModel.validate_whatsapp_number(whatsapp_number)
                 if not validate_whatsapp_number(whatsapp_number):
@@ -1206,7 +1239,7 @@ def update_bot():
             # Procesar menú JSON si se proporciona
             if menu_json:
                 menu_flows = parse_menu_to_flows(menu_json)
-                flows = flows + menu_flows if flows else menu_flows
+                validated_flows = validated_flows + menu_flows if validated_flows else menu_flows
 
             pdf_content = chatbot.pdf_content if pdf_url == chatbot.pdf_url else None
             if pdf_url and pdf_url != chatbot.pdf_url:
@@ -1233,7 +1266,7 @@ def update_bot():
             chatbot.initial_message = initial_message
 
             session.query(Flow).filter_by(chatbot_id=chatbot_id).delete()
-            for index, flow in enumerate(flows):
+            for index, flow in enumerate(validated_flows):
                 if flow.get('user_message') and flow.get('bot_response'):
                     intent = flow.get('intent', 'general')
                     session.add(Flow(chatbot_id=chatbot_id, user_message=flow['user_message'], bot_response=flow['bot_response'], position=index, intent=intent))
@@ -1246,7 +1279,7 @@ def update_bot():
         except Exception as e:
             logger.exception(f"Error en /update-bot: {str(e)}")
             return jsonify({'message': f"Error: {str(e)}"}), 500
-
+        
 @app.route('/list-bots', methods=['GET'])
 @jwt_required()
 def list_bots():
@@ -1358,10 +1391,24 @@ def upload_file():
     if file_type not in ['pdf', 'image']:
         return jsonify({'message': 'Tipo de archivo no válido.'}), 400
 
+    # Validar el tamaño del archivo
     file.seek(0, os.SEEK_END)
     if file.tell() > 5 * 1024 * 1024:
         return jsonify({'message': 'Archivo demasiado grande (máx. 5MB).'}), 400
     file.seek(0)
+
+    # Validar el tipo MIME real del archivo
+    mime = magic.Magic(mime=True)
+    file_buffer = file.read()
+    mime_type = mime.from_buffer(file_buffer)
+    file.seek(0)  # Resetear el puntero del archivo
+
+    allowed_mime_types = {
+        'pdf': ['application/pdf'],
+        'image': ['image/jpeg', 'image/png', 'image/gif']
+    }
+    if mime_type not in allowed_mime_types[file_type]:
+        return jsonify({'message': f'Tipo de archivo no permitido. Se esperaba {file_type}, pero se recibió {mime_type}.'}), 400
 
     filename = f"{uuid.uuid4()}_{file.filename}"
     upload_dir = os.path.join('static', 'uploads')
@@ -1550,22 +1597,47 @@ def whatsapp():
         logger.info(f"Respuesta enviada a {sender}: {response}")
         return str(resp)
 
+# Wrapper para operaciones de Redis
+def safe_redis_get(key, default=None):
+    if redis_client and ensure_redis_connection():
+        try:
+            value = redis_client.get(key)
+            return json.loads(value) if value else default
+        except redis.exceptions.RedisError as e:
+            logger.warning(f"Error al leer de Redis: {str(e)}. Usando valor predeterminado.")
+    return default
+
+def safe_redis_set(key, value, expire_seconds=None):
+    if redis_client and ensure_redis_connection():
+        try:
+            if expire_seconds:
+                redis_client.setex(key, expire_seconds, json.dumps(value))
+            else:
+                redis_client.set(key, json.dumps(value))
+        except redis.exceptions.RedisError as e:
+            logger.warning(f"Error al escribir en Redis: {str(e)}. Operación ignorada.")
+
+# Modificar las funciones de estado de conversación
 def get_conversation_state(sender):
     default_state = {"step": "greet", "data": {"business_type": "", "needs": [], "specifics": {}, "contacted": False}}
-    if redis_client and ensure_redis_connection():
-        try:
-            state = redis_client.get(f"whatsapp_state:{sender}")
-            return json.loads(state) if state else default_state
-        except redis.exceptions.RedisError as e:
-            logger.warning(f"Error al leer estado de Redis: {str(e)}. Usando estado predeterminado.")
-    return default_state
+    state = safe_redis_get(f"whatsapp_state:{sender}", default_state)
+    if state == default_state:  # Si Redis falla o no hay datos, intentar cargar desde la base de datos
+        with get_session() as session:
+            conversation_state = session.query(Conversation).filter_by(user_id=sender, role="state").first()
+            if conversation_state:
+                return json.loads(conversation_state.message)
+    return state
 
 def set_conversation_state(sender, state):
-    if redis_client and ensure_redis_connection():
-        try:
-            redis_client.setex(f"whatsapp_state:{sender}", 86400, json.dumps(state))
-        except redis.exceptions.RedisError as e:
-            logger.warning(f"Error al guardar estado en Redis: {str(e)}.")
+    safe_redis_set(f"whatsapp_state:{sender}", state, 86400)
+    # Guardar en la base de datos como respaldo
+    with get_session() as session:
+        existing_state = session.query(Conversation).filter_by(user_id=sender, role="state").first()
+        if existing_state:
+            existing_state.message = json.dumps(state)
+        else:
+            session.add(Conversation(chatbot_id=1, user_id=sender, message=json.dumps(state), role="state"))
+        session.commit()
 
 QUANTUM_WEB_CONTEXT_FULL = """
 Eres Plubot de Plubot Web, una plataforma que permite a cualquier persona crear chatbots para WhatsApp sin conocimientos técnicos. Tu propósito es asistir a los usuarios en la creación de chatbots para automatizar sus negocios y aumentar ventas. Responde con un tono amigable, breve y alegre (máx. 2-3 frases). Usa emojis si aplica. Si te piden precios, menciona que ofrecemos 100 mensajes gratis al mes y un plan premium de 19.99 USD/mes con mensajes ilimitados.
