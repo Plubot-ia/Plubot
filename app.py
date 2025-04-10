@@ -1095,7 +1095,7 @@ def whatsapp():
                             response = "¡Hola! Soy Plubot, tu asistente para crear chatbots increíbles. 😊 ¿En qué puedo ayudarte hoy?"
                             state["step"] = "awaiting_response"
                         elif any(k in incoming_msg_lower for k in price_keywords):
-                            response = "¡Buena pregunta! 😊 Tienes 100 mensajes gratis al mes para empezar, y por solo 19.99 USD/mes tienes mensajes ilimitados y más funciones. ¿Quieres probarlo en https://www.plubot.com/register?"
+                            response = "¡Buena pregunta! 😊 Tienes 100 mensajes gratis al mes para empezar, y por solo 19.99 USD/mes tienes mensajes ilimitados y más funciones. ¿Quieres probarlo en https://www.plubot.com/create?"
                             state["step"] = "awaiting_response"
                         elif any(k in incoming_msg_lower for k in info_keywords):
                             response = "Plubot es una plataforma para crear chatbots personalizados que se integran con WhatsApp. 🚀 Automatizan tu negocio y aumentan tus ventas. ¿Te gustaría saber más?"
