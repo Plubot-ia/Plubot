@@ -58,30 +58,51 @@ CORS(app, resources={r"/*": {
 
 # Configuración de Redis con mejoras
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-retry = Retry(ExponentialBackoff(cap=10, base=1), retries=3)
+retry = Retry(ExponentialBackoff(cap=10, base=1), retries=5)  # Aumentamos retries a 5
 redis_pool = ConnectionPool.from_url(
     REDIS_URL,
     decode_responses=True,
-    max_connections=10,  # Aumentado para escalabilidad
+    max_connections=20,  # Aumentado para mayor escalabilidad
     retry=retry,
     retry_on_timeout=True,
     health_check_interval=30,
-    socket_timeout=5,
-    socket_connect_timeout=5
+    socket_timeout=10,  # Aumentado para evitar timeouts prematuros
+    socket_connect_timeout=10
 )
+
+# Inicializamos el cliente Redis con el pool
 redis_client = redis.Redis(
     connection_pool=redis_pool,
-    socket_timeout=5,
-    socket_connect_timeout=5,
+    socket_timeout=10,
+    socket_connect_timeout=10,
     retry=retry
 )
 
-try:
-    redis_client.ping()
-    logger.info("Conexión a Redis establecida correctamente")
-except redis.exceptions.ConnectionError as e:
-    logger.error(f"Redis no disponible: {str(e)}. Usando modo sin caché.")
-    redis_client = None  # Desactiva Redis si falla
+# Función para verificar y reconectar Redis si falla
+def ensure_redis_connection():
+    global redis_client
+    try:
+        redis_client.ping()
+        logger.info("Conexión a Redis establecida correctamente")
+    except redis.exceptions.ConnectionError as e:
+        logger.error(f"Redis no disponible: {str(e)}. Intentando reconectar...")
+        try:
+            redis_client = redis.Redis(
+                connection_pool=redis_pool,
+                socket_timeout=10,
+                socket_connect_timeout=10,
+                retry=retry
+            )
+            redis_client.ping()
+            logger.info("Reconexión a Redis exitosa")
+        except redis.exceptions.ConnectionError as e:
+            logger.error(f"Fallo al reconectar a Redis: {str(e)}. Usando modo sin caché.")
+            return False
+    return True
+
+# Verificamos conexión al iniciar
+if not ensure_redis_connection():
+    redis_client = None  # Solo se establece como None si falla tras intentar reconectar
 
 # Configuración de Celery
 celery_app = Celery(
@@ -96,12 +117,19 @@ celery_app.conf.update(
     timezone='UTC',
     enable_utc=True,
     broker_connection_retry_on_startup=True,
-    broker_pool_limit=2,
+    broker_pool_limit=5,  # Aumentado para más conexiones
+    result_expires=3600,  # Tiempo de expiración de resultados
+    broker_transport_options={
+        'max_retries': 5,  # Más intentos de reconexión
+        'interval_start': 1,
+        'interval_step': 2,
+        'interval_max': 10
+    },
     result_backend_transport_options={
         'retry_policy': {
-            'max_retries': 3,
+            'max_retries': 5,  # Más intentos
             'interval_start': 1,
-            'interval_step': 1,
+            'interval_step': 2,
             'interval_max': 10
         }
     }
@@ -261,15 +289,21 @@ def call_grok(messages, max_tokens=150):
         messages = [messages[0]] + messages[-3:]
     
     cache_key = json.dumps(messages)
-    cached = None
-    try:
-        cached = redis_client.get(cache_key)
-        if cached:
-            logger.info("Respuesta obtenida desde caché")
-            return cached
-    except redis.exceptions.ConnectionError as e:
-        logger.exception(f"Error al conectar con Redis en cache: {str(e)}")
+    result = None
 
+    # Intentamos usar caché solo si Redis está disponible
+    if redis_client and ensure_redis_connection():
+        try:
+            result = redis_client.get(cache_key)
+            if result:
+                logger.info("Respuesta obtenida desde caché")
+                return result
+        except redis.exceptions.ConnectionError as e:
+            logger.warning(f"Error al leer desde Redis: {str(e)}. Continuando sin caché.")
+        except redis.exceptions.TimeoutError as e:
+            logger.warning(f"Timeout en Redis: {str(e)}. Continuando sin caché.")
+
+    # Si no hay caché o falla, llamamos a la API
     url = "https://api.x.ai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {XAI_API_KEY}", "Content-Type": "application/json"}
     payload = {"model": "grok-2-1212", "messages": messages, "temperature": 0.5, "max_tokens": max_tokens}
@@ -278,10 +312,15 @@ def call_grok(messages, max_tokens=150):
         response = requests.post(url, json=payload, headers=headers, timeout=30)
         response.raise_for_status()
         result = response.json()['choices'][0]['message']['content']
-        try:
-            redis_client.setex(cache_key, 3600, result)
-        except redis.exceptions.ConnectionError as e:
-            logger.exception(f"Error al guardar en Redis: {str(e)}")
+        
+        # Guardamos en caché solo si Redis está disponible
+        if redis_client and ensure_redis_connection():
+            try:
+                redis_client.setex(cache_key, 3600, result)
+                logger.info("Respuesta guardada en caché")
+            except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+                logger.warning(f"Error al guardar en Redis: {str(e)}. Continuando sin caché.")
+        
         logger.info(f"Grok response: {result}")
         return result
     except requests.exceptions.ConnectionError as e:
@@ -1341,19 +1380,27 @@ def whatsapp():
 
 
 def get_conversation_state(sender):
-    try:
-        state = redis_client.get(f"conversation_state:{sender}")
-        if state:
-            return json.loads(state)
-    except redis.exceptions.ConnectionError as e:
-        logger.exception(f"Error al conectar con Redis en get_conversation_state: {str(e)}")
-    return {"step": "greet", "data": {"business_type": None, "needs": [], "specifics": {}, "contacted": False}}
+    default_state = {"step": "greet", "data": {"business_type": None, "needs": [], "specifics": {}, "contacted": False}}
+    if redis_client and ensure_redis_connection():
+        try:
+            state = redis_client.get(f"conversation_state:{sender}")
+            if state:
+                return json.loads(state)
+        except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+            logger.exception(f"Error al conectar con Redis en get_conversation_state: {str(e)}. Usando estado por defecto.")
+    else:
+        logger.warning("Redis no disponible. Usando estado por defecto.")
+    return default_state
 
 def set_conversation_state(sender, state):
-    try:
-        redis_client.setex(f"conversation_state:{sender}", 3600, json.dumps(state))
-    except redis.exceptions.ConnectionError as e:
-        logger.exception(f"Error al conectar con Redis en set_conversation_state: {str(e)}")
+    if redis_client and ensure_redis_connection():
+        try:
+            redis_client.setex(f"conversation_state:{sender}", 3600, json.dumps(state))
+            logger.info(f"Estado de conversación guardado para {sender}")
+        except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+            logger.exception(f"Error al conectar con Redis en set_conversation_state: {str(e)}. Estado no guardado.")
+    else:
+        logger.warning("Redis no disponible. Estado no guardado en caché.")
 
 QUANTUM_WEB_CONTEXT_FULL = """
 Plubot es una plataforma tipo Wix para crear chatbots personalizados (llamados "Plubots") que se integran con WhatsApp y trabajan 24/7. Nos especializamos en ayudar a negocios de todos los tamaños (tiendas online, restaurantes, clínicas, hoteles, academias, etc.) a automatizar procesos, aumentar ventas y ahorrar tiempo.

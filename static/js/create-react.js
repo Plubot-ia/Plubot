@@ -21,16 +21,13 @@ const ChatbotApp = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [templates, setTemplates] = useState([]);
     const [selectedTemplate, setSelectedTemplate] = useState('');
-    // Nuevos estados para las mejoras
-    const [step, setStep] = useState(1); // Paso actual del asistente
-    const [previewMessage, setPreviewMessage] = useState(''); // Vista previa
-    const [quota, setQuota] = useState({ messages_used: 0, messages_limit: 100 }); // Estado del plan
+    const [step, setStep] = useState(1);
+    const [previewMessage, setPreviewMessage] = useState('');
+    const [quota, setQuota] = useState({ messages_used: 0, messages_limit: 100 });
 
-    // Cargar chatbots, plantillas y cuota al montar el componente
     useEffect(() => {
         const loadInitialData = async () => {
             try {
-                // Cargar chatbots
                 const botsResponse = await fetch('/list-bots', {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
@@ -41,7 +38,6 @@ const ChatbotApp = () => {
                 setChatbots(botsData.chatbots || []);
                 setIsAuthenticated(true);
 
-                // Cargar plantillas
                 const templatesResponse = await fetch('/api/templates', {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
@@ -52,7 +48,6 @@ const ChatbotApp = () => {
                     setTemplates(templatesData.templates || []);
                 }
 
-                // Cargar estado de la cuota
                 const quotaResponse = await fetch('/api/quota', {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
@@ -71,7 +66,6 @@ const ChatbotApp = () => {
         loadInitialData();
     }, []);
 
-    // Controlar visibilidad del loader global
     useEffect(() => {
         document.getElementById('global-loader').classList.toggle('hidden', !isLoading);
     }, [isLoading]);
@@ -120,7 +114,6 @@ const ChatbotApp = () => {
             const data = await response.json();
             if (response.ok) {
                 setMessages(prev => [...prev, { role: 'bot', content: data.response }]);
-                // Actualizar cuota después de enviar mensaje
                 const quotaResponse = await fetch('/api/quota', { credentials: 'include' });
                 if (quotaResponse.ok) setQuota(await quotaResponse.json());
             } else if (response.status === 403) {
@@ -167,7 +160,7 @@ const ChatbotApp = () => {
                 setImageUrl('');
                 setFlows([{ userMessage: '', botResponse: '' }]);
                 setSelectedTemplate('');
-                setStep(1); // Reiniciar al paso 1
+                setStep(1);
             } else {
                 setResponseMessage(data.message);
             }
@@ -289,87 +282,207 @@ const ChatbotApp = () => {
         }
     };
 
-    // Nueva función para renderizar los pasos del asistente
     const renderStep = () => {
         const previewResponse = flows.find(f => f.userMessage.toLowerCase() === previewMessage.toLowerCase())?.botResponse || 'Escribe un mensaje para ver la respuesta.';
         switch (step) {
             case 1:
                 return (
-                    <div className="mb-6">
-                        <h2 className="text-xl font-semibold mb-4">Paso 1: Nombre y Tono</h2>
-                        <input className="contact-input mb-2" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre del Chatbot" required />
-                        <select className="contact-select mb-2" value={tone} onChange={(e) => setTone(e.target.value)}>
+                    <div className="mb-8">
+                        <h2 className="text-xl font-semibold mb-6 text-white">Paso 1: Nombre y Tono</h2>
+                        <input
+                            className="contact-input mb-4"
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Nombre del Chatbot"
+                            required
+                        />
+                        <select
+                            className="contact-select mb-4"
+                            value={tone}
+                            onChange={(e) => setTone(e.target.value)}
+                        >
                             <option value="amigable">Amigable</option>
                             <option value="profesional">Profesional</option>
                             <option value="divertido">Divertido</option>
                             <option value="serio">Serio</option>
                         </select>
-                        <input className="contact-input mb-2" type="text" value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Propósito (ej. ventas, soporte)" required />
-                        <button type="button" className="quantum-btn" onClick={() => setStep(2)} disabled={!name || !purpose}>Siguiente</button>
+                        <input
+                            className="contact-input mb-4"
+                            type="text"
+                            value={purpose}
+                            onChange={(e) => setPurpose(e.target.value)}
+                            placeholder="Propósito (ej. ventas, soporte)"
+                            required
+                        />
+                        <button
+                            type="button"
+                            className="quantum-btn w-full"
+                            onClick={() => setStep(2)}
+                            disabled={!name || !purpose}
+                        >
+                            Siguiente
+                        </button>
                     </div>
                 );
             case 2:
                 return (
-                    <div className="mb-6">
-                        <h2 className="text-xl font-semibold mb-4">Paso 2: Plantilla (Opcional)</h2>
-                        <select className="contact-select w-full mb-2" value={selectedTemplate} onChange={(e) => setSelectedTemplate(e.target.value)}>
+                    <div className="mb-8">
+                        <h2 className="text-xl font-semibold mb-6 text-white">Paso 2: Plantilla (Opcional)</h2>
+                        <select
+                            className="contact-select w-full mb-4"
+                            value={selectedTemplate}
+                            onChange={(e) => setSelectedTemplate(e.target.value)}
+                        >
                             <option value="">Sin plantilla</option>
                             {templates.map(template => (
                                 <option key={template.id} value={template.id}>{template.name}</option>
                             ))}
                         </select>
-                        <div className="flex space-x-2">
-                            <button type="button" className="quantum-btn magenta" onClick={() => setStep(1)}>Atrás</button>
-                            <button type="button" className="quantum-btn" onClick={() => setStep(3)}>Siguiente</button>
+                        <div className="flex space-x-4">
+                            <button
+                                type="button"
+                                className="quantum-btn magenta flex-1"
+                                onClick={() => setStep(1)}
+                            >
+                                Atrás
+                            </button>
+                            <button
+                                type="button"
+                                className="quantum-btn flex-1"
+                                onClick={() => setStep(3)}
+                            >
+                                Siguiente
+                            </button>
                         </div>
                     </div>
                 );
             case 3:
                 return (
-                    <div className="mb-6">
-                        <h2 className="text-xl font-semibold mb-4">Paso 3: Flujos de Conversación</h2>
+                    <div className="mb-8">
+                        <h2 className="text-xl font-semibold mb-6 text-white">Paso 3: Flujos de Conversación</h2>
                         {flows.map((flow, index) => (
-                            <div className="flow-item mb-2" key={index}>
-                                <input className="contact-input" type="text" value={flow.userMessage} onChange={(e) => handleFlowChange(index, 'userMessage', e.target.value)} placeholder="Mensaje del usuario" />
-                                <input className="contact-input" type="text" value={flow.botResponse} onChange={(e) => handleFlowChange(index, 'botResponse', e.target.value)} placeholder="Respuesta del bot" />
+                            <div className="flow-item mb-4 p-4" key={index}>
+                                <input
+                                    className="contact-input mb-2"
+                                    type="text"
+                                    value={flow.userMessage}
+                                    onChange={(e) => handleFlowChange(index, 'userMessage', e.target.value)}
+                                    placeholder="Mensaje del usuario"
+                                />
+                                <input
+                                    className="contact-input mb-2"
+                                    type="text"
+                                    value={flow.botResponse}
+                                    onChange={(e) => handleFlowChange(index, 'botResponse', e.target.value)}
+                                    placeholder="Respuesta del bot"
+                                />
                                 {flows.length > 1 && (
-                                    <button type="button" className="quantum-btn delete-btn" onClick={() => removeFlow(index)}>Eliminar</button>
+                                    <button
+                                        type="button"
+                                        className="quantum-btn delete-btn w-full"
+                                        onClick={() => removeFlow(index)}
+                                    >
+                                        Eliminar
+                                    </button>
                                 )}
                             </div>
                         ))}
-                        <div className="mb-2">
-                            <input className="contact-input w-full" type="text" value={previewMessage} onChange={(e) => setPreviewMessage(e.target.value)} placeholder="Prueba un mensaje aquí" />
-                            <p className="mt-2 text-gray-600">Respuesta: {previewResponse}</p>
+                        <div className="mb-4">
+                            <input
+                                className="contact-input w-full mb-2"
+                                type="text"
+                                value={previewMessage}
+                                onChange={(e) => setPreviewMessage(e.target.value)}
+                                placeholder="Prueba un mensaje aquí"
+                            />
+                            <p className="mt-2 text-gray-400">Respuesta: {previewResponse}</p>
                         </div>
-                        <button type="button" className="quantum-btn magenta mb-2" onClick={addFlow}>Agregar Flujo</button>
-                        <div className="flex space-x-2">
-                            <button type="button" className="quantum-btn magenta" onClick={() => setStep(2)}>Atrás</button>
-                            <button type="button" className="quantum-btn" onClick={() => setStep(4)}>Siguiente</button>
+                        <button
+                            type="button"
+                            className="quantum-btn magenta w-full mb-4"
+                            onClick={addFlow}
+                        >
+                            Agregar Flujo
+                        </button>
+                        <div className="flex space-x-4">
+                            <button
+                                type="button"
+                                className="quantum-btn magenta flex-1"
+                                onClick={() => setStep(2)}
+                            >
+                                Atrás
+                            </button>
+                            <button
+                                type="button"
+                                className="quantum-btn flex-1"
+                                onClick={() => setStep(4)}
+                            >
+                                Siguiente
+                            </button>
                         </div>
                     </div>
                 );
             case 4:
                 return (
-                    <div className="mb-6">
-                        <h2 className="text-xl font-semibold mb-4">Paso 4: Conectar WhatsApp</h2>
-                        <input className="contact-input mb-2" type="text" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} placeholder="Número de WhatsApp (+1234567890)" />
-                        <textarea className="contact-textarea mb-2" value={businessInfo} onChange={(e) => setBusinessInfo(e.target.value)} placeholder="Información del negocio (opcional)" />
-                        <div className="form-grid mb-2">
-                            <input className="contact-input" type="url" value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)} placeholder="URL del PDF (opcional)" />
-                            <input className="contact-input" type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="URL de la Imagen (opcional)" />
+                    <div className="mb-8">
+                        <h2 className="text-xl font-semibold mb-6 text-white">Paso 4: Conectar WhatsApp</h2>
+                        <input
+                            className="contact-input mb-4"
+                            type="text"
+                            value={whatsappNumber}
+                            onChange={(e) => setWhatsappNumber(e.target.value)}
+                            placeholder="Número de WhatsApp (+1234567890)"
+                        />
+                        <textarea
+                            className="contact-textarea mb-4"
+                            value={businessInfo}
+                            onChange={(e) => setBusinessInfo(e.target.value)}
+                            placeholder="Información del negocio (opcional)"
+                        />
+                        <div className="form-grid mb-4">
+                            <input
+                                className="contact-input"
+                                type="url"
+                                value={pdfUrl}
+                                onChange={(e) => setPdfUrl(e.target.value)}
+                                placeholder="URL del PDF (opcional)"
+                            />
+                            <input
+                                className="contact-input"
+                                type="url"
+                                value={imageUrl}
+                                onChange={(e) => setImageUrl(e.target.value)}
+                                placeholder="URL de la Imagen (opcional)"
+                            />
                         </div>
-                        <div className="file-upload mb-2">
-                            <label>Subir PDF o Imagen (máx. 5MB)</label>
-                            <input type="file" accept=".pdf,image/*" onChange={handleFileUpload} />
+                        <div className="file-upload mb-4">
+                            <label className="text-gray-300">Subir PDF o Imagen (máx. 5MB)</label>
+                            <input
+                                type="file"
+                                accept=".pdf,image/*"
+                                onChange={handleFileUpload}
+                            />
                             {uploadProgress > 0 && (
                                 <div className="progress-bar">
                                     <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }} />
                                 </div>
                             )}
                         </div>
-                        <div className="flex space-x-2">
-                            <button type="button" className="quantum-btn magenta" onClick={() => setStep(3)}>Atrás</button>
-                            <button type="submit" className="quantum-btn" onClick={handleSubmit} disabled={isLoading}>
+                        <div className="flex space-x-4">
+                            <button
+                                type="button"
+                                className="quantum-btn magenta flex-1"
+                                onClick={() => setStep(3)}
+                            >
+                                Atrás
+                            </button>
+                            <button
+                                type="submit"
+                                className="quantum-btn flex-1"
+                                onClick={handleSubmit}
+                                disabled={isLoading}
+                            >
                                 {isLoading ? 'Creando...' : 'Finalizar y Crear'}
                             </button>
                         </div>
@@ -385,7 +498,7 @@ const ChatbotApp = () => {
             <section className="chatbot-section">
                 <div className="chatbot-container">
                     <div className="chatbot-text-column">
-                        <h1 className="chatbot-title">Crea tu Plubot</h1>
+                        <h1 className="chatbot-title text-4xl md:text-5xl">Crea tu Plubot</h1>
                         <p className="auth-message">Verificando autenticación...</p>
                     </div>
                 </div>
@@ -398,7 +511,7 @@ const ChatbotApp = () => {
             <section className="chatbot-section">
                 <div className="chatbot-container">
                     <div className="chatbot-text-column">
-                        <h1 className="chatbot-title">Crea tu Plubot</h1>
+                        <h1 className="chatbot-title text-4xl md:text-5xl">Crea tu Plubot</h1>
                         <p className="auth-message">
                             Necesitas iniciar sesión. <a href="/login">Haz clic aquí</a> para continuar.
                         </p>
@@ -412,50 +525,70 @@ const ChatbotApp = () => {
         <section className="chatbot-section">
             <div className="chatbot-container">
                 <div className="chatbot-text-column">
-                    <h1 className="chatbot-title">Crea tu Plubot</h1>
-                    <div className="bot-config">
+                    <h1 className="chatbot-title text-4xl md:text-5xl">Crea tu Plubot</h1>
+                    <div className="bot-config p-6">
                         <h2>Configura tu Chatbot</h2>
-                        {/* Información de cuota */}
                         <div className="quota-info mb-4">
                             <p>Mensajes usados: {quota.messages_used}/{quota.messages_limit}</p>
                             {quota.messages_used >= 75 && (
-                                <p className="text-yellow-500">¡Estás cerca del límite! Suscríbete al plan premium <a href="/pricing" className="text-blue-500 underline">aquí</a>.</p>
+                                <p className="text-yellow-500">
+                                    ¡Estás cerca del límite! Suscríbete al plan premium{' '}
+                                    <a href="/pricing" className="text-blue-500 underline">aquí</a>.
+                                </p>
                             )}
                         </div>
                         <form onSubmit={handleSubmit}>
                             {renderStep()}
                         </form>
                         {responseMessage && (
-                            <div className="response-message" dangerouslySetInnerHTML={{ __html: responseMessage }} />
+                            <div
+                                className="response-message"
+                                dangerouslySetInnerHTML={{ __html: responseMessage }}
+                            />
                         )}
                     </div>
 
-                    <div className="chatbot-list">
-                        <h2>Tus Chatbots</h2>
+                    <div className="chatbot-list mt-8">
+                        <h2 className="text-xl font-semibold mb-6 text-white">Tus Chatbots</h2>
                         {chatbots.length > 0 ? (
                             chatbots.map(bot => (
-                                <div className="chatbot-item" key={bot.id}>
-                                    <div className="chatbot-item-details">
+                                <div className="chatbot-item p-4 mb-4" key={bot.id}>
+                                    <div className="chatbot-item-details text-base">
                                         <strong>{bot.name}</strong> - {bot.purpose} (Tono: {bot.tone})
                                         {bot.whatsapp_number && ` | WhatsApp: ${bot.whatsapp_number}`}
                                     </div>
-                                    <div className="chatbot-item-buttons">
-                                        <button className="quantum-btn magenta" onClick={() => startChat(bot)} disabled={isLoading}>
+                                    <div className="chatbot-item-buttons mt-2">
+                                        <button
+                                            className="quantum-btn magenta"
+                                            onClick={() => startChat(bot)}
+                                            disabled={isLoading}
+                                        >
                                             {isLoading ? 'Cargando...' : 'Chatear'}
                                         </button>
                                         {bot.whatsapp_number && (
-                                            <button className="quantum-btn bg-green-500 text-white" onClick={() => connectWhatsapp(bot)} disabled={isLoading}>
+                                            <button
+                                                className="quantum-btn whatsapp-btn"
+                                                onClick={() => connectWhatsapp(bot)}
+                                                disabled={isLoading}
+                                            >
                                                 {isLoading ? 'Conectando...' : 'Conectar WhatsApp'}
                                             </button>
                                         )}
-                                        <button className="quantum-btn delete-btn" onClick={() => { setChatbotToDelete(bot); setShowDeleteModal(true); }} disabled={isLoading}>
+                                        <button
+                                            className="quantum-btn delete-btn"
+                                            onClick={() => {
+                                                setChatbotToDelete(bot);
+                                                setShowDeleteModal(true);
+                                            }}
+                                            disabled={isLoading}
+                                        >
                                             Eliminar
                                         </button>
                                     </div>
                                 </div>
                             ))
                         ) : (
-                            <p>No hay chatbots disponibles.</p>
+                            <p className="text-gray-400">No hay chatbots disponibles.</p>
                         )}
                     </div>
                 </div>
@@ -474,7 +607,9 @@ const ChatbotApp = () => {
                                                 </div>
                                                 <div className="whatsapp-info">
                                                     <span className="whatsapp-name">{selectedChatbot.name}</span>
-                                                    <span className="whatsapp-number">{selectedChatbot.whatsapp_number || 'Plubot'}</span>
+                                                    <span className="whatsapp-number">
+                                                        {selectedChatbot.whatsapp_number || 'Plubot'}
+                                                    </span>
                                                 </div>
                                             </div>
                                             <div className="whatsapp-actions">
@@ -483,25 +618,48 @@ const ChatbotApp = () => {
                                                 <i className="fas fa-ellipsis-v"></i>
                                             </div>
                                         </div>
-                                        <div className="whatsapp-body">
+                                        <div className="whatsapp-body p-4">
                                             {messages.map((msg, index) => (
-                                                <div key={index} className={`chatbot-message ${msg.role}`}>
+                                                <div
+                                                    key={index}
+                                                    className={`chatbot-message ${msg.role} mb-3`}
+                                                >
                                                     {msg.content}
                                                     <div className="message-meta">
-                                                        <span className="message-time">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                        {msg.role === 'user' && <span className="message-status"><i className="fas fa-check-double"></i></span>}
+                                                        <span className="message-time">
+                                                            {new Date().toLocaleTimeString([], {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </span>
+                                                        {msg.role === 'user' && (
+                                                            <span className="message-status">
+                                                                <i className="fas fa-check-double"></i>
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
-                                            {isLoading && <div className="text-center text-gray-500">Cargando...</div>}
+                                            {isLoading && (
+                                                <div className="loading-indicator">Cargando...</div>
+                                            )}
                                         </div>
                                         <div className="whatsapp-input">
                                             <div className="input-wrapper">
                                                 <i className="fas fa-smile input-icon"></i>
-                                                <input type="text" value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="Escribe un mensaje..." disabled={isLoading} />
+                                                <input
+                                                    type="text"
+                                                    value={inputMessage}
+                                                    onChange={(e) => setInputMessage(e.target.value)}
+                                                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                                                    placeholder="Escribe un mensaje..."
+                                                    disabled={isLoading}
+                                                />
                                                 <i className="fas fa-paperclip input-icon"></i>
                                             </div>
-                                            <button onClick={sendMessage} disabled={isLoading}><i className="fas fa-paper-plane"></i></button>
+                                            <button onClick={sendMessage} disabled={isLoading}>
+                                                <i className="fas fa-paper-plane"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -514,12 +672,25 @@ const ChatbotApp = () => {
             <div className={`modal ${showDeleteModal ? '' : 'hidden'}`}>
                 <div className="modal-content">
                     <h2>Confirmar Eliminación</h2>
-                    <p>¿Estás seguro de que deseas eliminar el chatbot "{chatbotToDelete?.name}"? Esta acción no se puede deshacer.</p>
+                    <p>
+                        ¿Estás seguro de que deseas eliminar el chatbot "{chatbotToDelete?.name}"?
+                        Esta acción no se puede deshacer.
+                    </p>
                     <div className="modal-actions">
-                        <button className="confirm-btn bg-red-500 text-white" onClick={handleDelete} disabled={isLoading}>
+                        <button
+                            className="confirm-btn bg-red-500 text-white"
+                            onClick={handleDelete}
+                            disabled={isLoading}
+                        >
                             {isLoading ? 'Eliminando...' : 'Sí, Eliminar'}
                         </button>
-                        <button className="cancel-btn" onClick={() => setShowDeleteModal(false)} disabled={isLoading}>Cancelar</button>
+                        <button
+                            className="cancel-btn"
+                            onClick={() => setShowDeleteModal(false)}
+                            disabled={isLoading}
+                        >
+                            Cancelar
+                        </button>
                     </div>
                 </div>
             </div>

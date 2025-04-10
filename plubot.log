@@ -97,3 +97,34 @@
 2025-04-10 04:00:08,638 - INFO - 192.168.0.213 - - [10/Apr/2025 04:00:08] "GET /apple-touch-icon.png HTTP/1.1" 200 -
 2025-04-10 04:00:08,640 - INFO - 192.168.0.213 - - [10/Apr/2025 04:00:08] "GET /favicon.ico HTTP/1.1" 200 -
 2025-04-10 04:00:08,641 - INFO - 192.168.0.213 - - [10/Apr/2025 04:00:08] "GET /static/img/favicon.ico HTTP/1.1" 200 -
+2025-04-10 04:46:26,647 - ERROR - Redis no disponible: Error 61 connecting to localhost:6379. Connection refused.. Usando modo sin caché.
+2025-04-10 04:46:32,045 - WARNING - Python-dotenv could not parse statement starting at line 4
+2025-04-10 04:46:32,045 - WARNING - Python-dotenv could not parse statement starting at line 6
+2025-04-10 04:46:32,053 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.0.213:5000
+2025-04-10 04:46:32,054 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-10 04:46:36,615 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:36] "GET / HTTP/1.1" 200 -
+2025-04-10 04:46:36,629 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:36] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-04-10 04:46:36,633 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:36] "[36mGET /static/js/contact.js HTTP/1.1[0m" 304 -
+2025-04-10 04:46:36,635 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:36] "[36mGET /static/js/quantum-three.js HTTP/1.1[0m" 304 -
+2025-04-10 04:46:36,635 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:36] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-04-10 04:46:36,635 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:36] "[36mGET /static/img/logo.png HTTP/1.1[0m" 304 -
+2025-04-10 04:46:36,636 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:36] "[36mGET /static/js/particles.min.js HTTP/1.1[0m" 304 -
+2025-04-10 04:46:36,736 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:36] "GET / HTTP/1.1" 200 -
+2025-04-10 04:46:36,741 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:36] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-04-10 04:46:36,970 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:36] "[33mGET /cdn-cgi/challenge-platform/scripts/jsd/main.js HTTP/1.1[0m" 404 -
+2025-04-10 04:46:36,997 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:36] "[31m[1mGET /list-bots HTTP/1.1[0m" 401 -
+2025-04-10 04:46:37,001 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:37] "GET /apple-touch-icon-precomposed.png HTTP/1.1" 200 -
+2025-04-10 04:46:37,002 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:37] "GET /apple-touch-icon.png HTTP/1.1" 200 -
+2025-04-10 04:46:37,002 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:37] "GET /favicon.ico HTTP/1.1" 200 -
+2025-04-10 04:46:37,003 - INFO - 192.168.0.213 - - [10/Apr/2025 04:46:37] "GET /static/img/favicon.ico HTTP/1.1" 200 -
+2025-04-10 04:53:22,195 - INFO - 192.168.0.213 - - [10/Apr/2025 04:53:22] "GET /login HTTP/1.1" 200 -
+2025-04-10 04:53:22,210 - INFO - 192.168.0.213 - - [10/Apr/2025 04:53:22] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-04-10 04:53:22,213 - INFO - 192.168.0.213 - - [10/Apr/2025 04:53:22] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-04-10 04:53:22,215 - INFO - 192.168.0.213 - - [10/Apr/2025 04:53:22] "[36mGET /static/img/logo.png HTTP/1.1[0m" 304 -
+2025-04-10 04:53:22,218 - INFO - 192.168.0.213 - - [10/Apr/2025 04:53:22] "[36mGET /static/js/contact.js HTTP/1.1[0m" 304 -
+2025-04-10 04:53:22,222 - INFO - 192.168.0.213 - - [10/Apr/2025 04:53:22] "[36mGET /static/js/quantum-three.js HTTP/1.1[0m" 304 -
+2025-04-10 04:53:22,224 - INFO - 192.168.0.213 - - [10/Apr/2025 04:53:22] "[36mGET /static/js/particles.min.js HTTP/1.1[0m" 304 -
+2025-04-10 04:53:22,278 - INFO - 192.168.0.213 - - [10/Apr/2025 04:53:22] "[33mGET /cdn-cgi/challenge-platform/scripts/jsd/main.js HTTP/1.1[0m" 404 -
