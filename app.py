@@ -1,37 +1,37 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, Response
 from flask_mail import Mail, Message
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity, set_access_cookies, unset_jwt_cookies, decode_token
+from dotenv import load_dotenv
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from twilio.twiml.messaging_response import MessagingResponse
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime, Boolean
-from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.sql import func
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity, set_access_cookies, unset_jwt_cookies, decode_token
 from pydantic import BaseModel, Field, ValidationError, RootModel
-from celery import Celery
-from redis.connection import ConnectionPool
-from redis.retry import Retry
-from redis.backoff import ExponentialBackoff
-import redis
-import os
 import re
-import json
-import logging
-import bcrypt
+import os
 import requests
 import time
 import PyPDF2
+import json
+import logging
 from logging.handlers import RotatingFileHandler
-from dotenv import load_dotenv
-from datetime import timedelta, datetime
+import bcrypt
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime, Boolean
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.sql import func
+from requests.exceptions import HTTPError, Timeout
+import redis
+from redis.connection import ConnectionPool
+from redis.retry import Retry
+from redis.backoff import ExponentialBackoff
+from celery import Celery
 from contextlib import contextmanager
+from datetime import timedelta, datetime
 import uuid
 from ratelimit import limits, sleep_and_retry
 import magic
 from functools import lru_cache
 from typing import Optional, List, Dict, Any
-from requests.exceptions import HTTPError, Timeout
 
 # Configuración inicial
 load_dotenv()
@@ -41,7 +41,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 if not app.config['SECRET_KEY']:
     raise ValueError("No se encontró SECRET_KEY en las variables de entorno.")
 
-# Configuración de logging
+# Configuración de logging mejorada con rotación de archivos
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -64,8 +64,8 @@ CORS(app, resources={r"/*": {
     "supports_credentials": True
 }})
 
-# Configuración de Redis
-REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+# Configuración de Redis optimizada
+REDIS_URL = os.getenv('REDIS_URL', 'rediss://localhost:6379/0')  # Cambia a rediss://
 retry = Retry(ExponentialBackoff(cap=10, base=1), retries=5)
 redis_pool = ConnectionPool.from_url(
     REDIS_URL,
@@ -75,13 +75,15 @@ redis_pool = ConnectionPool.from_url(
     retry_on_timeout=True,
     health_check_interval=30,
     socket_timeout=10,
-    socket_connect_timeout=10
+    socket_connect_timeout=10,
+    ssl=True  # Habilitar SSL explícitamente
 )
 redis_client = redis.Redis(
     connection_pool=redis_pool,
     socket_timeout=10,
     socket_connect_timeout=10,
-    retry=retry
+    retry=retry,
+    ssl=True  # Habilitar SSL
 )
 
 def ensure_redis_connection(max_attempts=3) -> bool:
@@ -1513,6 +1515,194 @@ def upload_file():
     logger.info(f"Archivo subido: {file_url}")
     return jsonify({'file_url': file_url}), 200
 
+@app.route('/whatsapp', methods=['POST'])
+def whatsapp():
+    logger.info(f"Solicitud recibida en /whatsapp: {request.values}")
+    incoming_msg = request.values.get('Body', '').strip()
+    sender = request.values.get('From', 'unknown')
+    to_number = request.values.get('To', 'unknown')
+    logger.info(f"Mensaje recibido de {sender} para {to_number}: {incoming_msg}")
+
+    if not incoming_msg:
+        resp = MessagingResponse()
+        resp.message("No se recibió mensaje válido. Envía algo.")
+        return str(resp)
+
+    with get_session() as session:
+        chatbot = session.query(Chatbot).filter_by(whatsapp_number=to_number).first()
+        
+        if not chatbot:
+            chatbot = session.query(Chatbot).filter_by(whatsapp_number=sender).first()
+            if chatbot and incoming_msg.upper() == "VERIFICAR":
+                chatbot.whatsapp_number = to_number
+                session.commit()
+                resp = MessagingResponse()
+                resp.message(f"¡Número verificado! Tu chatbot '{chatbot.name}' conectado.")
+                logger.info(f"Número {sender} verificado para chatbot {chatbot.id}")
+                return str(resp)
+            else:
+                state = get_conversation_state(sender)
+                incoming_msg_lower = incoming_msg.lower()
+
+                info_keywords = ["saber más", "información", "qué son", "cómo funcionan", "detalles", "qué es", "qué haces"]
+                price_keywords = ["precio", "coste", "cuánto cuesta", "valor", "tarifa"]
+                greeting_keywords = ["hola", "buenos", "buenas", "hey", "cómo estás"]
+                business_keywords = ["tengo", "mi negocio", "tienda", "restaurante", "clínica", "hotel"]
+                action_keywords = ["quiero crear", "cómo empiezo", "estoy listo", "listo"]
+
+                response = None
+                flows = session.query(Flow).filter_by(chatbot_id=1).order_by(Flow.position).all()
+                for flow in flows:
+                    if flow.user_message.lower() in incoming_msg_lower:
+                        response = flow.bot_response
+                        break
+
+                if not response:
+                    if state["step"] == "greet":
+                        if any(k in incoming_msg_lower for k in greeting_keywords):
+                            response = "¡Hola! Soy Plubot, tu asistente para crear chatbots increíbles. 😊 ¿En qué puedo ayudarte hoy?"
+                            state["step"] = "awaiting_response"
+                        elif any(k in incoming_msg_lower for k in price_keywords):
+                            response = "¡Buena pregunta! 😊 Tienes 100 mensajes gratis al mes, y por 19.99 USD/mes tienes mensajes ilimitados. ¿Quieres probar en https://www.plubot.com/create?"
+                            state["step"] = "awaiting_response"
+                        elif any(k in incoming_msg_lower for k in info_keywords):
+                            response = "Plubot es una plataforma para crear chatbots para WhatsApp. 🚀 Automatizan tu negocio y aumentan ventas. ¿Te gustaría saber más?"
+                            state["step"] = "awaiting_response"
+                        elif any(k in incoming_msg_lower for k in action_keywords):
+                            response = "¡Genial! 🚀 Ve a https://www.plubot.com/register para empezar. ¿Qué tipo de negocio tienes?"
+                            state["step"] = "ask_business_type"
+                        else:
+                            response = "¡Hola! Soy Plubot. 😊 ¿Qué tipo de negocio tienes? Un Plubot puede ayudarte a automatizar y crecer."
+                            state["step"] = "ask_business_type"
+                    elif state["step"] == "awaiting_response":
+                        if any(k in incoming_msg_lower for k in price_keywords):
+                            response = "¡Entendido! 😊 Tienes 100 mensajes gratis al mes, y por 19.99 USD/mes tienes mensajes ilimitados. ¿Quieres empezar en https://www.plubot.com/register?"
+                            state["step"] = "awaiting_response"
+                        elif any(k in incoming_msg_lower for k in info_keywords):
+                            response = "Plubot te permite crear chatbots para WhatsApp que trabajan 24/7. 🚀 Automatizan procesos y ahorran tiempo. ¿Te interesa probar en https://www.plubot.com/create?"
+                            state["step"] = "awaiting_response"
+                        elif any(k in incoming_msg_lower for k in business_keywords):
+                            state["data"]["business_type"] = incoming_msg
+                            response = "¡Entendido! 😊 ¿Qué necesita tu Plubot (ventas, reservas, soporte)? Di 'listo' si no necesitas nada más."
+                            state["step"] = "ask_needs"
+                        elif any(k in incoming_msg_lower for k in action_keywords):
+                            response = "¡Genial! 🚀 Ve a https://www.plubot.com/register para empezar. ¿Qué tipo de negocio tienes?"
+                            state["step"] = "ask_business_type"
+                        else:
+                            messages = [
+                                {"role": "system", "content": QUANTUM_WEB_CONTEXT_FULL},
+                                {"role": "user", "content": incoming_msg}
+                            ]
+                            response = call_grok(messages, max_tokens=150)
+                            state["step"] = "ask_business_type"
+                    elif state["step"] == "ask_business_type":
+                        state["data"]["business_type"] = incoming_msg
+                        response = "¡Entendido! 😊 ¿Qué necesita tu Plubot (ventas, reservas, soporte)? Di 'listo' si no necesitas nada más."
+                        state["step"] = "ask_needs"
+                    elif state["step"] == "ask_needs":
+                        state["data"]["needs"].append(incoming_msg_lower)
+                        response = "¡Perfecto! 😊 ¿Algo más que quieras que haga? Di 'listo' si terminaste."
+                        state["step"] = "more_needs"
+                    elif state["step"] == "more_needs":
+                        if incoming_msg_lower == "listo":
+                            needs = state["data"]["needs"]
+                            if "ventas" in " ".join(needs):
+                                response = "¡Genial! 😊 ¿Cuántos productos incluirías en el catálogo?"
+                                state["step"] = "ask_sales_details"
+                            elif "soporte" in " ".join(needs):
+                                response = "¡Entendido! 😊 ¿Cuántos clientes gestionas por día?"
+                                state["step"] = "ask_support_details"
+                            elif "reservas" in " ".join(needs):
+                                response = "¡Perfecto! 😊 ¿Cuántas reservas esperas por día?"
+                                state["step"] = "ask_reservations_details"
+                            else:
+                                response = "¡Listo! 🚀 Te contactaremos en 24 horas. Crea tu Plubot en https://www.plubot.com/create."
+                                state["step"] = "done"
+                                state["data"]["contacted"] = True
+                        else:
+                            state["data"]["needs"].append(incoming_msg_lower)
+                            response = "¡Anotado! 😊 ¿Algo más? Di 'listo' si terminaste."
+                    elif state["step"] == "ask_sales_details":
+                        state["data"]["specifics"]["products"] = incoming_msg
+                        response = "¡Gracias! 🚀 Te contactaremos en 24 horas. Crea tu Plubot en https://www.plubot.com/create."
+                        state["step"] = "done"
+                        state["data"]["contacted"] = True
+                    elif state["step"] == "ask_support_details":
+                        state["data"]["specifics"]["daily_clients"] = incoming_msg
+                        response = "¡Gracias! 🚀 Te contactaremos en 24 horas. Crea tu Plubot en https://www.plubot.com/create."
+                        state["step"] = "done"
+                        state["data"]["contacted"] = True
+                    elif state["step"] == "ask_reservations_details":
+                        state["data"]["specifics"]["daily_reservations"] = incoming_msg
+                        response = "¡Gracias! 🚀 Te contactaremos en 24 horas. Crea tu Plubot en https://www.plubot.com/create."
+                        state["step"] = "done"
+                        state["data"]["contacted"] = True
+                    elif state["step"] == "done":
+                        if any(k in incoming_msg_lower for k in price_keywords):
+                            response = "¡Entendido! 😊 Tienes 100 mensajes gratis al mes, y por 19.99 USD/mes tienes mensajes ilimitados. ¿Quieres empezar en https://www.plubot.com/register?"
+                            state["step"] = "awaiting_response"
+                        elif any(k in incoming_msg_lower for k in action_keywords):
+                            response = "¡Genial! 🚀 Ve a https://www.plubot.com/register para empezar. ¿Qué tipo de negocio tienes?"
+                            state["step"] = "ask_business_type"
+                        else:
+                            messages = [
+                                {"role": "system", "content": QUANTUM_WEB_CONTEXT_FULL},
+                                {"role": "user", "content": incoming_msg}
+                            ]
+                            response = call_grok(messages, max_tokens=150)
+
+                set_conversation_state(sender, state)
+        else:
+            user_id = chatbot.user_id
+            if not check_quota(user_id, session):
+                resp = MessagingResponse()
+                resp.message("Límite de 100 mensajes alcanzado. Suscríbete en https://www.plubot.com.")
+                return str(resp)
+
+            chatbot_id = chatbot.id
+            flows = session.query(Flow).filter_by(chatbot_id=chatbot_id).order_by(Flow.position).all()
+            response = next(
+                (flow.bot_response for flow in flows if flow.user_message.lower() in incoming_msg.lower()),
+                None
+            )
+            if not response:
+                history = session.query(Conversation).filter_by(
+                    chatbot_id=chatbot_id,
+                    user_id=sender
+                ).order_by(Conversation.timestamp).all()
+                system_message = f"Eres un chatbot {chatbot.tone} llamado '{chatbot.name}'. Tu propósito es {chatbot.purpose}. Usa un tono {chatbot.tone} y gramática correcta."
+                if chatbot.business_info:
+                    system_message += f"\nNegocio: {chatbot.business_info}"
+                if chatbot.pdf_content:
+                    system_message += f"\nContenido del PDF: {chatbot.pdf_content}"
+                messages = [{"role": "system", "content": system_message}]
+                if history:
+                    messages.extend([{"role": conv.role, "content": conv.message} for conv in history[-5:]])
+                messages.append({"role": "user", "content": incoming_msg})
+                max_tokens = 150 if len(incoming_msg) < 100 else 300
+                response = call_grok(messages, max_tokens=max_tokens)
+                if chatbot.image_url and "logo" in incoming_msg.lower():
+                    response += f"\nLogo: {chatbot.image_url}"
+
+            session.add(Conversation(
+                chatbot_id=chatbot_id,
+                user_id=sender,
+                message=incoming_msg,
+                role="user"
+            ))
+            session.add(Conversation(
+                chatbot_id=chatbot_id,
+                user_id=sender,
+                message=response,
+                role="assistant"
+            ))
+            increment_quota(user_id, session)
+
+        resp = MessagingResponse()
+        resp.message(response)
+        logger.info(f"Respuesta enviada a {sender}: {response}")
+        return str(resp)
+
 # Operaciones de Redis
 def safe_redis_get(key: str, default: Any = None) -> Any:
     if redis_client and ensure_redis_connection():
@@ -1554,7 +1744,6 @@ def get_conversation_state(sender: str) -> Dict[str, Any]:
 def set_conversation_state(sender: str, state: Dict[str, Any]):
     safe_redis_set(f"conv_state:{sender}", state, expire_seconds=86400)  # Expira en 24 horas
 
-# Ruta para manejar mensajes de WhatsApp
 @app.route('/whatsapp', methods=['POST'])
 def whatsapp():
     logger.info(f"Solicitud recibida en /whatsapp: {request.values}")
@@ -1719,7 +1908,10 @@ def whatsapp():
                 if history:
                     messages.extend([{"role": conv.role, "content": conv.message} for conv in history[-5:]])
                 messages.append({"role": "user", "content": incoming_msg})
-                response = call_grok(messages, max_tokens=150)
+                max_tokens = 150 if len(incoming_msg) < 100 else 300
+                response = call_grok(messages, max_tokens=max_tokens)
+                if chatbot.image_url and "logo" in incoming_msg.lower():
+                    response += f"\nLogo: {chatbot.image_url}"
 
             session.add(Conversation(
                 chatbot_id=chatbot_id,
@@ -1741,4 +1933,9 @@ def whatsapp():
         return str(resp)
 
 if __name__ == '__main__':
-    app.run(debug=os.getenv('FLASK_ENV', 'development') == 'development', host='0.0.0.0', port=5000)
+    app.run(
+        host='0.0.0.0',
+        port=5000,
+        debug=os.getenv('FLASK_ENV') == 'development',
+        threaded=True
+    )
