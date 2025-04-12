@@ -1643,7 +1643,7 @@ def whatsapp():
                         state["data"]["needs"].append(incoming_msg_lower)
                         response = "¡Perfecto! 😊 ¿Algo más que quieras que haga? Di 'listo' si terminaste."
                         state["step"] = "more_needs"
-                    elif state["step] == "more_needs":
+                    elif state["step"] == "more_needs":
                         if incoming_msg_lower == "listo":
                             needs = state["data"]["needs"]
                             if "ventas" in " ".join(needs):
