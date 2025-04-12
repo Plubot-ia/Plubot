@@ -941,3 +941,20 @@ try {
     console.error("Error al montar el componente React:", error);
     document.getElementById('root').innerHTML = '<div className="text-white text-center p-4">Error al cargar la aplicación. Por favor, recarga la página.</div>';
 }
+
+const App = () => (
+    <ReactFlowProvider>
+      <div className="react-flow__container">
+        <ReactFlow
+          nodes={[]}
+          edges={[]}
+          fitView
+        />
+        <Background />
+        <Controls />
+      </div>
+    </ReactFlowProvider>
+  );
+  
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  
