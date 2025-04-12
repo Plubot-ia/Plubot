@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crea tu Chatbot - Plubot</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/create.css') }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@reactflow/core@11.11.4/dist/style.css" />
     <link rel="stylesheet" href="https://unpkg.com/reactflow@11.11.3/dist/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Roboto+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -51,8 +51,9 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@reactflow/core@11.11.4/dist/umd/react-flow-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <!-- Usar la URL correcta de ReactFlow -->
+    <script src="https://unpkg.com/reactflow@11.11.3/dist/umd/index.js"></script>
     <script src="{{ url_for('static', filename='js/create-react.js') }}" type="text/babel"></script>
 </body>
 </html>
