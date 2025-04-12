@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 # Configuración de CORS
 CORS(app, resources={r"/*": {
-    "origins": ["http://localhost:5000", "http://192.168.0.213:5000", "https://www.plubot.com"],
+    "origins": ["http://localhost:3000", "http://localhost:5000", "http://192.168.0.213:5000", "https://www.plubot.com"],
     "methods": ["GET", "POST", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"],
     "supports_credentials": True

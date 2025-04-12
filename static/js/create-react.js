@@ -7,35 +7,35 @@ const CustomNode = ({ data, id }) => {
     const [condition, setCondition] = useState(data.condition || '');
 
     useEffect(() => {
-        data.onChange(id, { userMessage, botResponse, condition });
-    }, [userMessage, botResponse, condition]);
-
-    return (
-        <div className="custom-node" style={{ padding: '15px', background: '#333', border: '2px solid #00e0ff', borderRadius: '8px', color: '#fff', minWidth: '250px' }}>
-            <input
-                type="text"
-                value={userMessage}
-                onChange={(e) => setUserMessage(e.target.value)}
-                placeholder="Mensaje del usuario"
-                className="mb-2 w-full bg-gray-700 text-white border-none p-2 rounded"
-            />
-            <textarea
-                value={botResponse}
-                onChange={(e) => setBotResponse(e.target.value)}
-                placeholder="Respuesta del bot"
-                className="mb-2 w-full bg-gray-700 text-white border-none p-2 rounded resize-y"
-                rows="3"
-            />
-            <input
-                type="text"
-                value={condition}
-                onChange={(e) => setCondition(e.target.value)}
-                placeholder="Condición (opcional, ej. 'si contiene sí')"
-                className="w-full bg-gray-700 text-white border-none p-2 rounded"
-            />
-        </div>
-    );
-};
+        const loadInitialData = async () => {
+            try {
+                const [botsRes, templatesRes, quotaRes] = await Promise.all([
+                    fetch('/list-bots', { credentials: 'include' }),
+                    fetch('/api/templates', { credentials: 'include' }),
+                    fetch('/api/quota', { credentials: 'include' })
+                ]);
+    
+                if (!botsRes.ok) throw new Error(`Error al cargar bots: ${botsRes.statusText}`);
+                if (!templatesRes.ok) throw new Error(`Error al cargar plantillas: ${templatesRes.statusText}`);
+                if (!quotaRes.ok) throw new Error(`Error al cargar cuota: ${quotaRes.statusText}`);
+    
+                const botsData = await botsRes.json();
+                const templatesData = await templatesRes.json();
+                const quotaData = await quotaRes.json();
+    
+                setChatbots(botsData.chatbots || []);
+                setTemplates(templatesData.templates || []);
+                setQuota(quotaData);
+                setIsAuthenticated(true);
+            } catch (error) {
+                console.error('Error en loadInitialData:', error);
+                setIsAuthenticated(false);
+                setResponseMessage(`Error al cargar datos iniciales: ${error.message}. Redirigiendo...`);
+                setTimeout(() => window.location.href = '/login', 2000);
+            }
+        };
+        loadInitialData();
+    }, []);
 
 const nodeTypes = { custom: CustomNode };
 
@@ -137,13 +137,14 @@ const ChatbotApp = () => {
     const onConnect = useCallback((params) => setEdges(eds => addEdge(params, eds)), [setEdges]);
 
     const addNewNode = useCallback(() => {
-        const newId = `${nodes.length}`;
-        setNodes([...nodes, {
+        const newId = `node-${nodes.length}`; // Asegura un ID único
+        const newNode = {
             id: newId,
             type: 'custom',
             data: { userMessage: '', botResponse: '', condition: '', onChange: updateFlowFromNode },
             position: { x: 250, y: nodes.length * 100 + 50 }
-        }]);
+        };
+        setNodes(nds => [...nds, newNode]);
     }, [nodes, updateFlowFromNode]);
 
     // Plantillas
@@ -624,12 +625,16 @@ const ChatbotApp = () => {
         }
     };
 
-    if (isAuthenticated === null) return <div className="text-white text-center">Verificando autenticación...</div>;
-    if (!isAuthenticated) return (
-        <div className="text-white text-center">
-            Necesitas iniciar sesión. <a href="/login" className="text-blue-500">Haz clic aquí</a>.
-        </div>
-    );
+    if (isAuthenticated === null) {
+        return <div className="text-white text-center p-4">Cargando datos iniciales...</div>;
+    }
+    if (!isAuthenticated) {
+        return (
+            <div className="text-white text-center p-4">
+                Necesitas iniciar sesión. <a href="/login" className="text-blue-500 underline">Haz clic aquí</a>.
+            </div>
+        );
+    }
 
     return (
         <section className="chatbot-section">
@@ -750,4 +755,4 @@ const ChatbotApp = () => {
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<ChatbotApp />);
+root.render(<ChatbotApp />);}
