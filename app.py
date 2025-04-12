@@ -75,15 +75,13 @@ redis_pool = ConnectionPool.from_url(
     retry_on_timeout=True,
     health_check_interval=30,
     socket_timeout=10,
-    socket_connect_timeout=10,
-    ssl=True  # Habilitar SSL explícitamente
+    socket_connect_timeout=10
 )
 redis_client = redis.Redis(
     connection_pool=redis_pool,
     socket_timeout=10,
     socket_connect_timeout=10,
-    retry=retry,
-    ssl=True  # Habilitar SSL
+    retry=retry
 )
 
 def ensure_redis_connection(max_attempts=3) -> bool:
@@ -112,6 +110,7 @@ def ensure_redis_connection(max_attempts=3) -> bool:
     return False
 
 if not ensure_redis_connection():
+    logger.warning("Redis no disponible, funcionando sin caché")
     redis_client = None
 
 # Configuración de Celery
@@ -1517,29 +1516,29 @@ def upload_file():
 
 # Operaciones de Redis
 def safe_redis_get(key: str, default: Any = None) -> Any:
-    if redis_client and ensure_redis_connection():
-        try:
-            value = redis_client.get(key)
-            return json.loads(value) if value else default
-        except redis.exceptions.RedisError as e:
-            logger.warning(f"Error al leer de Redis para clave {key}: {str(e)}")
-            return default
-    logger.warning(f"Redis no disponible para get: {key}")
-    return default
+    if redis_client is None:
+        logger.warning(f"Redis no disponible para get: {key}")
+        return default
+    try:
+        value = redis_client.get(key)
+        return json.loads(value) if value else default
+    except redis.exceptions.RedisError as e:
+        logger.warning(f"Error al leer de Redis para clave {key}: {str(e)}")
+        return default
 
 def safe_redis_set(key: str, value: Any, expire_seconds: Optional[int] = None):
-    if redis_client and ensure_redis_connection():
-        try:
-            serialized_value = json.dumps(value)
-            if expire_seconds:
-                redis_client.setex(key, expire_seconds, serialized_value)
-            else:
-                redis_client.set(key, serialized_value)
-            logger.debug(f"Valor guardado en Redis para clave {key}")
-        except redis.exceptions.RedisError as e:
-            logger.warning(f"Error al escribir en Redis para clave {key}: {str(e)}")
-    else:
+    if redis_client is None:
         logger.warning(f"Redis no disponible para set: {key}")
+        return
+    try:
+        serialized_value = json.dumps(value)
+        if expire_seconds:
+            redis_client.setex(key, expire_seconds, serialized_value)
+        else:
+            redis_client.set(key, serialized_value)
+        logger.debug(f"Valor guardado en Redis para clave {key}")
+    except redis.exceptions.RedisError as e:
+        logger.warning(f"Error al escribir en Redis para clave {key}: {str(e)}")
 
 def get_conversation_state(sender: str) -> Dict[str, Any]:
     default_state = {
