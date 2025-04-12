@@ -1,41 +1,47 @@
 const { useState, useEffect, useCallback, useMemo } = React;
 const { ReactFlow, ReactFlowProvider, useNodesState, useEdgesState, Background, Controls, addEdge } = ReactFlow;
 
+// Componente CustomNode corregido
 const CustomNode = ({ data, id }) => {
     const [userMessage, setUserMessage] = useState(data.userMessage || '');
     const [botResponse, setBotResponse] = useState(data.botResponse || '');
     const [condition, setCondition] = useState(data.condition || '');
 
-    useEffect(() => {
-        const loadInitialData = async () => {
-            try {
-                const [botsRes, templatesRes, quotaRes] = await Promise.all([
-                    fetch('/list-bots', { credentials: 'include' }),
-                    fetch('/api/templates', { credentials: 'include' }),
-                    fetch('/api/quota', { credentials: 'include' })
-                ]);
-    
-                if (!botsRes.ok) throw new Error(`Error al cargar bots: ${botsRes.statusText}`);
-                if (!templatesRes.ok) throw new Error(`Error al cargar plantillas: ${templatesRes.statusText}`);
-                if (!quotaRes.ok) throw new Error(`Error al cargar cuota: ${quotaRes.statusText}`);
-    
-                const botsData = await botsRes.json();
-                const templatesData = await templatesRes.json();
-                const quotaData = await quotaRes.json();
-    
-                setChatbots(botsData.chatbots || []);
-                setTemplates(templatesData.templates || []);
-                setQuota(quotaData);
-                setIsAuthenticated(true);
-            } catch (error) {
-                console.error('Error en loadInitialData:', error);
-                setIsAuthenticated(false);
-                setResponseMessage(`Error al cargar datos iniciales: ${error.message}. Redirigiendo...`);
-                setTimeout(() => window.location.href = '/login', 2000);
-            }
-        };
-        loadInitialData();
-    }, []);
+    const handleChange = (field, value) => {
+        if (field === 'userMessage') setUserMessage(value);
+        if (field === 'botResponse') setBotResponse(value);
+        if (field === 'condition') setCondition(value);
+        data.onChange(id, { userMessage, botResponse, condition, [field]: value });
+    };
+
+    return (
+        <div className="custom-node">
+            <div className="mb-2">
+                <input
+                    type="text"
+                    value={userMessage}
+                    onChange={(e) => handleChange('userMessage', e.target.value)}
+                    placeholder="Mensaje del usuario"
+                />
+            </div>
+            <div className="mb-2">
+                <textarea
+                    value={botResponse}
+                    onChange={(e) => handleChange('botResponse', e.target.value)}
+                    placeholder="Respuesta del bot"
+                />
+            </div>
+            <div>
+                <input
+                    type="text"
+                    value={condition}
+                    onChange={(e) => handleChange('condition', e.target.value)}
+                    placeholder="Condición (opcional)"
+                />
+            </div>
+        </div>
+    );
+};
 
 const nodeTypes = { custom: CustomNode };
 
@@ -50,7 +56,7 @@ const ChatbotApp = () => {
     const [imageUrl, setImageUrl] = useState('');
     const [menuJson, setMenuJson] = useState('');
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesState] = useEdgesState([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]); // Corregido onEdgesState a onEdgesChange
     const [chatbots, setChatbots] = useState([]);
     const [messages, setMessages] = useState([]);
     const [inputMessage, setInputMessage] = useState('');
@@ -69,7 +75,7 @@ const ChatbotApp = () => {
     const [whatsappError, setWhatsappError] = useState('');
     const [menuJsonError, setMenuJsonError] = useState('');
     const [previewNodes, setPreviewNodes] = useState([]);
-    const [previewEdges, setPreviewEdges, onPreviewEdgesChange] = useEdgesState([]);
+    const [previewEdges, setPreviewEdges, onPreviewEdgesChange] = useEdgesState([]); // Corregido
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [previewTemplateId, setPreviewTemplateId] = useState(null);
 
@@ -88,23 +94,34 @@ const ChatbotApp = () => {
         closeBtn.onclick = () => helpModal.classList.add('hidden');
     }, []);
 
-    // Carga inicial
+    // Carga inicial con depuración
     useEffect(() => {
         const loadInitialData = async () => {
+            console.log("Cargando datos iniciales...");
             try {
                 const [botsRes, templatesRes, quotaRes] = await Promise.all([
                     fetch('/list-bots', { credentials: 'include' }),
                     fetch('/api/templates', { credentials: 'include' }),
                     fetch('/api/quota', { credentials: 'include' })
                 ]);
-                if (!botsRes.ok) throw new Error('No autenticado');
-                setChatbots((await botsRes.json()).chatbots || []);
-                setTemplates((await templatesRes.json()).templates || []);
-                setQuota(await quotaRes.json());
+
+                if (!botsRes.ok) throw new Error(`Error al cargar bots: ${botsRes.statusText}`);
+                if (!templatesRes.ok) throw new Error(`Error al cargar plantillas: ${templatesRes.statusText}`);
+                if (!quotaRes.ok) throw new Error(`Error al cargar cuota: ${quotaRes.statusText}`);
+
+                const botsData = await botsRes.json();
+                const templatesData = await templatesRes.json();
+                const quotaData = await quotaRes.json();
+
+                console.log("Datos cargados:", { botsData, templatesData, quotaData });
+                setChatbots(botsData.chatbots || []);
+                setTemplates(templatesData.templates || []);
+                setQuota(quotaData);
                 setIsAuthenticated(true);
             } catch (error) {
+                console.error('Error en loadInitialData:', error);
                 setIsAuthenticated(false);
-                setResponseMessage('No autenticado. Redirigiendo...');
+                setResponseMessage(`Error al cargar datos iniciales: ${error.message}. Redirigiendo...`);
                 setTimeout(() => window.location.href = '/login', 2000);
             }
         };
@@ -420,12 +437,12 @@ const ChatbotApp = () => {
         }
     };
 
-    const renderStep = () => {
-        const previewResponse = useMemo(() => {
-            const node = nodes.find(n => n.data.userMessage.toLowerCase() === previewMessage.toLowerCase());
-            return node?.data.botResponse || 'Escribe un mensaje para previsualizar';
-        }, [nodes, previewMessage]);
+    const previewResponse = useMemo(() => {
+        const node = nodes.find(n => n.data.userMessage.toLowerCase() === previewMessage.toLowerCase());
+        return node?.data.botResponse || 'Escribe un mensaje para previsualizar';
+    }, [nodes, previewMessage]);
 
+    const renderStep = () => {
         switch (step) {
             case 1:
                 return (
@@ -533,7 +550,7 @@ const ChatbotApp = () => {
                                     nodes={nodes}
                                     edges={edges}
                                     onNodesChange={onNodesChange}
-                                    onEdgesChange={onEdgesState}
+                                    onEdgesChange={onEdgesChange} // Corregido
                                     onConnect={onConnect}
                                     nodeTypes={nodeTypes}
                                     fitView
@@ -754,5 +771,11 @@ const ChatbotApp = () => {
     );
 };
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<ChatbotApp />);}
+// Montaje del componente con manejo de errores
+try {
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ChatbotApp />);
+} catch (error) {
+    console.error("Error al montar el componente React:", error);
+    document.getElementById('root').innerHTML = '<div className="text-white text-center p-4">Error al cargar la aplicación. Por favor, recarga la página.</div>';
+}
