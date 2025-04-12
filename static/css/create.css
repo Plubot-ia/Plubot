@@ -1,7 +1,29 @@
 /* ==========================================================================
-   Estilos Globales
+   Variables y Estilos Globales
    ========================================================================== */
-   * {
+   :root {
+    --primary-cyan: #00e0ff;
+    --primary-cyan-dark: #00aaff;
+    --primary-magenta: #ff00ff;
+    --primary-magenta-dark: #cc00cc;
+    --whatsapp-green: #25d366;
+    --whatsapp-green-dark: #20b859;
+    --danger-red: #ff4444;
+    --danger-red-dark: #cc0000;
+    --background-dark: #0a0a0a;
+    --background-secondary: #1a1a1a;
+    --background-tertiary: #252525;
+    --text-primary: #e0e0e0;
+    --text-secondary: #d0d0d0;
+    --text-muted: #888;
+    --border-light: rgba(255, 255, 255, 0.15);
+    --shadow-cyan: rgba(0, 224, 255, 0.2);
+    --shadow-magenta: rgba(255, 0, 255, 0.2);
+    --shadow-whatsapp: rgba(37, 211, 102, 0.2);
+    --shadow-danger: rgba(255, 68, 68, 0.2);
+}
+
+* {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -9,46 +31,46 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    font-size: 16px;
+    font-size: 1rem;
     line-height: 1.6;
-    background: #0a0a0a;
-    color: #e0e0e0;
+    background: var(--background-dark);
+    color: var(--text-primary);
     overflow-x: hidden;
     position: relative;
 }
 
 a {
     text-decoration: none;
-    color: #00e0ff;
+    color: var(--primary-cyan);
     transition: color 0.3s ease;
 }
 
 a:hover {
-    color: #00aaff;
+    color: var(--primary-cyan-dark);
 }
 
 /* Botón Volver */
 .back-btn {
     position: absolute;
-    top: 15px;
-    left: 15px;
+    top: 0.9375rem;
+    left: 0.9375rem;
     background: transparent;
-    color: #00e0ff;
-    border: 1px solid #00e0ff;
+    color: var(--primary-cyan);
+    border: 1px solid var(--primary-cyan);
     padding: 0.5rem 1.2rem;
-    border-radius: 8px;
+    border-radius: 0.5rem;
     font-size: 0.85rem;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 6px rgba(0, 224, 255, 0.2);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 0 0.375rem var(--shadow-cyan);
 }
 
 .back-btn:hover {
     background: rgba(0, 224, 255, 0.15);
-    box-shadow: 0 0 10px rgba(0, 224, 255, 0.4);
+    box-shadow: 0 0 0.625rem var(--shadow-cyan);
 }
 
 /* ==========================================================================
@@ -57,54 +79,54 @@ a:hover {
 .quantum-btn {
     background: transparent;
     padding: 0.6rem 1.5rem;
-    border: 1px solid #00e0ff;
-    border-radius: 8px;
-    color: #00e0ff;
+    border: 1px solid var(--primary-cyan);
+    border-radius: 0.5rem;
+    color: var(--primary-cyan);
     font-size: 0.9rem;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 4px rgba(0, 224, 255, 0.2);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 0 0.25rem var(--shadow-cyan);
 }
 
 .quantum-btn:hover {
     background: rgba(0, 224, 255, 0.15);
-    box-shadow: 0 0 8px rgba(0, 224, 255, 0.4);
+    box-shadow: 0 0 0.5rem var(--shadow-cyan);
 }
 
 .quantum-btn.magenta {
-    border-color: #ff00ff;
-    color: #ff00ff;
-    box-shadow: 0 0 4px rgba(255, 0, 255, 0.2);
+    border-color: var(--primary-magenta);
+    color: var(--primary-magenta);
+    box-shadow: 0 0 0.25rem var(--shadow-magenta);
 }
 
 .quantum-btn.magenta:hover {
     background: rgba(255, 0, 255, 0.15);
-    box-shadow: 0 0 8px rgba(255, 0, 255, 0.4);
+    box-shadow: 0 0 0.5rem var(--shadow-magenta);
 }
 
 .quantum-btn.delete-btn {
-    border-color: #ff4444;
-    color: #ff4444;
-    box-shadow: 0 0 4px rgba(255, 68, 68, 0.2);
+    border-color: var(--danger-red);
+    color: var(--danger-red);
+    box-shadow: 0 0 0.25rem var(--shadow-danger);
 }
 
 .quantum-btn.delete-btn:hover {
     background: rgba(255, 68, 68, 0.15);
-    box-shadow: 0 0 8px rgba(255, 68, 68, 0.4);
+    box-shadow: 0 0 0.5rem var(--shadow-danger);
 }
 
 .quantum-btn.whatsapp-btn {
-    border-color: #25d366;
-    color: #25d366;
-    box-shadow: 0 0 4px rgba(37, 211, 102, 0.2);
+    border-color: var(--whatsapp-green);
+    color: var(--whatsapp-green);
+    box-shadow: 0 0 0.25rem var(--shadow-whatsapp);
 }
 
 .quantum-btn.whatsapp-btn:hover {
     background: rgba(37, 211, 102, 0.15);
-    box-shadow: 0 0 8px rgba(37, 211, 102, 0.4);
+    box-shadow: 0 0 0.5rem var(--shadow-whatsapp);
 }
 
 .quantum-btn:disabled {
@@ -118,17 +140,17 @@ a:hover {
 .contact-textarea {
     width: 100%;
     padding: 0.75rem;
-    background: #252525;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    color: #e0e0e0;
+    background: var(--background-tertiary);
+    border: 1px solid var(--border-light);
+    border-radius: 0.375rem;
+    color: var(--text-primary);
     font-family: 'Roboto Mono', monospace;
     font-size: 0.9rem;
-    transition: all 0.3s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .contact-textarea {
-    min-height: 120px;
+    min-height: 7.5rem;
     resize: vertical;
 }
 
@@ -136,13 +158,20 @@ a:hover {
 .contact-select:focus,
 .contact-textarea:focus {
     outline: none;
-    border-color: #00e0ff;
-    box-shadow: 0 0 6px rgba(0, 224, 255, 0.3);
+    border-color: var(--primary-cyan);
+    box-shadow: 0 0 0.375rem var(--shadow-cyan);
+}
+
+.contact-input:invalid:not(:placeholder-shown),
+.contact-select:invalid:not(:placeholder-shown),
+.contact-textarea:invalid:not(:placeholder-shown) {
+    border-color: var(--danger-red);
+    box-shadow: 0 0 0.375rem var(--shadow-danger);
 }
 
 .contact-input::placeholder,
 .contact-textarea::placeholder {
-    color: #888;
+    color: var(--text-muted);
     font-style: italic;
 }
 
@@ -161,30 +190,30 @@ a:hover {
 
 .file-upload label {
     font-size: 0.9rem;
-    color: #d0d0d0;
+    color: var(--text-secondary);
 }
 
 .file-upload input[type="file"] {
     padding: 0.5rem;
-    background: #252525;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    color: #e0e0e0;
+    background: var(--background-tertiary);
+    border: 1px solid var(--border-light);
+    border-radius: 0.375rem;
+    color: var(--text-primary);
     font-size: 0.85rem;
 }
 
 .progress-bar {
     width: 100%;
-    height: 6px;
+    height: 0.375rem;
     background: #333;
-    border-radius: 3px;
+    border-radius: 0.1875rem;
     overflow: hidden;
     margin-top: 0.5rem;
 }
 
 .progress-bar-fill {
     height: 100%;
-    background: #00e0ff;
+    background: var(--primary-cyan);
     transition: width 0.3s ease;
 }
 
@@ -201,7 +230,7 @@ a:hover {
 }
 
 .chatbot-container {
-    max-width: 1200px;
+    max-width: 75rem;
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -222,31 +251,31 @@ a:hover {
 .chatbot-title {
     font-family: 'Orbitron', sans-serif;
     font-size: 2.5rem;
-    color: #00e0ff;
+    color: var(--primary-cyan);
     margin-bottom: 1.5rem;
     letter-spacing: 0.1em;
-    text-shadow: 0 0 6px rgba(0, 224, 255, 0.5);
+    text-shadow: 0 0 0.375rem var(--shadow-cyan);
 }
 
 .large-mobile-frame {
     perspective: 1000px;
-    max-width: 300px;
+    max-width: 18.75rem;
     width: 100%;
 }
 
 .mobile-device {
     width: 100%;
-    height: 540px;
+    height: 33.75rem;
     background: #000;
-    border: 4px solid #222;
-    border-radius: 40px;
-    box-shadow: 0 0 10px rgba(0, 224, 255, 0.2);
+    border: 0.25rem solid #222;
+    border-radius: 2.5rem;
+    box-shadow: 0 0 0.625rem var(--shadow-cyan);
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .mobile-device:hover {
-    box-shadow: 0 0 15px rgba(0, 224, 255, 0.3);
+    box-shadow: 0 0 0.9375rem var(--shadow-cyan);
     transform: scale(1.02);
 }
 
@@ -255,11 +284,11 @@ a:hover {
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 60px;
-    height: 20px;
+    width: 3.75rem;
+    height: 1.25rem;
     background: #000;
-    border-bottom-left-radius: 12px;
-    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 0.75rem;
+    border-bottom-right-radius: 0.75rem;
 }
 
 .mobile-screen {
@@ -292,9 +321,9 @@ a:hover {
 }
 
 .whatsapp-avatar {
-    width: 32px;
-    height: 32px;
-    background: #25d366;
+    width: 2rem;
+    height: 2rem;
+    background: var(--whatsapp-green);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -337,7 +366,7 @@ a:hover {
 .chatbot-message {
     padding: 0.75rem 1rem;
     font-size: 0.9rem;
-    border-radius: 8px;
+    border-radius: 0.5rem;
     max-width: 75%;
     position: relative;
     margin-bottom: 1rem;
@@ -346,18 +375,18 @@ a:hover {
 .chatbot-message.bot {
     background: #fff;
     align-self: flex-start;
-    border-radius: 8px 8px 8px 0;
+    border-radius: 0.5rem 0.5rem 0.5rem 0;
 }
 
 .chatbot-message.user {
     background: #dcf8c6;
     align-self: flex-end;
-    border-radius: 8px 8px 0 8px;
+    border-radius: 0.5rem 0.5rem 0 0.5rem;
 }
 
 .message-meta {
     font-size: 0.65rem;
-    color: #888;
+    color: var(--text-muted);
     margin-top: 0.2rem;
     display: flex;
     gap: 0.3rem;
@@ -383,12 +412,12 @@ a:hover {
     display: flex;
     align-items: center;
     background: #f0f0f0;
-    border-radius: 20px;
+    border-radius: 1.25rem;
     padding: 0.3rem 0.75rem;
 }
 
 .input-icon {
-    color: #888;
+    color: var(--text-muted);
     margin: 0 0.5rem;
     font-size: 1.1rem;
 }
@@ -403,11 +432,11 @@ a:hover {
 }
 
 .whatsapp-input button {
-    background: #25d366;
+    background: var(--whatsapp-green);
     border: none;
     border-radius: 50%;
-    width: 36px;
-    height: 36px;
+    width: 2.25rem;
+    height: 2.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -416,7 +445,7 @@ a:hover {
 }
 
 .whatsapp-input button:hover {
-    background: #20b859;
+    background: var(--whatsapp-green-dark);
 }
 
 .whatsapp-input button i {
@@ -426,7 +455,7 @@ a:hover {
 
 .loading-indicator {
     text-align: center;
-    color: #888;
+    color: var(--text-muted);
     font-size: 0.85rem;
     padding: 0.5rem;
 }
@@ -437,14 +466,14 @@ a:hover {
 .bot-config {
     background: rgba(18, 18, 18, 0.9);
     padding: 2rem;
-    border-radius: 12px;
+    border-radius: 0.75rem;
     border: 1px solid rgba(0, 224, 255, 0.15);
-    box-shadow: 0 0 10px rgba(0, 224, 255, 0.1);
-    transition: all 0.3s ease;
+    box-shadow: 0 0 0.625rem var(--shadow-cyan);
+    transition: box-shadow 0.3s ease;
 }
 
 .bot-config:hover {
-    box-shadow: 0 0 15px rgba(0, 224, 255, 0.2);
+    box-shadow: 0 0 0.9375rem var(--shadow-cyan);
 }
 
 .bot-config h2 {
@@ -464,11 +493,11 @@ a:hover {
 .response-message {
     margin-top: 1rem;
     padding: 1rem;
-    border-radius: 6px;
+    border-radius: 0.375rem;
     font-size: 0.9rem;
     text-align: center;
     background: rgba(0, 224, 255, 0.1);
-    color: #00e0ff;
+    color: var(--primary-cyan);
     border: 1px solid rgba(0, 224, 255, 0.2);
 }
 
@@ -491,17 +520,17 @@ a:hover {
     padding: 1.5rem;
     margin-bottom: 1rem;
     background: rgba(30, 30, 30, 0.9);
-    border-radius: 10px;
+    border-radius: 0.625rem;
     border: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .chatbot-item:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0 10px rgba(0, 224, 255, 0.2);
+    transform: translateY(-0.1875rem);
+    box-shadow: 0 0 0.625rem var(--shadow-cyan);
 }
 
 .chatbot-item-details {
@@ -535,23 +564,23 @@ a:hover {
 }
 
 .modal-content {
-    background: #1a1a1a;
+    background: var(--background-secondary);
     padding: 2rem;
-    border-radius: 12px;
-    max-width: 450px;
+    border-radius: 0.75rem;
+    max-width: 28.125rem;
     width: 90%;
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0.375rem 1.5625rem rgba(0, 0, 0, 0.6);
 }
 
 .modal-content h2 {
     font-family: 'Orbitron', sans-serif;
-    color: #00e0ff;
+    color: var(--primary-cyan);
     margin-bottom: 1.5rem;
     font-size: 1.5rem;
 }
 
 .modal-content p {
-    color: #e0e0e0;
+    color: var(--text-primary);
     margin-bottom: 2rem;
 }
 
@@ -565,18 +594,18 @@ a:hover {
 .cancel-btn {
     padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 6px;
+    border-radius: 0.375rem;
     color: #fff;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background 0.3s ease;
 }
 
 .confirm-btn {
-    background: #ff4444;
+    background: var(--danger-red);
 }
 
 .confirm-btn:hover {
-    background: #cc0000;
+    background: var(--danger-red-dark);
 }
 
 .confirm-btn:disabled {
@@ -585,11 +614,11 @@ a:hover {
 }
 
 .cancel-btn {
-    background: #00e0ff;
+    background: var(--primary-cyan);
 }
 
 .cancel-btn:hover {
-    background: #00aaff;
+    background: var(--primary-cyan-dark);
 }
 
 .cancel-btn:disabled {
@@ -601,37 +630,37 @@ a:hover {
    Estilos para el Editor de Flujos y Plantillas
    ========================================================================== */
 .react-flow__container {
-    height: 500px;
+    height: 31.25rem;
     border: 1px solid rgba(0, 224, 255, 0.2);
-    border-radius: 10px;
-    background: #1a1a1a;
-    box-shadow: 0 0 10px rgba(0, 224, 255, 0.1);
+    border-radius: 0.625rem;
+    background: var(--background-secondary);
+    box-shadow: 0 0 0.625rem var(--shadow-cyan);
     position: relative;
     overflow: hidden;
 }
 
 .react-flow__container.dragover {
-    border-color: #ff00ff;
-    box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+    border-color: var(--primary-magenta);
+    box-shadow: 0 0 0.9375rem var(--shadow-magenta);
 }
 
 .custom-node {
-    padding: 15px;
+    padding: 0.9375rem;
     background: #333;
-    border: 2px solid #00e0ff;
-    border-radius: 8px;
+    border: 2px solid var(--primary-cyan);
+    border-radius: 0.5rem;
     color: #fff;
-    min-width: 250px;
-    box-shadow: 0 0 6px rgba(0, 224, 255, 0.2);
+    min-width: 15.625rem;
+    box-shadow: 0 0 0.375rem var(--shadow-cyan);
 }
 
 .custom-node input,
 .custom-node textarea {
-    background: #252525;
+    background: var(--background-tertiary);
     border: none;
-    color: #e0e0e0;
+    color: var(--text-primary);
     padding: 0.5rem;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     width: 100%;
     font-family: 'Roboto Mono', monospace;
     font-size: 0.85rem;
@@ -639,45 +668,45 @@ a:hover {
 
 .custom-node textarea {
     resize: vertical;
-    min-height: 60px;
+    min-height: 3.75rem;
 }
 
 .custom-node input:focus,
 .custom-node textarea:focus {
     outline: none;
-    box-shadow: 0 0 4px rgba(0, 224, 255, 0.3);
+    box-shadow: 0 0 0.25rem var(--shadow-cyan);
 }
 
 .template-card {
     padding: 1.5rem;
     margin-bottom: 1rem;
-    background: #252525;
+    background: var(--background-tertiary);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+    border-radius: 0.625rem;
     cursor: move;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .template-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0 10px rgba(0, 224, 255, 0.2);
+    transform: translateY(-0.1875rem);
+    box-shadow: 0 0 0.625rem var(--shadow-cyan);
 }
 
 .template-card.dragging {
     opacity: 0.7;
-    border-color: #ff00ff;
+    border-color: var(--primary-magenta);
 }
 
 .template-card h3 {
     font-family: 'Orbitron', sans-serif;
     font-size: 1.2rem;
-    color: #e0e0e0;
+    color: var(--text-primary);
     margin-bottom: 0.75rem;
 }
 
 .template-card p {
     font-size: 0.9rem;
-    color: #d0d0d0;
+    color: var(--text-secondary);
     margin-bottom: 0.75rem;
 }
 
@@ -689,7 +718,7 @@ a:hover {
 
 .template-card li {
     font-size: 0.85rem;
-    color: #e0e0e0;
+    color: var(--text-primary);
     margin: 0.3rem 0;
 }
 
@@ -724,8 +753,8 @@ a:hover {
         font-size: 1.75rem;
     }
     .mobile-device {
-        height: 480px;
-        max-width: 260px;
+        height: 30rem;
+        max-width: 16.25rem;
     }
     .bot-config {
         padding: 1.5rem;
@@ -740,6 +769,29 @@ a:hover {
         justify-content: center;
     }
     .react-flow__container {
-        height: 400px;
+        height: 25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .chatbot-section {
+        padding: 1rem 0.5rem;
+    }
+    .chatbot-title {
+        font-size: 1.5rem;
+    }
+    .mobile-device {
+        height: 25rem;
+        max-width: 14rem;
+    }
+    .bot-config {
+        padding: 1rem;
+    }
+    .quantum-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    .react-flow__container {
+        height: 20rem;
     }
 }
