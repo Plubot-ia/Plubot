@@ -795,3 +795,71 @@ a:hover {
         height: 20rem;
     }
 }
+
+
+
+
+/* Ajustar campos de formulario para mejor alineación */
+.contact-input,
+.contact-select,
+.contact-textarea {
+    width: 100%;
+    padding: 0.75rem 1rem; /* Más padding para mejor legibilidad */
+    background: var(--background-tertiary);
+    border: 1px solid var(--border-light);
+    border-radius: 0.5rem; /* Bordes más redondeados */
+    color: var(--text-primary);
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1rem; /* Tamaño de fuente más grande */
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 0.5rem; /* Espacio consistente entre campos */
+}
+
+/* Ajustar labels para mejor claridad */
+.form-grid label,
+.file-upload label {
+    display: block;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+/* Mejorar botones para que sean más grandes y accesibles */
+.quantum-btn {
+    background: transparent;
+    padding: 0.75rem 2rem; /* Más padding para botones más grandes */
+    border: 1px solid var(--primary-cyan);
+    border-radius: 0.5rem;
+    color: var(--primary-cyan);
+    font-size: 1rem; /* Tamaño de fuente más grande */
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 0 0.25rem var(--shadow-cyan);
+}
+
+.quantum-btn:hover {
+    background: rgba(0, 224, 255, 0.15);
+    box-shadow: 0 0 0.5rem var(--shadow-cyan);
+    transform: translateY(-2px); /* Efecto de elevación al pasar el mouse */
+}
+
+/* Asegurar que los botones ocupen el ancho completo en dispositivos pequeños */
+@media (max-width: 768px) {
+    .quantum-btn {
+        padding: 0.6rem 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .flex.space-x-4 {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .quantum-btn.flex-1 {
+        width: 100%;
+    }
+}

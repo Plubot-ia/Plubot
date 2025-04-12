@@ -1330,31 +1330,37 @@ def chat(chatbot_id):
 
         history = session.query(Conversation).filter_by(chatbot_id=chatbot_id, user_id=user_id).order_by(Conversation.timestamp.asc()).all()
         flows = session.query(Flow).filter_by(chatbot_id=chatbot_id).order_by(Flow.position.asc()).all()
+        edges = session.query(FlowEdge).filter_by(chatbot_id=chatbot_id).all()
 
         user_msg_lower = user_message.lower()
+        response = None
         for flow in flows:
             if user_msg_lower == flow.user_message.lower():
                 response = flow.bot_response
-                bot_conversation = Conversation(
-                    chatbot_id=chatbot_id,
-                    user_id=user_id,
-                    message=response,
-                    role='bot'
-                )
-                session.add(bot_conversation)
-                session.commit()
-                return jsonify({'response': response})
+                # Manejar acciones
+                if flow.actions:
+                    for action in flow.actions:
+                        if action['type'] == 'payment_link':
+                            # Generar enlace de pago simulado (puedes integrar Stripe aquí)
+                            amount = float(action['value'])
+                            payment_url = f"https://example.com/pay?amount={amount}"  # Reemplazar con Stripe
+                            response += f"\nPaga aquí: {payment_url}"
+                        elif action['type'] == 'schedule_link':
+                            response += f"\nAgenda una cita: {action['value']}"
+                break
 
-        messages = [
-            {"role": "system", "content": f"Eres un chatbot {chatbot.tone} llamado '{chatbot.name}'. Tu propósito es {chatbot.purpose}. Usa un tono {chatbot.tone} y gramática correcta."},
-            {"role": "user", "content": f"Historial: {summarize_history(history)}\nMensaje: {user_message}"}
-        ]
-        if chatbot.business_info:
-            messages[0]["content"] += f"\nNegocio: {chatbot.business_info}"
-        if chatbot.pdf_content:
-            messages[0]["content"] += f"\nContenido del PDF: {chatbot.pdf_content}"
+        if not response:
+            messages = [
+                {"role": "system", "content": f"Eres un chatbot {chatbot.tone} llamado '{chatbot.name}'. Tu propósito es {chatbot.purpose}. Usa un tono {chatbot.tone} y gramática correcta."},
+                {"role": "user", "content": f"Historial: {summarize_history(history)}\nMensaje: {user_message}"}
+            ]
+            if chatbot.business_info:
+                messages[0]["content"] += f"\nNegocio: {chatbot.business_info}"
+            if chatbot.pdf_content:
+                messages[0]["content"] += f"\nContenido del PDF: {chatbot.pdf_content}"
 
-        response = call_grok(messages, max_tokens=150)
+            response = call_grok(messages, max_tokens=150)
+
         bot_conversation = Conversation(
             chatbot_id=chatbot_id,
             user_id=user_id,
@@ -1364,24 +1370,131 @@ def chat(chatbot_id):
         session.add(bot_conversation)
         session.commit()
         return jsonify({'response': response})
+    
+
+@app.route('/api/chatbots', methods=['GET', 'OPTIONS'])
+@jwt_required()
+def list_chatbots():
+    if request.method == 'OPTIONS':
+        return jsonify({'message': 'Preflight OK'}), 200
+
+    user_id = get_jwt_identity()
+    with get_session() as session:
+        chatbots = session.query(Chatbot).filter_by(user_id=user_id).all()
+        chatbots_list = [
+            {
+                'id': bot.id,
+                'name': bot.name,
+                'tone': bot.tone,
+                'purpose': bot.purpose,
+                'whatsapp_number': bot.whatsapp_number,
+                'business_info': bot.business_info,
+                'pdf_url': bot.pdf_url,
+                'image_url': bot.image_url,
+                'initial_message': bot.initial_message
+            } for bot in chatbots
+        ]
+        return jsonify({'chatbots': chatbots_list}), 200
+    
+@app.route('/connect-whatsapp', methods=['OPTIONS', 'POST'])
+@jwt_required()
+def connect_whatsapp():
+    if request.method == 'OPTIONS':
+        return jsonify({'message': 'Preflight OK'}), 200
+
+    user_id = get_jwt_identity()
+    with get_session() as session:
+        try:
+            data = request.get_json()
+            chatbot_id = data.get('chatbot_id')
+            phone_number = data.get('phone_number')
+
+            if not chatbot_id or not phone_number:
+                return jsonify({'status': 'error', 'message': 'Faltan chatbot_id o phone_number'}), 400
+
+            if not re.match(r'^\+\d{10,15}$', phone_number):
+                return jsonify({'status': 'error', 'message': 'El número debe tener formato internacional, ej. +1234567890'}), 400
+
+            chatbot = session.query(Chatbot).filter_by(id=chatbot_id, user_id=user_id).first()
+            if not chatbot:
+                return jsonify({'status': 'error', 'message': 'Chatbot no encontrado o no tienes permiso'}), 404
+
+            if not validate_whatsapp_number(phone_number):
+                return jsonify({'status': 'error', 'message': 'El número no está registrado en Twilio. Regístralo primero.'}), 400
+
+            message = twilio_client.messages.create(
+                body="¡Hola! Soy Plubot. Responde 'VERIFICAR' para conectar tu chatbot. Si necesitas ayuda, visita https://www.plubot.com/support.",
+                from_=f'whatsapp:{TWILIO_PHONE}',
+                to=f'whatsapp:{phone_number}'
+            )
+            logger.info(f"Mensaje enviado a {phone_number}: {message.sid}")
+            chatbot.whatsapp_number = phone_number
+            session.commit()
+            return jsonify({'status': 'success', 'message': f'Verifica tu número {phone_number} respondiendo "VERIFICAR" en WhatsApp.'}), 200
+        except TwilioRestException as e:
+            return jsonify({'status': 'error', 'message': f'Error con Twilio: {str(e)}. Verifica tus credenciales.'}), 500
+        except Exception as e:
+            logger.exception(f"Error en /connect-whatsapp: {str(e)}")
+            return jsonify({'status': 'error', 'message': f'Error inesperado: {str(e)}'}), 500
+        
+@app.route('/conversation-history/<int:chatbot_id>', methods=['GET', 'OPTIONS'])
+@jwt_required()
+def conversation_history(chatbot_id):
+    if request.method == 'OPTIONS':
+        return jsonify({'message': 'Preflight OK'}), 200
+
+    user_id = get_jwt_identity()
+    with get_session() as session:
+        chatbot = session.query(Chatbot).filter_by(id=chatbot_id, user_id=user_id).first()
+        if not chatbot:
+            return jsonify({'status': 'error', 'message': 'Chatbot no encontrado o no tienes permisos'}), 404
+
+        history = session.query(Conversation).filter_by(chatbot_id=chatbot_id).order_by(Conversation.timestamp.asc()).all()
+        history_list = [{'role': conv.role, 'message': conv.message, 'timestamp': conv.timestamp.isoformat()} for conv in history]
+        return jsonify({'status': 'success', 'history': history_list}), 200
+        
 
 @app.route('/webhook/<int:chatbot_id>', methods=['POST'])
 def webhook(chatbot_id):
+    data = request.form.to_dict()
+    from_number = data.get('From', '')
+    user_message = data.get('Body', '').strip()
+
+    if not from_number or not user_message:
+        logger.warning("Mensaje o número de origen no proporcionado")
+        return jsonify({'status': 'error', 'message': 'Falta el número o el mensaje'}), 400
+
     with get_session() as session:
         chatbot = session.query(Chatbot).filter_by(id=chatbot_id).first()
-        if not chatbot or not chatbot.whatsapp_number:
-            logger.warning(f"Chatbot {chatbot_id} no encontrado o sin número de WhatsApp")
+        if not chatbot:
+            logger.warning(f"Chatbot {chatbot_id} no encontrado")
+            return jsonify({'status': 'error', 'message': 'Chatbot no encontrado'}), 404
+
+        if not chatbot.whatsapp_number:
+            logger.warning(f"Chatbot {chatbot_id} no tiene número de WhatsApp configurado")
             return Response(status=404)
 
-        incoming_msg = request.values.get('Body', '').strip()
-        from_number = request.values.get('From', '')
-        logger.info(f"Mensaje recibido en webhook para chatbot {chatbot_id}: {incoming_msg} desde {from_number}")
-
-        if not incoming_msg or not from_number:
-            logger.warning("Mensaje o número de origen no proporcionado")
-            return Response(status=400)
+        # Validar que el número coincida con el registrado
+        if chatbot.whatsapp_number != from_number.replace('whatsapp:', ''):
+            logger.warning(f"Número no coincide: {from_number}")
+            return jsonify({'status': 'error', 'message': 'Número de WhatsApp no coincide'}), 403
 
         user_id = from_number
+
+        # Verificación explícita del número
+        if user_message.lower() == 'verificar':
+            chatbot.is_verified = True
+            session.commit()
+            twilio_client.messages.create(
+                body="¡Número verificado! Tu chatbot está listo para usar.",
+                from_=f'whatsapp:{TWILIO_PHONE}',
+                to=from_number
+            )
+            return jsonify({'status': 'success', 'message': 'Verificado'}), 200
+
+        logger.info(f"Mensaje recibido en webhook para chatbot {chatbot_id}: {user_message} desde {from_number}")
+
+        # Validar cuota
         if not check_quota(chatbot.user_id, session):
             twilio_response = MessagingResponse()
             twilio_response.message("Has alcanzado el límite de mensajes de este mes. Actualiza tu plan para continuar.")
@@ -1389,19 +1502,21 @@ def webhook(chatbot_id):
 
         increment_quota(chatbot.user_id, session)
 
+        # Guardar mensaje del usuario
         conversation = Conversation(
             chatbot_id=chatbot_id,
             user_id=user_id,
-            message=incoming_msg,
+            message=user_message,
             role='user'
         )
         session.add(conversation)
         session.commit()
 
+        # Historial + Flujos predefinidos
         history = session.query(Conversation).filter_by(chatbot_id=chatbot_id, user_id=user_id).order_by(Conversation.timestamp.asc()).all()
         flows = session.query(Flow).filter_by(chatbot_id=chatbot_id).order_by(Flow.position.asc()).all()
 
-        user_msg_lower = incoming_msg.lower()
+        user_msg_lower = user_message.lower()
         for flow in flows:
             if user_msg_lower == flow.user_message.lower():
                 response = flow.bot_response
@@ -1418,9 +1533,10 @@ def webhook(chatbot_id):
                 twilio_response.message(response)
                 return Response(str(twilio_response), mimetype='text/xml')
 
+        # Si no hay coincidencia, usar IA (Grok o similar)
         messages = [
             {"role": "system", "content": f"Eres un chatbot {chatbot.tone} llamado '{chatbot.name}'. Tu propósito es {chatbot.purpose}. Usa un tono {chatbot.tone} y gramática correcta."},
-            {"role": "user", "content": f"Historial: {summarize_history(history)}\nMensaje: {incoming_msg}"}
+            {"role": "user", "content": f"Historial: {summarize_history(history)}\nMensaje: {user_message}"}
         ]
         if chatbot.business_info:
             messages[0]["content"] += f"\nNegocio: {chatbot.business_info}"
@@ -1428,6 +1544,7 @@ def webhook(chatbot_id):
             messages[0]["content"] += f"\nContenido del PDF: {chatbot.pdf_content}"
 
         response = call_grok(messages, max_tokens=150)
+
         bot_conversation = Conversation(
             chatbot_id=chatbot_id,
             user_id=user_id,

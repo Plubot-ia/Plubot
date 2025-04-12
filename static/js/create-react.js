@@ -1,17 +1,29 @@
 const { useState, useEffect, useCallback, useMemo } = React;
 const { ReactFlow, ReactFlowProvider, useNodesState, useEdgesState, Background, Controls, addEdge } = ReactFlow;
 
-// Componente CustomNode corregido
+// Componente CustomNode con soporte para acciones avanzadas
 const CustomNode = ({ data, id }) => {
     const [userMessage, setUserMessage] = useState(data.userMessage || '');
     const [botResponse, setBotResponse] = useState(data.botResponse || '');
     const [condition, setCondition] = useState(data.condition || '');
+    const [actionType, setActionType] = useState(data.action?.type || 'none');
+    const [actionValue, setActionValue] = useState(data.action?.value || '');
 
     const handleChange = (field, value) => {
         if (field === 'userMessage') setUserMessage(value);
         if (field === 'botResponse') setBotResponse(value);
         if (field === 'condition') setCondition(value);
-        data.onChange(id, { userMessage, botResponse, condition, [field]: value });
+        if (field === 'actionType') setActionType(value);
+        if (field === 'actionValue') setActionValue(value);
+
+        const updatedData = {
+            userMessage,
+            botResponse,
+            condition,
+            action: { type: actionType, value: actionValue },
+            [field]: value
+        };
+        data.onChange(id, updatedData);
     };
 
     return (
@@ -22,6 +34,7 @@ const CustomNode = ({ data, id }) => {
                     value={userMessage}
                     onChange={(e) => handleChange('userMessage', e.target.value)}
                     placeholder="Mensaje del usuario"
+                    className="w-full"
                 />
             </div>
             <div className="mb-2">
@@ -29,22 +42,177 @@ const CustomNode = ({ data, id }) => {
                     value={botResponse}
                     onChange={(e) => handleChange('botResponse', e.target.value)}
                     placeholder="Respuesta del bot"
+                    className="w-full"
                 />
             </div>
-            <div>
+            <div className="mb-2">
                 <input
                     type="text"
                     value={condition}
                     onChange={(e) => handleChange('condition', e.target.value)}
                     placeholder="Condición (opcional)"
+                    className="w-full"
                 />
             </div>
+            <div className="mb-2">
+                <label className="text-gray-300">Acción (opcional):</label>
+                <select
+                    value={actionType}
+                    onChange={(e) => handleChange('actionType', e.target.value)}
+                    className="contact-select w-full mt-1"
+                >
+                    <option value="none">Ninguna</option>
+                    <option value="payment_link">Enviar enlace de pago</option>
+                    <option value="schedule_link">Enviar enlace de cita</option>
+                </select>
+            </div>
+            {actionType !== 'none' && (
+                <div>
+                    <input
+                        type="text"
+                        value={actionValue}
+                        onChange={(e) => handleChange('actionValue', e.target.value)}
+                        placeholder={actionType === 'payment_link' ? "Monto (ej. 50)" : "URL de Calendly"}
+                        className="contact-input w-full mt-1"
+                    />
+                </div>
+            )}
         </div>
     );
 };
 
 const nodeTypes = { custom: CustomNode };
 
+// Componente de Vista Previa Interactiva
+const PreviewChat = ({ nodes, edges, tone, purpose, businessInfo }) => {
+    const [previewMessages, setPreviewMessages] = useState([]);
+    const [previewInput, setPreviewInput] = useState('');
+    const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
+    const simulateChat = async () => {
+        if (!previewInput) return;
+        setPreviewMessages(prev => [...prev, { role: 'user', content: previewInput }]);
+        setIsPreviewLoading(true);
+
+        const flowData = nodes.map(node => ({
+            userMessage: node.data.userMessage,
+            botResponse: node.data.botResponse,
+            condition: node.data.condition,
+            actions: node.data.action?.type !== 'none' ? [node.data.action] : []
+        }));
+        const tempBotData = {
+            name: 'PreviewBot',
+            tone: tone,
+            purpose: purpose,
+            flows: flowData,
+            business_info: businessInfo
+        };
+
+        try {
+            const createRes = await fetch('/create-bot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(tempBotData)
+            });
+            const createData = await createRes.json();
+            if (!createRes.ok) throw new Error(createData.message || 'Error al crear chatbot temporal');
+
+            const chatbotId = createData.chatbot_id || (createData.message.match(/ID: (\d+)/) || [])[1];
+            if (!chatbotId) throw new Error('No se pudo obtener el ID del chatbot temporal');
+
+            const chatRes = await fetch(`/chat/${chatbotId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ message: previewInput, user_phone: 'test_user' })
+            });
+            const chatData = await chatRes.json();
+            if (chatRes.ok) {
+                setPreviewMessages(prev => [...prev, { role: 'bot', content: chatData.response }]);
+            } else {
+                throw new Error(chatData.message || 'Error al enviar mensaje');
+            }
+
+            await fetch(`/delete-bot/${chatbotId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+        } catch (error) {
+            setPreviewMessages(prev => [...prev, { role: 'bot', content: `Error: ${error.message}` }]);
+        } finally {
+            setIsPreviewLoading(false);
+            setPreviewInput('');
+        }
+    };
+
+    return (
+        <div className="preview-chat mt-4 p-4 bg-gray-800 rounded-lg">
+            <h3 className="text-lg font-semibold text-white mb-2">Vista Previa del Chat</h3>
+            <div className="chat-window h-48 overflow-y-auto p-2 bg-gray-100 rounded">
+                {previewMessages.map((msg, i) => (
+                    <div key={i} className={`chatbot-message ${msg.role} mb-2 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                        <span className={`inline-block p-2 rounded ${msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-300'}`}>
+                            {msg.content}
+                        </span>
+                    </div>
+                ))}
+                {isPreviewLoading && <div className="loading-indicator text-center text-gray-500">Cargando...</div>}
+            </div>
+            <div className="flex mt-2">
+                <input
+                    type="text"
+                    value={previewInput}
+                    onChange={(e) => setPreviewInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && simulateChat()}
+                    placeholder="Escribe un mensaje..."
+                    className="contact-input flex-1 mr-2"
+                    disabled={isPreviewLoading}
+                />
+                <button onClick={simulateChat} disabled={isPreviewLoading} className="quantum-btn">
+                    Enviar
+                </button>
+            </div>
+        </div>
+    );
+};
+
+// Componente de Analíticas
+const AnalyticsPanel = ({ chatbotId }) => {
+    const [analytics, setAnalytics] = useState(null);
+
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            try {
+                const res = await fetch(`/analytics/${chatbotId}`, { credentials: 'include' });
+                const data = await res.json();
+                if (res.ok) {
+                    setAnalytics(data);
+                }
+            } catch (error) {
+                console.error('Error al cargar analíticas:', error);
+            }
+        };
+        if (chatbotId) fetchAnalytics();
+    }, [chatbotId]);
+
+    if (!analytics) return null;
+
+    return (
+        <div className="analytics-panel mt-4 p-4 bg-gray-800 rounded-lg">
+            <h3 className="text-lg font-semibold text-white mb-2">Estadísticas del Chatbot</h3>
+            <p className="text-gray-300">Total de conversaciones: {analytics.total_conversations}</p>
+            <p className="text-gray-300">Mensajes más comunes:</p>
+            <ul className="text-gray-400">
+                {analytics.common_messages.map(([msg, count], i) => (
+                    <li key={i}>{msg}: {count} veces</li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
+// Componente Principal
 const ChatbotApp = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(null);
     const [name, setName] = useState('');
@@ -56,7 +224,7 @@ const ChatbotApp = () => {
     const [imageUrl, setImageUrl] = useState('');
     const [menuJson, setMenuJson] = useState('');
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]); // Corregido onEdgesState a onEdgesChange
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [chatbots, setChatbots] = useState([]);
     const [messages, setMessages] = useState([]);
     const [inputMessage, setInputMessage] = useState('');
@@ -69,13 +237,12 @@ const ChatbotApp = () => {
     const [templates, setTemplates] = useState([]);
     const [selectedTemplate, setSelectedTemplate] = useState('');
     const [step, setStep] = useState(1);
-    const [previewMessage, setPreviewMessage] = useState('');
     const [quota, setQuota] = useState({ messages_used: 0, messages_limit: 100 });
     const [editingBot, setEditingBot] = useState(null);
     const [whatsappError, setWhatsappError] = useState('');
     const [menuJsonError, setMenuJsonError] = useState('');
     const [previewNodes, setPreviewNodes] = useState([]);
-    const [previewEdges, setPreviewEdges, onPreviewEdgesChange] = useEdgesState([]); // Corregido
+    const [previewEdges, setPreviewEdges, onPreviewEdgesChange] = useEdgesState([]);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [previewTemplateId, setPreviewTemplateId] = useState(null);
 
@@ -94,13 +261,13 @@ const ChatbotApp = () => {
         closeBtn.onclick = () => helpModal.classList.add('hidden');
     }, []);
 
-    // Carga inicial con depuración
+    // Carga inicial con manejo de errores
     useEffect(() => {
         const loadInitialData = async () => {
             console.log("Cargando datos iniciales...");
             try {
                 const [botsRes, templatesRes, quotaRes] = await Promise.all([
-                    fetch('/list-bots', { credentials: 'include' }),
+                    fetch('/api/chatbots', { credentials: 'include' }),
                     fetch('/api/templates', { credentials: 'include' }),
                     fetch('/api/quota', { credentials: 'include' })
                 ]);
@@ -120,9 +287,8 @@ const ChatbotApp = () => {
                 setIsAuthenticated(true);
             } catch (error) {
                 console.error('Error en loadInitialData:', error);
-                setIsAuthenticated(false);
-                setResponseMessage(`Error al cargar datos iniciales: ${error.message}. Redirigiendo...`);
-                setTimeout(() => window.location.href = '/login', 2000);
+                setResponseMessage(`Error al cargar datos iniciales: ${error.message}. Redirigiendo al login...`);
+                setTimeout(() => window.location.href = '/login', 3000);
             }
         };
         loadInitialData();
@@ -145,20 +311,22 @@ const ChatbotApp = () => {
     }, []);
 
     // Manejo de nodos
-    const updateFlowFromNode = useCallback((id, { userMessage, botResponse, condition }) => {
-        setNodes(nodes => nodes.map(node => 
-            node.id === id ? { ...node, data: { ...node.data, userMessage, botResponse, condition } } : node
+    const updateFlowFromNode = useCallback((id, updatedData) => {
+        setNodes(nodes => nodes.map(node =>
+            node.id === id ? { ...node, data: { ...node.data, ...updatedData } } : node
         ));
     }, []);
 
-    const onConnect = useCallback((params) => setEdges(eds => addEdge(params, eds)), [setEdges]);
+    const onConnect = useCallback((params) => {
+        setEdges(eds => addEdge({ ...params, animated: true, style: { stroke: '#00e0ff' } }, eds));
+    }, [setEdges]);
 
     const addNewNode = useCallback(() => {
-        const newId = `node-${nodes.length}`; // Asegura un ID único
+        const newId = `node-${nodes.length}`;
         const newNode = {
             id: newId,
             type: 'custom',
-            data: { userMessage: '', botResponse: '', condition: '', onChange: updateFlowFromNode },
+            data: { userMessage: '', botResponse: '', condition: '', action: { type: 'none', value: '' }, onChange: updateFlowFromNode },
             position: { x: 250, y: nodes.length * 100 + 50 }
         };
         setNodes(nds => [...nds, newNode]);
@@ -174,7 +342,7 @@ const ChatbotApp = () => {
             const newNodes = template.flows.map((flow, i) => ({
                 id: `${i}`,
                 type: 'custom',
-                data: { userMessage: flow.user_message, botResponse: flow.bot_response, condition: '', onChange: updateFlowFromNode },
+                data: { userMessage: flow.user_message, botResponse: flow.bot_response, condition: '', action: { type: 'none', value: '' }, onChange: updateFlowFromNode },
                 position: { x: 250, y: i * 100 + 50 }
             }));
             setNodes(newNodes);
@@ -189,7 +357,7 @@ const ChatbotApp = () => {
             const newNodes = template.flows.map((flow, i) => ({
                 id: `${i}`,
                 type: 'custom',
-                data: { userMessage: flow.user_message, botResponse: flow.bot_response, condition: '', onChange: () => {} },
+                data: { userMessage: flow.user_message, botResponse: flow.bot_response, condition: '', action: { type: 'none', value: '' }, onChange: () => {} },
                 position: { x: 250, y: i * 100 + 50 }
             }));
             setPreviewNodes(newNodes);
@@ -215,36 +383,41 @@ const ChatbotApp = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (whatsappError || menuJsonError) return;
+        if (!name || !purpose) {
+            setResponseMessage('El nombre y el propósito son obligatorios');
+            return;
+        }
         setIsLoading(true);
         const flowData = nodes.map(node => ({
             userMessage: node.data.userMessage,
             botResponse: node.data.botResponse,
-            condition: node.data.condition
+            condition: node.data.condition,
+            actions: node.data.action?.type !== 'none' ? [node.data.action] : []
         }));
         const botData = {
             name, tone, purpose, whatsapp_number: whatsappNumber,
             business_info: businessInfo, pdf_url: pdfUrl, image_url: imageUrl,
-            flows: flowData, template_id: selectedTemplate || null, menu_json: menuJson,
-            ...(editingBot && { chatbot_id: editingBot.id })
+            flows: flowData, template_id: selectedTemplate || null, menu_json: menuJson
         };
-        const endpoint = editingBot ? '/update-bot' : '/create-bot';
+        const endpoint = editingBot ? `/update-bot/${editingBot.id}` : '/create-bot';
+        const method = editingBot ? 'PUT' : 'POST';
         try {
             const res = await fetch(endpoint, {
-                method: 'POST',
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify(botData)
             });
             const data = await res.json();
             if (res.ok) {
-                setChatbots((await (await fetch('/list-bots', { credentials: 'include' })).json()).chatbots || []);
-                setResponseMessage(data.message);
+                setChatbots((await (await fetch('/api/chatbots', { credentials: 'include' })).json()).chatbots || []);
+                setResponseMessage(data.message || 'Chatbot guardado con éxito');
                 resetForm();
             } else {
-                setResponseMessage(data.message);
+                setResponseMessage(data.message || 'Error al guardar el chatbot');
             }
-        } catch {
-            setResponseMessage('Error al guardar el chatbot');
+        } catch (error) {
+            setResponseMessage(`Error al guardar el chatbot: ${error.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -265,18 +438,20 @@ const ChatbotApp = () => {
         setMessages([{ role: 'bot', content: chatbot.initial_message || 'Hola, ¿en qué puedo ayudarte?' }]);
         setIsLoading(true);
         try {
-            const res = await fetch('/conversation-history', {
+            const res = await fetch(`/chat/${chatbot.id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ chatbot_id: chatbot.id })
+                body: JSON.stringify({ message: 'Hola', user_phone: 'test_user' })
             });
             const data = await res.json();
             if (res.ok) {
-                setMessages(prev => [...prev, ...data.history.map(msg => ({ role: msg.role, content: msg.message }))]);
+                setMessages(prev => [...prev, { role: 'bot', content: data.response }]);
+            } else {
+                setResponseMessage(data.message || 'Error al iniciar el chat');
             }
-        } catch {
-            setResponseMessage('Error al cargar historial');
+        } catch (error) {
+            setResponseMessage(`Error al iniciar el chat: ${error.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -289,24 +464,24 @@ const ChatbotApp = () => {
         setInputMessage('');
         setIsLoading(true);
         try {
-            const res = await fetch('/chat', {
+            const res = await fetch(`/chat/${selectedChatbot.id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ chatbot_id: selectedChatbot.id, message: inputMessage })
+                body: JSON.stringify({ message: inputMessage, user_phone: 'test_user' })
             });
             const data = await res.json();
             if (res.ok) {
                 setMessages(prev => [...prev, { role: 'bot', content: data.response }]);
                 const quotaRes = await fetch('/api/quota', { credentials: 'include' });
                 if (quotaRes.ok) setQuota(await quotaRes.json());
-            } else if (res.status === 403) {
+            } else if (res.status === 429) {
                 setResponseMessage('Límite de mensajes alcanzado. Suscríbete en <a href="/pricing">aquí</a>.');
             } else {
-                setResponseMessage(data.message);
+                setResponseMessage(data.message || 'Error al enviar mensaje');
             }
-        } catch {
-            setResponseMessage('Error al enviar mensaje');
+        } catch (error) {
+            setResponseMessage(`Error al enviar mensaje: ${error.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -316,25 +491,24 @@ const ChatbotApp = () => {
         if (!chatbotToDelete) return;
         setIsLoading(true);
         try {
-            const res = await fetch('/delete-bot', {
-                method: 'POST',
+            const res = await fetch(`/delete-bot/${chatbotToDelete.id}`, {
+                method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ chatbot_id: chatbotToDelete.id })
+                credentials: 'include'
             });
             const data = await res.json();
             if (res.ok) {
-                setChatbots((await (await fetch('/list-bots', { credentials: 'include' })).json()).chatbots || []);
-                setResponseMessage(data.message);
+                setChatbots((await (await fetch('/api/chatbots', { credentials: 'include' })).json()).chatbots || []);
+                setResponseMessage(data.message || 'Chatbot eliminado con éxito');
                 if (selectedChatbot?.id === chatbotToDelete.id) {
                     setSelectedChatbot(null);
                     setMessages([]);
                 }
             } else {
-                setResponseMessage(data.message);
+                setResponseMessage(data.message || 'Error al eliminar el chatbot');
             }
-        } catch {
-            setResponseMessage('Error al eliminar');
+        } catch (error) {
+            setResponseMessage(`Error al eliminar: ${error.message}`);
         } finally {
             setIsLoading(false);
             setShowDeleteModal(false);
@@ -392,8 +566,8 @@ const ChatbotApp = () => {
             });
             const data = await res.json();
             setResponseMessage(data.message);
-        } catch {
-            setResponseMessage('Error al conectar WhatsApp');
+        } catch (error) {
+            setResponseMessage(`Error al conectar WhatsApp: ${error.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -409,38 +583,10 @@ const ChatbotApp = () => {
         setPdfUrl(chatbot.pdf_url || '');
         setImageUrl(chatbot.image_url || '');
         setMenuJson('');
-        try {
-            const res = await fetch('/conversation-history', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ chatbot_id: chatbot.id })
-            });
-            const data = await res.json();
-            const botFlows = data.history
-                .filter(msg => msg.role === 'user')
-                .map((msg, i) => {
-                    const botRes = data.history.find((r, j) => j > i && r.role === 'bot');
-                    return { userMessage: msg.message, botResponse: botRes?.message || '', condition: '' };
-                });
-            const newNodes = botFlows.map((flow, i) => ({
-                id: `${i}`,
-                type: 'custom',
-                data: { ...flow, onChange: updateFlowFromNode },
-                position: { x: 250, y: i * 100 + 50 }
-            }));
-            setNodes(newNodes);
-            setEdges([]);
-            setStep(1);
-        } catch {
-            setResponseMessage('Error al cargar historial para edición');
-        }
+        setNodes([]);
+        setEdges([]);
+        setStep(1);
     };
-
-    const previewResponse = useMemo(() => {
-        const node = nodes.find(n => n.data.userMessage.toLowerCase() === previewMessage.toLowerCase());
-        return node?.data.botResponse || 'Escribe un mensaje para previsualizar';
-    }, [nodes, previewMessage]);
 
     const renderStep = () => {
         switch (step) {
@@ -448,32 +594,41 @@ const ChatbotApp = () => {
                 return (
                     <div className="mb-8">
                         <h2 className="text-xl font-semibold mb-6 text-white">Paso 1: Información Básica</h2>
-                        <input
-                            className="contact-input mb-4"
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Nombre del Chatbot"
-                            required
-                        />
-                        <select
-                            className="contact-select mb-4"
-                            value={tone}
-                            onChange={(e) => setTone(e.target.value)}
-                        >
-                            <option value="amigable">Amigable</option>
-                            <option value="profesional">Profesional</option>
-                            <option value="divertido">Divertido</option>
-                            <option value="serio">Serio</option>
-                        </select>
-                        <input
-                            className="contact-input mb-4"
-                            type="text"
-                            value={purpose}
-                            onChange={(e) => setPurpose(e.target.value)}
-                            placeholder="Propósito (ej. ventas, soporte)"
-                            required
-                        />
+                        <div className="mb-4">
+                            <label className="text-gray-300">Nombre del Chatbot</label>
+                            <input
+                                className="contact-input mb-2"
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Nombre del Chatbot"
+                                required
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="text-gray-300">Tono del Chatbot</label>
+                            <select
+                                className="contact-select mb-2"
+                                value={tone}
+                                onChange={(e) => setTone(e.target.value)}
+                            >
+                                <option value="amigable">Amigable</option>
+                                <option value="profesional">Profesional</option>
+                                <option value="divertido">Divertido</option>
+                                <option value="serio">Serio</option>
+                            </select>
+                        </div>
+                        <div className="mb-4">
+                            <label className="text-gray-300">Propósito del Chatbot</label>
+                            <input
+                                className="contact-input mb-2"
+                                type="text"
+                                value={purpose}
+                                onChange={(e) => setPurpose(e.target.value)}
+                                placeholder="Propósito (ej. ventas, soporte)"
+                                required
+                            />
+                        </div>
                         <button
                             type="button"
                             className="quantum-btn w-full"
@@ -540,7 +695,7 @@ const ChatbotApp = () => {
                 return (
                     <div className="mb-8">
                         <h2 className="text-xl font-semibold mb-6 text-white">Paso 3: Personalización</h2>
-                        <div className="react-flow__container" style={{ height: '500px', marginBottom: '20px' }} onDrop={(e) => {
+                        <div className="react-flow__container" style={{ height: '400px', marginBottom: '20px' }} onDrop={(e) => {
                             const templateId = e.dataTransfer.getData('templateId');
                             if (templateId) applyTemplate(templateId);
                             e.preventDefault();
@@ -550,7 +705,7 @@ const ChatbotApp = () => {
                                     nodes={nodes}
                                     edges={edges}
                                     onNodesChange={onNodesChange}
-                                    onEdgesChange={onEdgesChange} // Corregido
+                                    onEdgesChange={onEdgesChange}
                                     onConnect={onConnect}
                                     nodeTypes={nodeTypes}
                                     fitView
@@ -563,17 +718,8 @@ const ChatbotApp = () => {
                                 </ReactFlow>
                             </ReactFlowProvider>
                         </div>
-                        <div className="mb-4">
-                            <input
-                                className="contact-input w-full mb-2"
-                                type="text"
-                                value={previewMessage}
-                                onChange={(e) => setPreviewMessage(e.target.value)}
-                                placeholder="Prueba un mensaje"
-                            />
-                            <p className="text-gray-400">Respuesta: {previewResponse}</p>
-                        </div>
-                        <div className="flex space-x-4">
+                        <PreviewChat nodes={nodes} edges={edges} tone={tone} purpose={purpose} businessInfo={businessInfo} />
+                        <div className="flex space-x-4 mt-4">
                             <button className="quantum-btn magenta flex-1" onClick={() => setStep(2)}>Atrás</button>
                             <button className="quantum-btn flex-1" onClick={() => setStep(4)}>Siguiente</button>
                         </div>
@@ -583,43 +729,58 @@ const ChatbotApp = () => {
                 return (
                     <div className="mb-8">
                         <h2 className="text-xl font-semibold mb-6 text-white">Paso 4: Revisión</h2>
-                        <input
-                            className="contact-input mb-4"
-                            type="text"
-                            value={whatsappNumber}
-                            onChange={(e) => { setWhatsappNumber(e.target.value); validateWhatsappNumber(e.target.value); }}
-                            placeholder="Número de WhatsApp (+1234567890)"
-                        />
-                        {whatsappError && <p className="text-red-500 mb-4">{whatsappError}</p>}
-                        <textarea
-                            className="contact-textarea mb-4"
-                            value={businessInfo}
-                            onChange={(e) => setBusinessInfo(e.target.value)}
-                            placeholder="Información del negocio (opcional)"
-                        />
-                        <div className="form-grid mb-4">
+                        <div className="mb-4">
+                            <label className="text-gray-300">Número de WhatsApp</label>
                             <input
-                                className="contact-input"
-                                type="url"
-                                value={pdfUrl}
-                                onChange={(e) => setPdfUrl(e.target.value)}
-                                placeholder="URL del PDF (opcional)"
+                                className="contact-input mb-2"
+                                type="text"
+                                value={whatsappNumber}
+                                onChange={(e) => { setWhatsappNumber(e.target.value); validateWhatsappNumber(e.target.value); }}
+                                placeholder="Número de WhatsApp (+1234567890)"
                             />
-                            <input
-                                className="contact-input"
-                                type="url"
-                                value={imageUrl}
-                                onChange={(e) => setImageUrl(e.target.value)}
-                                placeholder="URL de la Imagen (opcional)"
+                            {whatsappError && <p className="text-red-500 mb-2">{whatsappError}</p>}
+                        </div>
+                        <div className="mb-4">
+                            <label className="text-gray-300">Información del Negocio</label>
+                            <textarea
+                                className="contact-textarea mb-2"
+                                value={businessInfo}
+                                onChange={(e) => setBusinessInfo(e.target.value)}
+                                placeholder="Información del negocio (opcional)"
                             />
                         </div>
-                        <textarea
-                            className="contact-textarea mb-4"
-                            value={menuJson}
-                            onChange={(e) => { setMenuJson(e.target.value); validateMenuJson(e.target.value); }}
-                            placeholder='Menú en JSON (opcional): {"Cafés": {"Latte": {"precio": 3.5}}}'
-                        />
-                        {menuJsonError && <p className="text-red-500 mb-4">{menuJsonError}</p>}
+                        <div className="form-grid mb-4">
+                            <div>
+                                <label className="text-gray-300">URL del PDF</label>
+                                <input
+                                    className="contact-input"
+                                    type="url"
+                                    value={pdfUrl}
+                                    onChange={(e) => setPdfUrl(e.target.value)}
+                                    placeholder="URL del PDF (opcional)"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-gray-300">URL de la Imagen</label>
+                                <input
+                                    className="contact-input"
+                                    type="url"
+                                    value={imageUrl}
+                                    onChange={(e) => setImageUrl(e.target.value)}
+                                    placeholder="URL de la Imagen (opcional)"
+                                />
+                            </div>
+                        </div>
+                        <div className="mb-4">
+                            <label className="text-gray-300">Menú en JSON</label>
+                            <textarea
+                                className="contact-textarea mb-2"
+                                value={menuJson}
+                                onChange={(e) => { setMenuJson(e.target.value); validateMenuJson(e.target.value); }}
+                                placeholder='Menú en JSON (opcional): {"Cafés": {"Latte": {"precio": 3.5}}}'
+                            />
+                            {menuJsonError && <p className="text-red-500 mb-2">{menuJsonError}</p>}
+                        </div>
                         <div className="file-upload mb-4">
                             <label className="text-gray-300">Subir PDF o Imagen (máx. 5MB)</label>
                             <input type="file" accept=".pdf,image/*" onChange={handleFileUpload} />
@@ -679,6 +840,7 @@ const ChatbotApp = () => {
                                     <strong>{bot.name}</strong> - {bot.purpose} (Tono: {bot.tone})
                                     {bot.whatsapp_number && ` | WhatsApp: ${bot.whatsapp_number}`}
                                 </div>
+                                <AnalyticsPanel chatbotId={bot.id} />
                                 <div className="chatbot-item-buttons mt-2 flex gap-2 flex-wrap">
                                     <button className="quantum-btn magenta" onClick={() => startChat(bot)} disabled={isLoading}>
                                         {isLoading ? 'Cargando...' : 'Chatear'}
